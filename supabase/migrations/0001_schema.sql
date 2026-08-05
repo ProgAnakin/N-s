@@ -331,6 +331,10 @@ create trigger trips_touch
 create table if not exists public.trip_items (
   id               uuid primary key default gen_random_uuid(),
   trip_id          uuid not null references public.trips (id) on delete cascade,
+  -- Denormalised from the parent trip by the trigger below. It is never sent
+  -- by the client, so it cannot be spoofed, and it lets the home screen count
+  -- loose ends across every trip in one query instead of one query per trip.
+  couple_id        uuid not null references public.couples (id) on delete cascade,
   type             text not null default 'activity'
                      check (type in ('flight', 'stay', 'activity', 'doc')),
   title            text not null,
@@ -348,6 +352,28 @@ create table if not exists public.trip_items (
 
 create index if not exists trip_items_trip_idx
   on public.trip_items (trip_id, sort_order);
+create index if not exists trip_items_couple_idx
+  on public.trip_items (couple_id, done);
+
+-- Fills couple_id from the parent trip. Because this runs BEFORE the row is
+-- checked, an item pointing at someone else's trip finds nothing (that trip is
+-- invisible under RLS) and the insert is refused rather than mislabelled.
+create or replace function public.set_trip_item_couple()
+returns trigger
+language plpgsql
+as $$
+begin
+  select t.couple_id into new.couple_id from public.trips t where t.id = new.trip_id;
+  if new.couple_id is null then
+    raise exception 'Unknown trip.' using errcode = '23503';
+  end if;
+  return new;
+end;
+$$;
+
+create trigger trip_items_set_couple
+  before insert or update of trip_id on public.trip_items
+  for each row execute function public.set_trip_item_couple();
 
 create trigger trip_items_touch
   before update on public.trip_items

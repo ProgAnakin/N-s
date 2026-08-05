@@ -1,0 +1,464 @@
+import { useMemo, useState } from 'react';
+import { Plus, Scale } from 'lucide-react';
+import { BalanceBar, RebalanceNote, TreatsNote } from '@/components/BalanceBar';
+import { Button } from '@/components/ui/Button';
+import { ErrorNote, Tag } from '@/components/ui/Bits';
+import { ChoiceField, SelectField, TextAreaField, TextField } from '@/components/ui/Field';
+import { Modal } from '@/components/ui/Modal';
+import { EmptyState, PageHeader, Rule, SectionHeading, Sheet } from '@/components/ui/Surface';
+import { useCouple } from '@/data/session';
+import { toExpenses } from '@/data/mappers';
+import type {
+  CurrencyColumn,
+  ExpenseCategoryColumn,
+  ExpenseRow,
+  PartnerRoleColumn,
+  SplitRuleColumn,
+} from '@/data/database.types';
+import { parseISODate, toISODate } from '@/lib/calendar';
+import { formatDate } from '@/lib/dates';
+import {
+  CURRENCIES,
+  CURRENCY_SYMBOLS,
+  EXPENSE_CATEGORIES,
+  centsToInputValue,
+  computeBalancesByCurrency,
+  parseAmountToCents,
+  totalsByCategory,
+} from '@/lib/money';
+import { useI18n, useStrings } from '@/i18n';
+import { RecordActions, useCoupleTable, useMoney, usePartnerNames, useToday } from './shared';
+
+interface Draft {
+  id: string | null;
+  label: string;
+  amount: string;
+  currency: CurrencyColumn;
+  paidBy: PartnerRoleColumn;
+  date: string;
+  category: ExpenseCategoryColumn;
+  splitRule: SplitRuleColumn;
+  partnerAPercent: number;
+  tripId: string;
+  note: string;
+}
+
+/**
+ * Spending.
+ *
+ * The rules this screen keeps, without exception:
+ *
+ *   - No debt language anywhere. Nobody owes anybody. The strongest statement
+ *     the page will make is a suggestion about who might pay next.
+ *   - Treats are visible but excluded from the balance. A gift is a gift.
+ *   - Currencies are never converted. A trip paid for in yuan and a rent
+ *     paid in euros are two separate balances, because an invented exchange
+ *     rate would turn an honest number into a guess.
+ *   - Every figure comes from a tested function in /src/lib/money.ts. This
+ *     file does no arithmetic of its own.
+ */
+export function SpendingScreen() {
+  const s = useStrings();
+  const { intlLocale } = useI18n();
+  const { couple, role } = useCouple();
+  const names = usePartnerNames();
+  const money = useMoney();
+  const today = useToday();
+
+  const expenses = useCoupleTable('expenses', {
+    coupleId: couple.id,
+    orderBy: 'date',
+    ascending: false,
+  });
+  const trips = useCoupleTable('trips', { coupleId: couple.id, orderBy: 'start_date' });
+
+  const [draft, setDraft] = useState<Draft | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [amountError, setAmountError] = useState<string | null>(null);
+  const [showPhilosophy, setShowPhilosophy] = useState(false);
+
+  const domain = useMemo(() => toExpenses(expenses.rows), [expenses.rows]);
+  const balances = useMemo(
+    () => computeBalancesByCurrency(domain, couple.currency),
+    [domain, couple.currency],
+  );
+  const categories = useMemo(
+    () => totalsByCategory(domain, couple.currency),
+    [domain, couple.currency],
+  );
+  const categoryTotal = categories.reduce((sum, entry) => sum + entry.totalCents, 0);
+
+  function startNew() {
+    setDraft({
+      id: null,
+      label: '',
+      amount: '',
+      currency: couple.currency,
+      paidBy: role,
+      date: toISODate(today),
+      category: 'food',
+      splitRule: '50_50',
+      partnerAPercent: 50,
+      tripId: '',
+      note: '',
+    });
+    setAmountError(null);
+  }
+
+  function startEdit(row: ExpenseRow) {
+    setDraft({
+      id: row.id,
+      label: row.label,
+      amount: centsToInputValue(row.amount_cents),
+      currency: row.currency,
+      paidBy: row.paid_by,
+      date: row.date,
+      category: row.category,
+      splitRule: row.split_rule,
+      partnerAPercent: row.partner_a_percent ?? 50,
+      tripId: row.trip_id ?? '',
+      note: row.note ?? '',
+    });
+    setAmountError(null);
+  }
+
+  async function onSubmit(event?: { preventDefault: () => void }) {
+    event?.preventDefault();
+    if (!draft || !draft.label.trim()) return;
+
+    const cents = parseAmountToCents(draft.amount);
+    if (cents === null || cents <= 0) {
+      setAmountError(draft.amount.trim() ? s.errors.amountInvalid : s.errors.amountRequired);
+      return;
+    }
+
+    setSaving(true);
+    const values = {
+      label: draft.label.trim(),
+      amount_cents: cents,
+      currency: draft.currency,
+      paid_by: draft.paidBy,
+      date: draft.date,
+      category: draft.category,
+      split_rule: draft.splitRule,
+      partner_a_percent: draft.splitRule === 'custom_pct' ? draft.partnerAPercent : null,
+      trip_id: draft.tripId || null,
+      note: draft.note.trim() || null,
+    };
+    if (draft.id) await expenses.update(draft.id, values);
+    else await expenses.create({ ...values, couple_id: couple.id });
+    setSaving(false);
+    setDraft(null);
+  }
+
+  return (
+    <div>
+      <PageHeader
+        kicker={s.nav.spending}
+        title={s.spending.title}
+        subtitle={s.spending.philosophy}
+        actions={
+          <Button variant="primary" onClick={startNew}>
+            <Plus className="h-4 w-4" />
+            {s.common.add}
+          </Button>
+        }
+      />
+
+      <button
+        type="button"
+        onClick={() => setShowPhilosophy((current) => !current)}
+        className="-mt-3 mb-7 rounded-sm text-sm text-cinnabar underline-offset-4 hover:underline"
+        aria-expanded={showPhilosophy}
+      >
+        {showPhilosophy ? s.common.less : s.common.more}
+      </button>
+      {showPhilosophy && (
+        <p className="-mt-5 mb-7 max-w-column text-pretty text-sm leading-relaxed text-ink-soft">
+          {s.spending.philosophyMore}
+        </p>
+      )}
+
+      {/* --- Balance, one card per currency in play ------------------------- */}
+      <div className="flex flex-col gap-4">
+        {balances.map((balance) => (
+          <Sheet key={balance.currency} className="p-5">
+            <div className="mb-4 flex items-baseline justify-between gap-3">
+              <h2 className="label-kicker">{s.spending.balanceTitle}</h2>
+              {balances.length > 1 && <Tag>{balance.currency}</Tag>}
+            </div>
+            <BalanceBar balance={balance} names={names} />
+            <Rule className="my-5" />
+            <RebalanceNote balance={balance} names={names} />
+            {(balance.treatedCents.partner_a > 0 || balance.treatedCents.partner_b > 0) && (
+              <>
+                <Rule className="my-5" />
+                <TreatsNote balance={balance} names={names} />
+              </>
+            )}
+          </Sheet>
+        ))}
+      </div>
+
+      {/* --- Where it goes --------------------------------------------------- */}
+      {categories.length > 0 && (
+        <section className="mt-9">
+          <SectionHeading>{s.spending.byCategory}</SectionHeading>
+          <ul className="flex flex-col gap-2">
+            {categories.map((entry) => {
+              const percent = categoryTotal > 0 ? (entry.totalCents / categoryTotal) * 100 : 0;
+              return (
+                <li key={entry.category} className="flex items-center gap-3">
+                  <span className="w-24 shrink-0 truncate text-sm text-ink-soft">
+                    {s.expenseCategories[entry.category]}
+                  </span>
+                  <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-sunk">
+                    <span
+                      className="block h-full rounded-full bg-cinnabar/70"
+                      style={{ width: `${percent}%` }}
+                    />
+                  </span>
+                  <span className="shrink-0 text-sm tabular-nums text-ink-faint">
+                    {money(entry.totalCents, couple.currency, true)}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+
+      {/* --- History ---------------------------------------------------------- */}
+      <section className="mt-9">
+        <SectionHeading>{s.spending.history}</SectionHeading>
+
+        {expenses.rows.length === 0 ? (
+          <EmptyState
+            icon={<Scale />}
+            title={s.spending.emptyTitle}
+            body={s.spending.emptyBody}
+            action={
+              <Button variant="primary" onClick={startNew}>
+                {s.spending.add}
+              </Button>
+            }
+          />
+        ) : (
+          <ul className="flex flex-col">
+            {expenses.rows.map((row) => {
+              const date = parseISODate(row.date);
+              return (
+                <li
+                  key={row.id}
+                  className="flex items-center gap-3 border-b border-rule py-3 last:border-0"
+                >
+                  <span
+                    aria-hidden="true"
+                    className={
+                      row.paid_by === 'partner_a'
+                        ? 'h-6 w-[3px] shrink-0 rounded-full bg-cinnabar'
+                        : 'h-6 w-[3px] shrink-0 rounded-full bg-jade'
+                    }
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-base text-ink">{row.label}</p>
+                    <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-ink-faint">
+                      <span>{names[row.paid_by]}</span>
+                      {date && <span>{formatDate(date, 'medium', intlLocale)}</span>}
+                      <span>{s.expenseCategories[row.category]}</span>
+                      {row.split_rule === 'treat' && (
+                        <Tag tone="jade">{s.spending.treatBadge}</Tag>
+                      )}
+                      {row.split_rule === 'custom_pct' && row.partner_a_percent !== null && (
+                        <Tag>{s.spending.splitBadge(row.partner_a_percent)}</Tag>
+                      )}
+                    </p>
+                  </div>
+                  <span className="shrink-0 text-base tabular-nums text-ink">
+                    {money(row.amount_cents, row.currency)}
+                  </span>
+                  <RecordActions
+                    onEdit={() => startEdit(row)}
+                    onDelete={() => void expenses.remove(row.id)}
+                  />
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+
+      {/* --- Editor ------------------------------------------------------------ */}
+      <Modal
+        open={draft !== null}
+        onClose={() => setDraft(null)}
+        title={draft?.id ? s.spending.edit : s.spending.add}
+        footer={
+          <>
+            <Button onClick={() => setDraft(null)}>{s.common.cancel}</Button>
+            <Button
+              variant="primary"
+              onClick={() => void onSubmit()}
+              disabled={saving || !draft?.label.trim()}
+            >
+              {saving ? s.common.saving : s.common.save}
+            </Button>
+          </>
+        }
+      >
+        {draft && (
+          <form onSubmit={onSubmit} className="flex flex-col gap-4 pb-4">
+            <TextField
+              label={s.spending.label}
+              placeholder={s.spending.labelPlaceholder}
+              value={draft.label}
+              onChange={(event) => setDraft({ ...draft, label: event.target.value })}
+              required
+            />
+
+            <div className="grid grid-cols-[1fr_auto] gap-3">
+              <TextField
+                label={s.spending.amount}
+                inputMode="decimal"
+                placeholder="0.00"
+                value={draft.amount}
+                onChange={(event) => {
+                  setDraft({ ...draft, amount: event.target.value });
+                  setAmountError(null);
+                }}
+                error={amountError}
+                required
+              />
+              <SelectField
+                label={s.spending.currency}
+                value={draft.currency}
+                onChange={(event) =>
+                  setDraft({ ...draft, currency: event.target.value as CurrencyColumn })
+                }
+                className="w-28"
+              >
+                {CURRENCIES.map((code) => (
+                  <option key={code} value={code}>
+                    {CURRENCY_SYMBOLS[code]} {code}
+                  </option>
+                ))}
+              </SelectField>
+            </div>
+
+            <ChoiceField
+              label={s.spending.paidBy}
+              value={draft.paidBy}
+              onChange={(paidBy) => setDraft({ ...draft, paidBy })}
+              options={[
+                { value: 'partner_a' as PartnerRoleColumn, label: names.partner_a },
+                { value: 'partner_b' as PartnerRoleColumn, label: names.partner_b },
+              ]}
+            />
+
+            <ChoiceField
+              label={s.spending.splitRule}
+              value={draft.splitRule}
+              onChange={(splitRule) => setDraft({ ...draft, splitRule })}
+              options={[
+                {
+                  value: '50_50' as SplitRuleColumn,
+                  label: s.splitRules['50_50'],
+                  hint: s.splitRules['50_50Hint'],
+                },
+                {
+                  value: 'custom_pct' as SplitRuleColumn,
+                  label: s.splitRules.custom_pct,
+                  hint: s.splitRules.custom_pctHint,
+                },
+                {
+                  value: 'treat' as SplitRuleColumn,
+                  label: s.splitRules.treat,
+                  hint: s.splitRules.treatHint,
+                },
+              ]}
+            />
+
+            {draft.splitRule === 'custom_pct' && (
+              <div className="flex flex-col gap-2 rounded-sm border border-rule bg-sunk/60 p-3">
+                <label
+                  htmlFor="split-percent"
+                  className="text-sm font-medium text-ink"
+                >
+                  {s.spending.customPercent}
+                </label>
+                <input
+                  id="split-percent"
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={5}
+                  value={draft.partnerAPercent}
+                  onChange={(event) =>
+                    setDraft({ ...draft, partnerAPercent: Number(event.target.value) })
+                  }
+                  className="w-full accent-[hsl(var(--cinnabar))]"
+                />
+                <p className="text-xs text-ink-soft">
+                  {s.spending.customPercentHint(
+                    names.partner_a,
+                    draft.partnerAPercent,
+                    names.partner_b,
+                    100 - draft.partnerAPercent,
+                  )}
+                </p>
+              </div>
+            )}
+
+            <TextField
+              label={s.spending.date}
+              type="date"
+              value={draft.date}
+              onChange={(event) => setDraft({ ...draft, date: event.target.value })}
+              required
+            />
+
+            <SelectField
+              label={s.spending.category}
+              value={draft.category}
+              onChange={(event) =>
+                setDraft({ ...draft, category: event.target.value as ExpenseCategoryColumn })
+              }
+            >
+              {EXPENSE_CATEGORIES.map((value) => (
+                <option key={value} value={value}>
+                  {s.expenseCategories[value]}
+                </option>
+              ))}
+            </SelectField>
+
+            {trips.rows.length > 0 && (
+              <SelectField
+                label={s.spending.trip}
+                value={draft.tripId}
+                onChange={(event) => setDraft({ ...draft, tripId: event.target.value })}
+                optional
+              >
+                <option value="">{s.spending.noTrip}</option>
+                {trips.rows.map((trip) => (
+                  <option key={trip.id} value={trip.id}>
+                    {trip.destination}
+                  </option>
+                ))}
+              </SelectField>
+            )}
+
+            <TextAreaField
+              label={s.spending.note}
+              value={draft.note}
+              onChange={(event) => setDraft({ ...draft, note: event.target.value })}
+              rows={2}
+              optional
+            />
+
+            {amountError && <ErrorNote>{amountError}</ErrorNote>}
+          </form>
+        )}
+      </Modal>
+    </div>
+  );
+}

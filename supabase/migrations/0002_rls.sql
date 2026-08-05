@@ -114,7 +114,7 @@ declare
 begin
   foreach shared_table in array array[
     'memories', 'important_dates', 'family_members',
-    'phrases', 'culture_notes', 'trips', 'expenses'
+    'phrases', 'culture_notes', 'trips', 'trip_items', 'expenses'
   ]
   loop
     execute format('drop policy if exists %I_all on public.%I', shared_table, shared_table);
@@ -128,27 +128,8 @@ begin
 end;
 $$;
 
--- ---------------------------------------------------------------------
--- trip_items — reached through their trip
--- ---------------------------------------------------------------------
-
-drop policy if exists trip_items_all on public.trip_items;
-create policy trip_items_all on public.trip_items
-  for all to authenticated
-  using (
-    exists (
-      select 1 from public.trips t
-      where t.id = trip_items.trip_id
-        and t.couple_id = public.current_couple_id()
-    )
-  )
-  with check (
-    exists (
-      select 1 from public.trips t
-      where t.id = trip_items.trip_id
-        and t.couple_id = public.current_couple_id()
-    )
-  );
+-- trip_items is in the loop above: its couple_id is set from the parent trip
+-- by a trigger, so the same one-line predicate covers it safely.
 
 -- ---------------------------------------------------------------------
 -- remember_facts — the shared/private split

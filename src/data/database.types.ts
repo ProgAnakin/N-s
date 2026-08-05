@@ -172,6 +172,8 @@ export type TripRow = {
 export type TripItemRow = {
   id: string;
   trip_id: string;
+  /** Set by a database trigger from the parent trip; never sent by the client. */
+  couple_id: string;
   type: TripItemTypeColumn;
   title: string;
   datetime: string | null;
@@ -246,6 +248,8 @@ export type Database = {
       phrases: TableDef<PhraseRow, 'couple_id' | 'script_original' | 'translation'>;
       culture_notes: TableDef<CultureNoteRow, 'couple_id' | 'title'>;
       trips: TableDef<TripRow, 'couple_id' | 'destination'>;
+      // couple_id is absent from the required list on purpose: the database
+      // trigger fills it in, so it is optional on insert but always present on read.
       trip_items: TableDef<TripItemRow, 'trip_id' | 'title'>;
       expenses: TableDef<ExpenseRow, 'couple_id' | 'paid_by' | 'label' | 'amount_cents'>;
       gift_ideas: TableDef<GiftIdeaRow, 'couple_id' | 'author_id' | 'idea'>;

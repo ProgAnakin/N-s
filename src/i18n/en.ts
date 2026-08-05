@@ -422,8 +422,9 @@ export const en = {
     contributionOf: (name: string, percent: string) => `${name} ${percent}`,
     rebalanceTitle: 'To even it out naturally',
     rebalanceBody: (name: string, amount: string) => `The next ${amount} is on ${name}.`,
-    rebalanceHint:
-      'No rush, and nothing owed. It’s just the number that would bring the split back level.',
+    // Deliberately does not reach for the word "owed", even to deny it.
+    // Naming the idea in order to dismiss it still puts it in the room.
+    rebalanceHint: 'No rush. It’s just the number that would bring the split back level.',
     totalShared: (amount: string) => `${amount} shared so far`,
     treatsTitle: 'Treats',
     treatsBody: 'Given freely, and kept out of the maths.',

@@ -239,6 +239,16 @@ export function formatDate(
   }
 }
 
+/** Just the month, abbreviated — for the little date block on the home card. */
+export function formatMonthShort(date: CalendarDate, locale = 'en-GB'): string {
+  const instant = new Date(Date.UTC(date.year, date.month - 1, 1));
+  try {
+    return new Intl.DateTimeFormat(locale, { month: 'short', timeZone: 'UTC' }).format(instant);
+  } catch {
+    return String(date.month);
+  }
+}
+
 export function formatMonthYear(date: CalendarDate, locale = 'en-GB'): string {
   const instant = new Date(Date.UTC(date.year, date.month - 1, 1));
   try {
