@@ -14,7 +14,26 @@ function readEnv(raw: string | undefined): string | undefined {
   return trimmed.replace(/^["']|["']$/g, '').trim() || undefined;
 }
 
-const url = readEnv(import.meta.env.VITE_SUPABASE_URL);
+/**
+ * The Supabase project this app talks to.
+ *
+ * Committed rather than configured, on purpose. This is a keepsake for one
+ * couple pointing at one project, and the value is a public hostname: it is
+ * in the URL of every request the app makes and ships inside the bundle
+ * whether it comes from here or from an env var.
+ *
+ * Treating it as configuration bought nothing and cost real time. It doubled
+ * the setup surface, and because a `VITE_*` value is invisible until a build
+ * finishes, a mistyped name fails silently and looks identical to a missing
+ * one. The anon key stays in the environment — it is equally public, but a
+ * committed key in a public repository invites drive-by sign-ups.
+ *
+ * `VITE_SUPABASE_URL` still wins when set, so pointing a fork at a different
+ * project needs no code change.
+ */
+const DEFAULT_PROJECT_URL = 'https://nhzcxiitmxzkuvoqwhkn.supabase.co';
+
+const url = readEnv(import.meta.env.VITE_SUPABASE_URL) ?? DEFAULT_PROJECT_URL;
 
 /**
  * The Supabase publishable ("anon") key.
@@ -38,25 +57,22 @@ const anonKey = readEnv(import.meta.env.VITE_SUPABASE_ANON);
  * forgetting to fill it in is the most likely first-run mistake, and a clear
  * setup screen beats a wall of failed network requests.
  */
-export const isConfigured = Boolean(
-  url && anonKey && !url.includes('your-project-ref') && !anonKey.startsWith('your-'),
-);
+export const isConfigured = Boolean(anonKey && !anonKey.startsWith('your-'));
 
 /**
  * What the build actually received, for the setup screen to display.
  *
- * `VITE_*` values are inlined at build time, so "I saved them in the
- * dashboard" and "they are in the bundle" are different facts — and the gap
- * between the two is the single most common way to get stuck here. Showing
- * the truth beats guessing which of the two names was mistyped.
+ * `VITE_*` values are inlined at build time, so "I saved it in the dashboard"
+ * and "it is in the bundle" are different facts — and the gap between them is
+ * the most common way to get stuck here. Showing the truth beats guessing.
  *
- * Nothing secret is exposed: the project URL is public, and the anon key is
- * public by design and already ships inside the bundle of any working
- * deployment. Only a short prefix of it is shown, which is enough to tell an
- * `eyJ…` JWT from a `sb_publishable_…` key from a pasted mistake.
+ * Nothing secret is exposed. The anon key is public by design and already
+ * ships inside the bundle of any working deployment; only a short prefix is
+ * shown, which is enough to tell an `eyJ…` JWT from a truncated paste.
  */
 export const configStatus = {
-  url: url ?? null,
+  url,
+  urlFromEnv: Boolean(readEnv(import.meta.env.VITE_SUPABASE_URL)),
   anonKeyPresent: Boolean(anonKey),
   anonKeyLength: anonKey?.length ?? 0,
   anonKeyPrefix: anonKey ? `${anonKey.slice(0, 8)}…` : null,
@@ -74,12 +90,12 @@ export const configStatus = {
     .sort(),
 } as const;
 
-export type Client = SupabaseClient<Database>;
+type Client = SupabaseClient<Database>;
 
 let client: Client | null = null;
 
 if (isConfigured) {
-  client = createClient<Database>(url!, anonKey!, {
+  client = createClient<Database>(url, anonKey!, {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
@@ -97,9 +113,7 @@ export const supabase = client;
 
 export function requireClient(): Client {
   if (!client) {
-    throw new Error(
-      'Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON.',
-    );
+    throw new Error('Supabase is not configured. Set VITE_SUPABASE_ANON.');
   }
   return client;
 }
@@ -124,10 +138,3 @@ export function errorCode(error: unknown): string | null {
   return null;
 }
 
-export function errorMessage(error: unknown): string | null {
-  if (typeof error === 'object' && error !== null && 'message' in error) {
-    const message = (error as MaybePostgrestError).message;
-    return typeof message === 'string' ? message : null;
-  }
-  return null;
-}

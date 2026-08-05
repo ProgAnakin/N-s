@@ -4,13 +4,16 @@ import { configStatus } from '@/data/client';
 import { useStrings } from '@/i18n';
 
 /**
- * Shown when the app has no Supabase credentials.
+ * Shown when the app has no Supabase key.
  *
- * This is the most likely first-run state, so rather than repeating generic
- * instructions it reports what the build actually received. "I saved the
- * variables" and "the variables are in the bundle" are different facts —
- * `VITE_*` values are inlined at build time — and the gap between them is the
- * usual reason someone is stuck on this screen.
+ * Rather than repeating generic instructions, it reports what the build
+ * actually received. "I saved the variable" and "the variable is in the
+ * bundle" are different facts — `VITE_*` values are inlined at build time —
+ * and the gap between them is the usual reason someone is stuck here.
+ *
+ * The list of every `VITE_` name that arrived is the part that earns its
+ * place: a missing variable and a misspelled one are indistinguishable
+ * otherwise, and one is fixed by adding, the other by renaming.
  */
 export function NotConfiguredScreen() {
   const s = useStrings();
@@ -20,12 +23,8 @@ export function NotConfiguredScreen() {
       <div className="flex flex-col gap-4">
         <div className="sheet p-5">
           <p className="label-kicker mb-3">{s.errors.notConfiguredSaw}</p>
+
           <dl className="flex flex-col gap-3">
-            <EnvRow
-              name="VITE_SUPABASE_URL"
-              found={Boolean(configStatus.url)}
-              detail={configStatus.url ?? s.errors.notConfiguredMissing}
-            />
             <EnvRow
               name="VITE_SUPABASE_ANON"
               found={configStatus.anonKeyPresent}
@@ -39,9 +38,22 @@ export function NotConfiguredScreen() {
               }
             />
           </dl>
+
           <p className="mt-4 text-xs leading-relaxed text-ink-faint">
             {s.errors.notConfiguredNames}
           </p>
+
+          {/* The project URL is no longer configuration; showing it confirms
+              which project this build points at. */}
+          <div className="mt-4 border-t border-rule pt-3">
+            <p className="label-kicker mb-1.5">{s.errors.notConfiguredProject}</p>
+            <p className="break-all font-mono text-xs text-ink-soft">{configStatus.url}</p>
+            <p className="mt-1 text-xs text-ink-faint">
+              {configStatus.urlFromEnv
+                ? s.errors.notConfiguredProjectFromEnv
+                : s.errors.notConfiguredProjectBuiltIn}
+            </p>
+          </div>
 
           {/* The actual names, so a misspelling can be read rather than guessed at. */}
           <div className="mt-4 border-t border-rule pt-3">
@@ -91,15 +103,7 @@ export function NotConfiguredScreen() {
   );
 }
 
-function EnvRow({
-  name,
-  found,
-  detail,
-}: {
-  name: string;
-  found: boolean;
-  detail: string;
-}) {
+function EnvRow({ name, found, detail }: { name: string; found: boolean; detail: string }) {
   return (
     <div className="flex items-start gap-2.5">
       <span

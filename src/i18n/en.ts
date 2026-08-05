@@ -13,7 +13,6 @@
 export const en = {
   app: {
     name: 'Nós',
-    tagline: 'Ours',
     meaning: '“Nós” is Portuguese for “us” — and for the knot that ties two things together.',
   },
 
@@ -28,28 +27,18 @@ export const en = {
     back: 'Back',
     search: 'Search',
     loading: 'One moment…',
-    retry: 'Try again',
     done: 'Done',
-    notNow: 'Not now',
     all: 'All',
-    none: 'None',
     optional: 'optional',
-    required: 'required',
-    yes: 'Yes',
-    no: 'No',
     more: 'More',
     less: 'Less',
     today: 'Today',
-    untitled: 'Untitled',
     shared: 'Shared',
     private: 'Private',
     sharedHint: 'Both of you can see and edit this.',
     privateHint: 'Only you can see this. Not even your partner.',
     confirmDelete: 'Delete this?',
     confirmDeleteBody: 'This cannot be undone.',
-    openMenu: 'Open menu',
-    filters: 'Filters',
-    clear: 'Clear',
     noResults: 'Nothing matched that.',
     noResultsHint: 'Try a shorter word.',
   },
@@ -57,7 +46,6 @@ export const en = {
   nav: {
     home: 'Home',
     vault: 'About her',
-    vaultNeutral: 'About them',
     dates: 'Dates',
     memories: 'Memories',
     family: 'Family',
@@ -136,7 +124,6 @@ export const en = {
     inviteCopy: 'Copy code',
     inviteCopied: 'Copied',
     inviteWaiting: 'You can start adding things now — they’ll see everything shared when they join.',
-    continue: 'Continue',
     next: 'Next',
     startUsing: 'Open our space',
   },
@@ -148,7 +135,6 @@ export const en = {
     daysTogether: (days: number) => (days === 1 ? '1 day together' : `${days} days together`),
     daysTogetherSince: (date: string) => `since ${date}`,
     setAnniversary: 'Add the day you started',
-    setAnniversaryHint: 'It gives you a day counter and monthiversaries.',
     nextUp: 'Next up',
     nothingUpcoming: 'Nothing on the horizon',
     nothingUpcomingHint: 'Add a birthday or an anniversary so it never sneaks up on you.',
@@ -185,7 +171,6 @@ export const en = {
 
   vault: {
     title: 'About her',
-    titleNeutral: 'About them',
     subtitle: 'What you’ve learned, so you don’t have to guess.',
     intro:
       'The point of this page is to stop you spinning. When you find yourself wondering what the silence means, look here first — you probably already asked.',
@@ -208,11 +193,8 @@ export const en = {
     promptsBody: 'Not a checklist. One at a time, when it fits.',
     promptsAnswer: 'Write what she said',
     promptsDismiss: 'Skip this one',
-    promptsRefresh: 'Show me others',
-    promptsAllDone: 'You’ve been through all of these. Anything new goes in with “Add something”.',
     countShared: (n: number) => `${n} shared`,
     countPrivate: (n: number) => `${n} private`,
-    privateNoteTitle: 'My notes',
     privateNoteBody: 'Yours alone — your own working notes on paying better attention.',
   },
 
@@ -283,9 +265,6 @@ export const en = {
     age: 'Age',
     birthday: 'Birthday',
     belongsTo: 'Whose family',
-    yourFamily: 'Mine',
-    theirFamily: 'Hers',
-    theirFamilyNeutral: 'Theirs',
     notes: 'What to know',
     notesPlaceholder: 'e.g. Very close to her, calls every Sunday. Don’t bring up the move.',
     sensitive: 'Handle with care',
@@ -293,7 +272,6 @@ export const en = {
     emptyTitle: 'No one added yet',
     emptyBody:
       'Start with her mother and father, and anyone she talks about every week. Names first — the rest can come later.',
-    yearsOld: (n: number) => `${n}`,
   },
 
   phrasebook: {
@@ -381,7 +359,6 @@ export const en = {
     itemAttachmentRemove: 'Remove file',
     itemsEmptyTitle: 'Nothing planned yet',
     itemsEmptyBody: 'Flights, where you’re staying, the one thing you both want to do.',
-    itinerary: 'Day by day',
     unscheduled: 'Not on a day yet',
     budgetSpent: (spent: string, total: string) => `${spent} of ${total}`,
     budgetLeft: (amount: string) => `${amount} left`,
@@ -419,7 +396,6 @@ export const en = {
     balanceEvenBody: 'Nothing to think about. It’s been shared fairly.',
     balanceNothing: 'Nothing logged yet',
     balanceNothingBody: 'Once you log a few things, you’ll see how it’s been shared.',
-    contributionOf: (name: string, percent: string) => `${name} ${percent}`,
     rebalanceTitle: 'To even it out naturally',
     rebalanceBody: (name: string, amount: string) => `The next ${amount} is on ${name}.`,
     // Deliberately does not reach for the word "owed", even to deny it.
@@ -436,7 +412,6 @@ export const en = {
     byCategory: 'Where it goes',
     treatBadge: 'Treat',
     splitBadge: (pct: number) => `${pct}%`,
-    of: 'of',
   },
 
   splitRules: {
@@ -581,26 +556,29 @@ export const en = {
 
   errors: {
     generic: 'That didn’t work. Try again in a moment.',
-    network: 'Can’t reach the server right now.',
     notConfigured: 'The app isn’t connected to a database yet.',
     notConfiguredBody:
-      'It needs two build-time variables. Below is exactly what this build received.',
+      'It needs one build-time variable. Below is exactly what this build received.',
     notConfiguredSaw: 'What this build received',
     notConfiguredMissing: 'not found',
     notConfiguredKeyFound: (length: number, prefix: string) =>
       `found — ${length} characters, starts with ${prefix}`,
+    notConfiguredProject: 'Project',
+    notConfiguredProjectBuiltIn: 'built in — no variable needed',
+    notConfiguredProjectFromEnv: 'from VITE_SUPABASE_URL',
     notConfiguredLocal: 'Running locally',
     notConfiguredLocalBody:
-      'Copy .env.example to .env, fill in both values, then restart the dev server. Vite only reads them on start-up.',
+      'Copy .env.example to .env, paste the key, then restart the dev server. Vite only reads it on start-up.',
     notConfiguredHosted: 'Deployed on Vercel',
     notConfiguredHostedBody:
-      'Add both under Settings → Environment Variables with the Production environment ticked, then redeploy. Saving them is not enough on its own: Vite bakes the values into the bundle at build time, so only a build that runs after they were saved will have them.',
+      'Add it under Settings → Environment Variables with the Production environment ticked, then redeploy. Saving it is not enough on its own: Vite bakes the value into the bundle at build time, so only a build that runs after it was saved will have it.',
     notConfiguredNames:
-      'The names must match exactly, VITE_ prefix included — a variable named SUPABASE_URL will be ignored by the browser build.',
+      'The name must match exactly, VITE_ prefix included — anything else is ignored by the browser build.',
     notConfiguredReceived: 'Every VITE_ name this build received',
     notConfiguredReceivedNone:
       'None at all. No VITE_ variable reached this build, so either none are saved or this build predates saving them.',
-    notConfiguredWhere: 'Both values live in your Supabase dashboard under Project Settings → API.',
+    notConfiguredWhere:
+      'The key is in your Supabase dashboard under Project Settings → API, labelled anon public.',
     signIn: 'That email and password didn’t match.',
     signUp: 'Couldn’t create that account.',
     weakPassword: 'Use at least 8 characters.',
@@ -608,10 +586,6 @@ export const en = {
     nameRequired: 'A name would help.',
     amountRequired: 'Enter an amount.',
     amountInvalid: 'That doesn’t look like a number.',
-    dateRequired: 'Pick a date.',
-    titleRequired: 'Give it a title.',
-    questionRequired: 'Write the question.',
-    answerRequired: 'Write what she said.',
     inviteInvalid: 'That code doesn’t match anything.',
     inviteFull: 'That space already has two people in it.',
     alreadyPaired: 'You’re already part of a couple.',

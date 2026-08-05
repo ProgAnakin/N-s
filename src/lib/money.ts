@@ -20,7 +20,6 @@
  */
 
 import type { CalendarDate } from './calendar';
-import { compareDates } from './calendar';
 
 export type CurrencyCode = 'EUR' | 'BRL' | 'CNY' | 'USD';
 
@@ -34,11 +33,9 @@ export const CURRENCY_SYMBOLS: Record<CurrencyCode, string> = {
 };
 
 /** Minor units per major unit. All four currencies happen to use 100. */
-export const MINOR_UNITS = 100;
+const MINOR_UNITS = 100;
 
 export type PartnerRole = 'partner_a' | 'partner_b';
-
-export const PARTNER_ROLES: readonly PartnerRole[] = ['partner_a', 'partner_b'];
 
 export function otherPartner(role: PartnerRole): PartnerRole {
   return role === 'partner_a' ? 'partner_b' : 'partner_a';
@@ -61,9 +58,6 @@ export interface SplitRule {
   /** 0–100, only meaningful when kind is `custom_pct`. */
   partnerAPercent?: number;
 }
-
-export const SPLIT_EVEN: SplitRule = { kind: '50_50' };
-export const SPLIT_TREAT: SplitRule = { kind: 'treat' };
 
 export type ExpenseCategory =
   | 'food'
@@ -109,7 +103,7 @@ function emptyTotals(): PartnerTotals {
  * Splitting
  * ------------------------------------------------------------------ */
 
-export function normalisePercent(value: number): number {
+function normalisePercent(value: number): number {
   if (!Number.isFinite(value)) return 50;
   return Math.min(100, Math.max(0, Math.round(value)));
 }
@@ -169,7 +163,7 @@ export interface Balance {
   treatCount: number;
 }
 
-export function emptyBalance(currency: CurrencyCode): Balance {
+function emptyBalance(currency: CurrencyCode): Balance {
   return {
     currency,
     totalCents: 0,
@@ -229,7 +223,7 @@ export function computeBalance(expenses: readonly Expense[], currency: CurrencyC
 }
 
 /** Every currency that appears in a set of expenses, in a stable order. */
-export function currenciesUsed(expenses: readonly Expense[]): CurrencyCode[] {
+function currenciesUsed(expenses: readonly Expense[]): CurrencyCode[] {
   const seen = new Set<CurrencyCode>();
   for (const expense of expenses) seen.add(expense.currency);
   return CURRENCIES.filter((code) => seen.has(code));
@@ -331,10 +325,6 @@ export function tripSpend(
     }
   }
   return total;
-}
-
-export function sortExpensesByDate(expenses: readonly Expense[]): Expense[] {
-  return [...expenses].sort((a, b) => compareDates(b.date, a.date) || a.label.localeCompare(b.label));
 }
 
 /* ------------------------------------------------------------------ *

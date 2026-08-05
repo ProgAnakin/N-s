@@ -7,29 +7,23 @@
  * it did not ask for.
  */
 
-import { parseISODate, toISODate, type CalendarDate } from '@/lib/calendar';
+import { parseISODate, type CalendarDate } from '@/lib/calendar';
 import type { Expense, SplitRule } from '@/lib/money';
 import type { ImportantDateLike } from '@/lib/dates';
 import type { Fact } from '@/lib/vault';
-import type { FactLike, GiftLike, TripLike } from '@/lib/reminders';
+import type { FactLike, GiftLike } from '@/lib/reminders';
 import type {
   ExpenseRow,
   GiftIdeaRow,
   ImportantDateRow,
   RememberFactRow,
-  TripItemRow,
-  TripRow,
 } from './database.types';
 
-export function toDate(value: string | null | undefined): CalendarDate | null {
+function toDate(value: string | null | undefined): CalendarDate | null {
   return parseISODate(value);
 }
 
-export function fromDate(value: CalendarDate | null): string | null {
-  return value ? toISODate(value) : null;
-}
-
-export function toSplitRule(row: Pick<ExpenseRow, 'split_rule' | 'partner_a_percent'>): SplitRule {
+function toSplitRule(row: Pick<ExpenseRow, 'split_rule' | 'partner_a_percent'>): SplitRule {
   if (row.split_rule === 'custom_pct') {
     return { kind: 'custom_pct', partnerAPercent: row.partner_a_percent ?? 50 };
   }
@@ -40,7 +34,7 @@ export function toSplitRule(row: Pick<ExpenseRow, 'split_rule' | 'partner_a_perc
  * Rows with an unreadable date are dropped rather than defaulted. A memory
  * silently filed under today would be worse than one that does not appear.
  */
-export function toExpense(row: ExpenseRow): Expense | null {
+function toExpense(row: ExpenseRow): Expense | null {
   const date = toDate(row.date);
   if (!date) return null;
   return {
@@ -65,7 +59,7 @@ export function toExpenses(rows: readonly ExpenseRow[]): Expense[] {
   return result;
 }
 
-export function toImportantDate(row: ImportantDateRow): ImportantDateLike | null {
+function toImportantDate(row: ImportantDateRow): ImportantDateLike | null {
   const date = toDate(row.date);
   if (!date) return null;
   return {
@@ -105,11 +99,3 @@ export function toGiftLike(row: GiftIdeaRow): GiftLike {
   return { id: row.id, idea: row.idea, occasion: row.occasion, used: row.used };
 }
 
-export function toTripLike(row: TripRow, items: readonly TripItemRow[]): TripLike {
-  return {
-    id: row.id,
-    destination: row.destination,
-    startDate: toDate(row.start_date),
-    openItemCount: items.filter((item) => item.trip_id === row.id && !item.done).length,
-  };
-}

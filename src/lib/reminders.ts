@@ -18,10 +18,10 @@ import { compareDates, daysBetween } from './calendar';
 import type { ImportantDateLike, ImportantDateType } from './dates';
 import { nextMonthiversary, nextRoundDayMilestone, upcomingOccurrences } from './dates';
 
-export const DATE_HORIZON_DAYS = 14;
-export const TRIP_HORIZON_DAYS = 21;
-export const REUNION_HORIZON_DAYS = 21;
-export const FOLLOW_UP_WINDOW_DAYS = 3;
+const DATE_HORIZON_DAYS = 14;
+const TRIP_HORIZON_DAYS = 21;
+const REUNION_HORIZON_DAYS = 21;
+const FOLLOW_UP_WINDOW_DAYS = 3;
 
 export interface FactLike {
   id: string;

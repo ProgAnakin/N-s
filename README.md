@@ -35,24 +35,28 @@ Requires Node 18+.
 
 1. Create a project at [supabase.com](https://supabase.com). The free tier is
    plenty for two people.
-2. **Project Settings → API**: copy the *Project URL* and the *anon public*
-   key into `.env`.
+2. **Project Settings → API**: copy the *anon public* key into `.env`.
 
    ```
-   VITE_SUPABASE_URL=https://your-project-ref.supabase.co
    VITE_SUPABASE_ANON=eyJ...
    ```
 
-   Both are safe in the browser. The anon key is public by design: it ships
-   inside the bundle of every Supabase app and grants only what Row Level
-   Security allows, and every table here is behind RLS. It is named
-   `VITE_SUPABASE_ANON` rather than `..._ANON_KEY` only because hosting
-   dashboards warn about browser-exposed variables whose name ends in KEY.
-   That exact spelling is the only one read: a variable named anything else
-   is ignored, and the setup screen will tell you so.
+   One variable, not two. The project URL is committed in
+   `src/data/client.ts`: it is a public hostname that ships in the bundle
+   either way, this app points at exactly one project, and treating it as
+   configuration only doubled the number of ways setup could silently fail —
+   a `VITE_*` name is invisible until a build finishes, so a mistyped one
+   looks identical to a missing one. Set `VITE_SUPABASE_URL` to override it
+   when pointing a fork somewhere else.
 
-   Never use the `service_role` key here. That one is a real secret and must
-   never reach the browser.
+   The key is public by design too: it ships inside the bundle of every
+   Supabase app and grants only what Row Level Security allows. It stays out
+   of the repository because a committed key in a public repo invites
+   drive-by sign-ups. It is named without a `KEY` suffix because hosting
+   dashboards warn about browser-exposed variables that look like secrets.
+
+   Never use the `service_role` key here. That one is a real secret — it
+   ignores Row Level Security entirely — and must never reach the browser.
 3. **SQL Editor**: run each file in `supabase/migrations/` **in order**.
 
    | | |
@@ -85,8 +89,14 @@ Settings, which is the only way to un-invite someone who has seen it.
 ## Deploying
 
 Push to `main` with the repository connected to Vercel. `vercel.json` sets the
-build, the SPA rewrite and some security headers; add the same two environment
-variables in **Project Settings → Environment Variables**.
+build, the SPA rewrite and some security headers; add `VITE_SUPABASE_ANON`
+under **Project Settings → Environment Variables** with Production ticked.
+
+Saving a variable does not rebuild anything: Vite inlines `VITE_*` values at
+build time, so only a build that runs afterwards will have it. If the app
+shows its setup screen, that screen lists every `VITE_` name the build
+actually received, which distinguishes a missing variable from a misspelled
+one.
 
 Then add your deployed origin to Supabase under **Authentication → URL
 Configuration** so email links come back to the right place.

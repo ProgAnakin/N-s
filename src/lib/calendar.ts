@@ -124,10 +124,6 @@ export function compareDates(a: CalendarDate, b: CalendarDate): number {
   return toEpochDay(a) - toEpochDay(b);
 }
 
-export function isSameDate(a: CalendarDate, b: CalendarDate): boolean {
-  return a.year === b.year && a.month === b.month && a.day === b.day;
-}
-
 export function addDays(date: CalendarDate, days: number): CalendarDate {
   return fromEpochDay(toEpochDay(date) + days);
 }
@@ -165,7 +161,7 @@ export function yearsBetween(from: CalendarDate, to: CalendarDate): number {
   return years;
 }
 
-export const WEEKDAY_NAMES = [
+const WEEKDAY_NAMES = [
   'sunday',
   'monday',
   'tuesday',
@@ -181,9 +177,4 @@ export function weekdayOf(date: CalendarDate): WeekdayName {
   // 1970-01-01 was a Thursday (index 4).
   const index = (((toEpochDay(date) + 4) % 7) + 7) % 7;
   return WEEKDAY_NAMES[index]!;
-}
-
-/** For `<input type="date">` round-tripping. */
-export function toInputValue(date: CalendarDate | null): string {
-  return date ? toISODate(date) : '';
 }

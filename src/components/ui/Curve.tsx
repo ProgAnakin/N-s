@@ -42,26 +42,3 @@ export function Curve({
   );
 }
 
-/**
- * The vertical version, used as the timeline spine. It drifts left and right
- * as it descends rather than falling in a straight line — so the memories
- * hang off something that looks drawn rather than ruled.
- */
-export function CurveSpine({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 600"
-      fill="none"
-      preserveAspectRatio="none"
-      aria-hidden="true"
-      className={cn('h-full w-6', className)}
-    >
-      <path
-        d="M12 0c6 60 -6 90 0 150s6 90 0 150 -6 90 0 150 6 90 0 150"
-        stroke="hsl(var(--rule))"
-        strokeWidth="1.25"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}

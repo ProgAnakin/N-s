@@ -85,18 +85,3 @@ export function Seal({
   );
 }
 
-/** The same mark with the name beside it. */
-export function SealName({
-  name,
-  tone = 'cinnabar',
-  size = 'sm',
-  imageUrl,
-  className,
-}: SealProps) {
-  return (
-    <span className={cn('inline-flex items-center gap-2', className)}>
-      <Seal name={name} tone={tone} size={size} imageUrl={imageUrl} />
-      <span className="font-display text-base text-ink">{name}</span>
-    </span>
-  );
-}

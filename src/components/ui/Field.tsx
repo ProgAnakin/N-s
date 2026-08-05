@@ -1,4 +1,5 @@
 import { useId, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react';
+import { useStrings } from '@/i18n';
 import { cn } from '@/utils/cn';
 
 /**
@@ -14,7 +15,6 @@ interface FieldShellProps {
   hint?: ReactNode;
   error?: string | null;
   optional?: boolean;
-  optionalLabel?: string;
   children: (props: { id: string; describedBy: string | undefined; invalid: boolean }) => ReactNode;
   className?: string;
 }
@@ -24,10 +24,10 @@ export function Field({
   hint,
   error,
   optional = false,
-  optionalLabel = 'optional',
   children,
   className,
 }: FieldShellProps) {
+  const s = useStrings();
   const id = useId();
   const hintId = `${id}-hint`;
   const describedBy = error || hint ? hintId : undefined;
@@ -36,7 +36,9 @@ export function Field({
     <div className={cn('flex flex-col gap-1.5', className)}>
       <label htmlFor={id} className="flex items-baseline gap-2 text-sm font-medium text-ink">
         {label}
-        {optional && <span className="text-xs font-normal text-ink-faint">{optionalLabel}</span>}
+        {optional && (
+          <span className="text-xs font-normal text-ink-faint">{s.common.optional}</span>
+        )}
       </label>
       {children({ id, describedBy, invalid: Boolean(error) })}
       {(error || hint) && (

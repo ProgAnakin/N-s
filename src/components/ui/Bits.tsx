@@ -143,34 +143,6 @@ export function LoadingBlock({ label }: { label?: string }) {
   );
 }
 
-/** A headline figure with its label underneath. */
-export function Stat({
-  value,
-  label,
-  tone = 'ink',
-  className,
-}: {
-  value: ReactNode;
-  label: ReactNode;
-  tone?: 'ink' | 'cinnabar' | 'jade';
-  className?: string;
-}) {
-  return (
-    <div className={cn('min-w-0', className)}>
-      <p
-        className={cn(
-          'display-warm truncate font-display text-2xl font-medium tabular-nums',
-          tone === 'ink' && 'text-ink',
-          tone === 'cinnabar' && 'text-cinnabar',
-          tone === 'jade' && 'text-jade',
-        )}
-      >
-        {value}
-      </p>
-      <p className="mt-0.5 text-xs text-ink-faint">{label}</p>
-    </div>
-  );
-}
 
 export function ErrorNote({ children }: { children: ReactNode }) {
   return (

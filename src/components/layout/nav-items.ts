@@ -31,7 +31,7 @@ export interface NavGroup {
   items: NavItem[];
 }
 
-export const NAV_GROUPS: NavGroup[] = [
+const NAV_GROUPS: NavGroup[] = [
   {
     id: 'now',
     label: (s) => s.nav.sections.now,

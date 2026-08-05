@@ -75,35 +75,10 @@ const config: Config = {
         card: '0 1px 2px hsl(var(--shadow) / 0.06), 0 6px 16px -10px hsl(var(--shadow) / 0.18)',
         lift: '0 2px 4px hsl(var(--shadow) / 0.07), 0 14px 32px -16px hsl(var(--shadow) / 0.28)',
         seal: '0 1px 1px hsl(var(--shadow) / 0.22), 0 3px 8px -4px hsl(var(--shadow) / 0.3)',
-        inset: 'inset 0 1px 2px hsl(var(--shadow) / 0.09)',
-      },
-      spacing: {
-        '4.5': '1.125rem',
-        '18': '4.5rem',
-        '22': '5.5rem',
       },
       maxWidth: {
         column: '38rem',
         page: '64rem',
-      },
-      keyframes: {
-        press: {
-          '0%': { transform: 'scale(1.28) rotate(-8deg)', opacity: '0' },
-          '55%': { transform: 'scale(0.94) rotate(1deg)', opacity: '1' },
-          '100%': { transform: 'scale(1) rotate(0deg)', opacity: '1' },
-        },
-        rise: {
-          '0%': { transform: 'translateY(6px)', opacity: '0' },
-          '100%': { transform: 'translateY(0)', opacity: '1' },
-        },
-        draw: {
-          '0%': { strokeDashoffset: '1' },
-          '100%': { strokeDashoffset: '0' },
-        },
-      },
-      animation: {
-        press: 'press 420ms cubic-bezier(0.2, 0.8, 0.3, 1) both',
-        rise: 'rise 320ms cubic-bezier(0.2, 0.7, 0.3, 1) both',
       },
       transitionTimingFunction: {
         page: 'cubic-bezier(0.2, 0.7, 0.3, 1)',

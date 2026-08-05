@@ -22,7 +22,7 @@ export function progressOf(done: number, total: number): Progress {
   };
 }
 
-export function countWhere<T>(items: readonly T[], predicate: (item: T) => boolean): number {
+function countWhere<T>(items: readonly T[], predicate: (item: T) => boolean): number {
   let count = 0;
   for (const item of items) if (predicate(item)) count += 1;
   return count;

@@ -10,8 +10,8 @@ import { requireClient } from './client';
  * scans of their boarding passes should not live on a guessable address.
  */
 
-export const MEDIA_BUCKET = 'media';
-export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+const MEDIA_BUCKET = 'media';
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 const SIGNED_URL_TTL_SECONDS = 60 * 60;
 
 export type MediaFolder = 'memories' | 'trips' | 'phrases' | 'avatars';
@@ -73,7 +73,7 @@ export async function signedUrlFor(path: string): Promise<string | null> {
  * possible. Used by the memories timeline so a page of photos is not twenty
  * separate requests.
  */
-export async function signedUrlsFor(paths: readonly string[]): Promise<Record<string, string>> {
+async function signedUrlsFor(paths: readonly string[]): Promise<Record<string, string>> {
   if (paths.length === 0) return {};
   const client = requireClient();
   const { data, error } = await client.storage
