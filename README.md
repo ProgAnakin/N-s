@@ -47,8 +47,9 @@ Requires Node 18+.
    inside the bundle of every Supabase app and grants only what Row Level
    Security allows, and every table here is behind RLS. It is named
    `VITE_SUPABASE_ANON` rather than `..._ANON_KEY` only because hosting
-   dashboards warn about browser-exposed variables whose name ends in KEY —
-   the older name is still accepted if you already have it set.
+   dashboards warn about browser-exposed variables whose name ends in KEY.
+   That exact spelling is the only one read: a variable named anything else
+   is ignored, and the setup screen will tell you so.
 
    Never use the `service_role` key here. That one is a real secret and must
    never reach the browser.

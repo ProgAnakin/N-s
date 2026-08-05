@@ -27,7 +27,7 @@ export function NotConfiguredScreen() {
               detail={configStatus.url ?? s.errors.notConfiguredMissing}
             />
             <EnvRow
-              name={configStatus.anonKeyName ?? 'VITE_SUPABASE_ANON'}
+              name="VITE_SUPABASE_ANON"
               found={configStatus.anonKeyPresent}
               detail={
                 configStatus.anonKeyPresent
@@ -41,9 +41,6 @@ export function NotConfiguredScreen() {
           </dl>
           <p className="mt-4 text-xs leading-relaxed text-ink-faint">
             {s.errors.notConfiguredNames}
-          </p>
-          <p className="mt-1.5 text-xs leading-relaxed text-ink-faint">
-            {s.errors.notConfiguredAlias}
           </p>
         </div>
 

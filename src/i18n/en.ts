@@ -597,8 +597,6 @@ export const en = {
       'Add both under Settings → Environment Variables with the Production environment ticked, then redeploy. Saving them is not enough on its own: Vite bakes the values into the bundle at build time, so only a build that runs after they were saved will have them.',
     notConfiguredNames:
       'The names must match exactly, VITE_ prefix included — a variable named SUPABASE_URL will be ignored by the browser build.',
-    notConfiguredAlias:
-      'VITE_SUPABASE_ANON_KEY is accepted too, if you already have it set under that name.',
     notConfiguredWhere: 'Both values live in your Supabase dashboard under Project Settings → API.',
     signIn: 'That email and password didn’t match.',
     signUp: 'Couldn’t create that account.',

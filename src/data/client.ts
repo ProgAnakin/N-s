@@ -19,21 +19,17 @@ const url = readEnv(import.meta.env.VITE_SUPABASE_URL);
 /**
  * The Supabase publishable ("anon") key.
  *
- * Two names are accepted. `VITE_SUPABASE_ANON` is the documented one;
- * `VITE_SUPABASE_ANON_KEY` is still read so an existing setup keeps working.
- *
- * The rename is only to keep hosting dashboards quiet: they warn when a
- * browser-exposed variable is named like a secret. The warning does not apply
- * here — this key is public by design, ships inside the bundle of every
+ * Named without a `KEY` suffix because hosting dashboards warn when a
+ * browser-exposed variable looks like a secret. The warning does not apply to
+ * this value — it is public by design, ships inside the bundle of every
  * Supabase app, and grants only what Row Level Security allows — but there is
  * nothing to gain from arguing with it over a name.
  *
- * Both reads are written out literally on purpose: Vite substitutes
- * `import.meta.env.VITE_*` at build time and cannot resolve a dynamic lookup.
+ * Exactly one name is accepted, on purpose. Alternatives would only widen the
+ * set of spellings that silently do nothing, which is the failure this whole
+ * file is trying to make impossible to sit in.
  */
-const anonKey =
-  readEnv(import.meta.env.VITE_SUPABASE_ANON) ??
-  readEnv(import.meta.env.VITE_SUPABASE_ANON_KEY);
+const anonKey = readEnv(import.meta.env.VITE_SUPABASE_ANON);
 
 /**
  * Whether the app has real credentials to talk to.
@@ -64,12 +60,6 @@ export const configStatus = {
   anonKeyPresent: Boolean(anonKey),
   anonKeyLength: anonKey?.length ?? 0,
   anonKeyPrefix: anonKey ? `${anonKey.slice(0, 8)}…` : null,
-  /** Which of the accepted names actually carried the value. */
-  anonKeyName: readEnv(import.meta.env.VITE_SUPABASE_ANON)
-    ? 'VITE_SUPABASE_ANON'
-    : readEnv(import.meta.env.VITE_SUPABASE_ANON_KEY)
-      ? 'VITE_SUPABASE_ANON_KEY'
-      : null,
 } as const;
 
 export type Client = SupabaseClient<Database>;
@@ -96,7 +86,7 @@ export const supabase = client;
 export function requireClient(): Client {
   if (!client) {
     throw new Error(
-      'Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.',
+      'Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON.',
     );
   }
   return client;
