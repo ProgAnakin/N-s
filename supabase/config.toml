@@ -1,0 +1,19 @@
+# Supabase project config.
+#
+# Kept deliberately minimal. The Supabase GitHub integration needs this file
+# to recognise `supabase/` as a project directory and pick up the migrations;
+# everything else about the production project stays configured in the
+# dashboard, so nothing here can silently override it.
+#
+# `project_id` is only a local identifier (used by `supabase start`) and does
+# not need to match your project ref.
+
+project_id = "nos"
+
+[db]
+# Supabase projects run Postgres 15+. `gen_random_uuid()` is in core from 13,
+# so no extension is required.
+major_version = 15
+
+[db.migrations]
+schema_paths = []

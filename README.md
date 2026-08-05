@@ -53,7 +53,14 @@ Requires Node 18+.
    | `0002_rls.sql` | Row Level Security, and the pairing functions |
    | `0003_storage.sql` | The private `media` bucket and its policies |
 
-   Or, with the Supabase CLI linked to your project: `supabase db push`.
+   Or, with the Supabase CLI linked to your project: `supabase db push`. Or,
+   if you've connected this repo through Supabase's GitHub integration, it
+   picks them up from `supabase/` on push — `supabase/config.toml` is there so
+   it recognises the directory.
+
+   The migrations are written to be safely re-runnable: tables use `if not
+   exists`, functions use `create or replace`, and every trigger and policy is
+   dropped before it is created. If a run half-fails, paste it again.
 4. **Authentication → Providers**: email is on by default. If you leave
    "Confirm email" enabled, the first sign-up will ask you to check your inbox.
    For a two-person app you may prefer to turn it off.

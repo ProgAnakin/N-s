@@ -77,6 +77,7 @@ create table if not exists public.couples (
   created_by        uuid references auth.users (id) on delete set null
 );
 
+drop trigger if exists couples_touch on public.couples;
 create trigger couples_touch
   before update on public.couples
   for each row execute function public.touch_updated_at();
@@ -103,6 +104,7 @@ create unique index if not exists profiles_couple_role_key
 
 create index if not exists profiles_couple_idx on public.profiles (couple_id);
 
+drop trigger if exists profiles_touch on public.profiles;
 create trigger profiles_touch
   before update on public.profiles
   for each row execute function public.touch_updated_at();
@@ -150,6 +152,7 @@ create table if not exists public.memories (
 create index if not exists memories_couple_date_idx
   on public.memories (couple_id, date desc);
 
+drop trigger if exists memories_touch on public.memories;
 create trigger memories_touch
   before update on public.memories
   for each row execute function public.touch_updated_at();
@@ -175,6 +178,7 @@ create table if not exists public.important_dates (
 create index if not exists important_dates_couple_idx
   on public.important_dates (couple_id, date);
 
+drop trigger if exists important_dates_touch on public.important_dates;
 create trigger important_dates_touch
   before update on public.important_dates
   for each row execute function public.touch_updated_at();
@@ -209,6 +213,7 @@ create index if not exists remember_facts_remind_idx
   on public.remember_facts (couple_id, remind_on)
   where remind_on is not null;
 
+drop trigger if exists remember_facts_touch on public.remember_facts;
 create trigger remember_facts_touch
   before update on public.remember_facts
   for each row execute function public.touch_updated_at();
@@ -250,6 +255,7 @@ create table if not exists public.family_members (
 create index if not exists family_members_couple_idx
   on public.family_members (couple_id, belongs_to);
 
+drop trigger if exists family_members_touch on public.family_members;
 create trigger family_members_touch
   before update on public.family_members
   for each row execute function public.touch_updated_at();
@@ -274,6 +280,7 @@ create table if not exists public.phrases (
 
 create index if not exists phrases_couple_idx on public.phrases (couple_id, learned);
 
+drop trigger if exists phrases_touch on public.phrases;
 create trigger phrases_touch
   before update on public.phrases
   for each row execute function public.touch_updated_at();
@@ -297,6 +304,7 @@ create table if not exists public.culture_notes (
 create index if not exists culture_notes_couple_idx
   on public.culture_notes (couple_id, category);
 
+drop trigger if exists culture_notes_touch on public.culture_notes;
 create trigger culture_notes_touch
   before update on public.culture_notes
   for each row execute function public.touch_updated_at();
@@ -324,6 +332,7 @@ create table if not exists public.trips (
 
 create index if not exists trips_couple_idx on public.trips (couple_id, start_date);
 
+drop trigger if exists trips_touch on public.trips;
 create trigger trips_touch
   before update on public.trips
   for each row execute function public.touch_updated_at();
@@ -371,10 +380,12 @@ begin
 end;
 $$;
 
+drop trigger if exists trip_items_set_couple on public.trip_items;
 create trigger trip_items_set_couple
   before insert or update of trip_id on public.trip_items
   for each row execute function public.set_trip_item_couple();
 
+drop trigger if exists trip_items_touch on public.trip_items;
 create trigger trip_items_touch
   before update on public.trip_items
   for each row execute function public.touch_updated_at();
@@ -419,6 +430,7 @@ create index if not exists expenses_couple_date_idx
 create index if not exists expenses_trip_idx
   on public.expenses (trip_id) where trip_id is not null;
 
+drop trigger if exists expenses_touch on public.expenses;
 create trigger expenses_touch
   before update on public.expenses
   for each row execute function public.touch_updated_at();
@@ -444,6 +456,7 @@ create table if not exists public.gift_ideas (
 create index if not exists gift_ideas_author_idx
   on public.gift_ideas (author_id, used);
 
+drop trigger if exists gift_ideas_touch on public.gift_ideas;
 create trigger gift_ideas_touch
   before update on public.gift_ideas
   for each row execute function public.touch_updated_at();
@@ -467,10 +480,12 @@ begin
 end;
 $$;
 
+drop trigger if exists remember_facts_freeze_author on public.remember_facts;
 create trigger remember_facts_freeze_author
   before update on public.remember_facts
   for each row execute function public.freeze_author();
 
+drop trigger if exists gift_ideas_freeze_author on public.gift_ideas;
 create trigger gift_ideas_freeze_author
   before update on public.gift_ideas
   for each row execute function public.freeze_author();
