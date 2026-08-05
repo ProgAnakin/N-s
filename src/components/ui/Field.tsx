@@ -219,12 +219,12 @@ export function Toggle({
         onClick={() => onChange(!checked)}
         className={cn(
           'mt-0.5 h-6 w-10 shrink-0 rounded-full border transition-colors',
-          checked ? 'border-cinnabar bg-cinnabar' : 'border-rule bg-sunk',
+          checked ? 'border-stamp bg-stamp' : 'border-rule bg-sunk',
         )}
       >
         <span
           className={cn(
-            'block h-4 w-4 rounded-full bg-paper shadow-sm transition-transform',
+            'block h-4 w-4 rounded-full bg-on-stamp shadow-sm transition-transform',
             checked ? 'translate-x-[19px]' : 'translate-x-[3px]',
           )}
         />

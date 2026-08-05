@@ -23,7 +23,7 @@ export function Chip({
       className={cn(
         'whitespace-nowrap rounded-sm border px-2.5 py-1 text-xs font-medium transition-colors',
         selected
-          ? 'border-cinnabar bg-cinnabar text-paper'
+          ? 'border-stamp bg-stamp text-on-stamp'
           : 'border-rule bg-raised text-ink-soft hover:border-ink-faint hover:text-ink',
         className,
       )}

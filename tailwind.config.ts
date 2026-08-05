@@ -31,6 +31,14 @@ const config: Config = {
           soft: 'hsl(var(--jade-soft) / <alpha-value>)',
           wash: 'hsl(var(--jade-wash) / <alpha-value>)',
         },
+        // Solid fills for seals, primary buttons and selected chips. Kept
+        // separate from the text accent so ivory stays on top in both themes.
+        stamp: {
+          DEFAULT: 'hsl(var(--stamp) / <alpha-value>)',
+          hover: 'hsl(var(--stamp-hover) / <alpha-value>)',
+          jade: 'hsl(var(--stamp-jade) / <alpha-value>)',
+        },
+        'on-stamp': 'hsl(var(--on-stamp) / <alpha-value>)',
       },
       fontFamily: {
         // The journal's voice: headings, names, anything emotional.

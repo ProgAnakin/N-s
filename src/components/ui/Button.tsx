@@ -19,7 +19,7 @@ const BASE =
   'active:translate-y-px disabled:pointer-events-none disabled:opacity-45';
 
 const VARIANTS: Record<Variant, string> = {
-  primary: 'bg-cinnabar text-paper hover:bg-cinnabar-soft shadow-seal',
+  primary: 'bg-stamp text-on-stamp hover:bg-stamp-hover shadow-seal',
   secondary: 'border border-rule bg-raised text-ink hover:border-ink-faint hover:bg-sunk',
   quiet: 'text-ink-soft hover:bg-sunk hover:text-ink',
   danger: 'border border-cinnabar/40 text-cinnabar hover:bg-cinnabar/10',

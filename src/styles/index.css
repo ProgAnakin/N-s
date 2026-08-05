@@ -26,6 +26,19 @@
     --cinnabar-soft: 6 56% 54%;
     --cinnabar-wash: 8 60% 94%;
 
+    /* Stamp tokens.
+     *
+     * `--cinnabar` is the accent for text and icons, and it has to lift in
+     * dark mode to stay legible against a dark page. A seal is the opposite
+     * problem: it is a solid block of ink with the paper showing through the
+     * carving, so it needs a fill dark enough for ivory to sit on top in
+     * BOTH themes. Reusing the text accent as a fill made dark mode render
+     * chops as dark-on-salmon, which is not what a chop looks like. */
+    --stamp: 5 58% 44%;
+    --stamp-hover: 5 60% 38%;
+    --stamp-jade: 148 22% 39%;
+    --on-stamp: 38 58% 96%;
+
     --jade: 148 22% 39%;
     --jade-soft: 150 20% 48%;
     --jade-wash: 150 26% 93%;
@@ -48,6 +61,13 @@
     --cinnabar: 8 62% 60%;
     --cinnabar-soft: 8 55% 52%;
     --cinnabar-wash: 8 30% 18%;
+
+    /* Deeper than the text accent on purpose — see the note above. Ivory on
+     * this fill measures 6.2:1; ivory on the lighter text accent would be 2.2. */
+    --stamp: 6 52% 42%;
+    --stamp-hover: 6 52% 47%;
+    --stamp-jade: 150 24% 32%;
+    --on-stamp: 38 58% 96%;
 
     --jade: 150 28% 58%;
     --jade-soft: 150 22% 46%;
@@ -158,18 +178,19 @@
    * because a real stamp never lands perfectly straight.
    */
   .seal {
-    @apply relative grid place-items-center rounded-seal font-display text-paper shadow-seal;
-    background: hsl(var(--cinnabar));
+    @apply relative grid place-items-center rounded-seal font-display shadow-seal;
+    background: hsl(var(--stamp));
+    color: hsl(var(--on-stamp));
   }
   .seal::after {
     content: '';
     position: absolute;
     inset: 12%;
-    border: 1px solid hsl(var(--paper) / 0.45);
+    border: 1px solid hsl(var(--on-stamp) / 0.45);
     border-radius: 4px;
   }
   .seal-jade {
-    background: hsl(var(--jade));
+    background: hsl(var(--stamp-jade));
   }
 
   .label-kicker {

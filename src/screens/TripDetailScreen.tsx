@@ -182,7 +182,7 @@ export function TripDetailScreen() {
           aria-label={row.done ? s.phrasebook.markNotLearned : s.common.done}
           className={
             row.done
-              ? 'mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-sm bg-jade text-paper'
+              ? 'mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-sm bg-stamp-jade text-on-stamp'
               : 'mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-sm border border-rule hover:border-ink-faint'
           }
         >

@@ -10,6 +10,19 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        // Split the three big dependencies out of the app bundle so a change
+        // to a screen does not invalidate the cached vendor code.
+        manualChunks: {
+          react: ['react', 'react-dom', 'react-router-dom'],
+          supabase: ['@supabase/supabase-js'],
+          motion: ['framer-motion'],
+        },
+      },
+    },
+  },
   test: {
     environment: 'jsdom',
     globals: true,
