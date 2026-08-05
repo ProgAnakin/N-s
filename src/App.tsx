@@ -19,6 +19,8 @@ import { TripDetailScreen } from '@/screens/TripDetailScreen';
 import { SpendingScreen } from '@/screens/SpendingScreen';
 import { GiftsScreen } from '@/screens/GiftsScreen';
 import { DistanceScreen } from '@/screens/DistanceScreen';
+import { CalendarScreen } from '@/screens/CalendarScreen';
+import { TogetherScreen } from '@/screens/TogetherScreen';
 import { SettingsScreen } from '@/screens/SettingsScreen';
 
 /**
@@ -57,6 +59,8 @@ function Gate() {
           <Route path="trips/:tripId" element={<TripDetailScreen />} />
           <Route path="spending" element={<SpendingScreen />} />
           <Route path="gifts" element={<GiftsScreen />} />
+          <Route path="calendar" element={<CalendarScreen />} />
+          <Route path="together" element={<TogetherScreen />} />
           <Route path="distance" element={<DistanceScreen />} />
           <Route path="settings" element={<SettingsScreen />} />
           <Route path="*" element={<Navigate to="/" replace />} />

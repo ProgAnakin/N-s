@@ -64,6 +64,7 @@ Requires Node 18+.
    | `0001_schema.sql` | Tables, constraints, triggers |
    | `0002_rls.sql` | Row Level Security, and the pairing functions |
    | `0003_storage.sql` | The private `media` bucket and its policies |
+   | `0004_together.sql` | Places, arrivals, plans, the together log, flowers |
 
    Or, with the Supabase CLI linked to your project: `supabase db push`. Or,
    if you've connected this repo through Supabase's GitHub integration, it
@@ -180,6 +181,61 @@ is easy to get wrong. If A is €50 ahead, B paying for a €50 dinner they spli
 evenly only moves €25 of the gap — half of what B paid was B's own share to
 begin with. The suggestion is therefore **twice** the gap, and a test follows
 the suggestion through to prove the result lands exactly level.
+
+## Arrivals, and what the web cannot do
+
+The point of the arrival feature is not location technology. It is not having
+to compose *amor, cheguei* every single evening. So the button is the feature
+and always works, with or without a saved place.
+
+Automatic detection is a convenience on top, and the honest limitation is
+worth stating plainly: **the web has no background geolocation.** A page that
+is not open cannot be woken to check where you are. Detection therefore only
+happens while the app is open, only if you opt in, and only when location
+permission was already granted — the silent check never triggers a permission
+prompt on load. Even then the app asks before sending rather than reporting
+your arrival behind your back.
+
+**No location history is stored, and none should ever be.** `places` holds a
+handful of points the couple named themselves. `checkins` records that someone
+arrived somewhere at a time. Coordinates read from the device are compared
+against saved places in memory and thrown away. An app whose stated purpose is
+helping two people care for each other has no business also being able to
+reconstruct their movements, and the schema is built so it cannot.
+
+Real push notifications would need a service worker, a VAPID key pair, an Edge
+Function to send them, and — on iOS — the app added to the Home Screen. All
+free, none of it done here yet. Nothing about the current design is in its way.
+
+## The together log
+
+Off by default, and invisible until switched on in Settings. Turning it off
+hides it again without deleting anything.
+
+It follows the same rule the spending feature does, for the same reason: a
+count is the easiest thing in the world to turn into a scoreboard. So
+`src/lib/intimacy.ts` reports what happened and never a target — no streak to
+protect, no goal, no "you're behind this month", no comparison to anybody.
+`daysSinceLast` is offered as a plain fact for the interface to use gently.
+
+The calendar marks use the app's own seal shape rather than hearts. A grid of
+hearts belongs to a different app than this one.
+
+## Flowers
+
+The easter egg. Now and then you are offered one of three pink flowers and can
+send it across; each person keeps a small counter of what they have been given,
+and opening it shows what each flower means.
+
+One rule keeps it a delight rather than a notification: at most one offer per
+day, never a second one, and never an offer once you have already sent one.
+A surprise that arrives on schedule is not a surprise. The decision lives in a
+pure, tested function so the pacing cannot drift.
+
+The three were chosen so the gesture reads in both halves of this couple's
+world — a peony (牡丹) is the imperial flower of China, cherry blossom (樱花)
+carries the same character in both languages, and a pink rose needs no
+translation anywhere.
 
 ## Architecture
 
@@ -300,8 +356,10 @@ control is labelled, and the layout is built phone-first.
 npm test
 ```
 
-154 tests. The bulk cover `src/lib/`: the spending maths (including a
+197 tests. The bulk cover `src/lib/`: the spending maths (including a
 round-trip proving the rebalance suggestion lands exactly level, and that
 treats never enter the calculation), calendar arithmetic across leap years and
 month-end clamping, recurrence, the reminder rules, and the question bank.
-The rest cover the spending UI's language.
+Newer additions: haversine distance checked against real city pairs, the
+month grid across leap years and month boundaries, the intimacy summary, and
+the flower pacing rules. The rest cover the spending UI's language.

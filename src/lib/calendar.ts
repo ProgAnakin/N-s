@@ -124,6 +124,10 @@ export function compareDates(a: CalendarDate, b: CalendarDate): number {
   return toEpochDay(a) - toEpochDay(b);
 }
 
+export function isSameDay(a: CalendarDate, b: CalendarDate): boolean {
+  return a.year === b.year && a.month === b.month && a.day === b.day;
+}
+
 export function addDays(date: CalendarDate, days: number): CalendarDate {
   return fromEpochDay(toEpochDay(date) + days);
 }

@@ -44,6 +44,15 @@ export type DateTypeColumn =
   | 'milestone'
   | 'custom';
 export type TripItemTypeColumn = 'flight' | 'stay' | 'activity' | 'doc';
+export type PlanKindColumn = 'date' | 'celebration' | 'outing' | 'other';
+export type IntimacyKindColumn =
+  | 'affection'
+  | 'kiss'
+  | 'massage'
+  | 'foreplay'
+  | 'sex'
+  | 'other';
+export type FlowerKindColumn = 'rose' | 'peony' | 'cherry';
 
 export type CoupleRow = {
   id: string;
@@ -56,6 +65,7 @@ export type CoupleRow = {
   distance_mode: boolean;
   reunion_date: string | null;
   reunion_note: string | null;
+  intimacy_mode: boolean;
   created_by: string | null;
 }
 
@@ -66,6 +76,7 @@ export type ProfileRow = {
   role: PartnerRoleColumn | null;
   avatar_path: string | null;
   locale: string;
+  auto_checkin: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -217,6 +228,68 @@ export type GiftIdeaRow = {
   updated_at: string;
 }
 
+export type PlaceRow = {
+  id: string;
+  couple_id: string;
+  label: string;
+  latitude: number;
+  longitude: number;
+  radius_m: number;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CheckinRow = {
+  id: string;
+  couple_id: string;
+  profile_id: string;
+  place_id: string | null;
+  label: string;
+  note: string | null;
+  automatic: boolean;
+  created_at: string;
+};
+
+export type PlanRow = {
+  id: string;
+  couple_id: string;
+  title: string;
+  day: string;
+  time_of_day: string | null;
+  location: string | null;
+  note: string | null;
+  kind: PlanKindColumn;
+  done: boolean;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type IntimacyEntryRow = {
+  id: string;
+  couple_id: string;
+  date: string;
+  kind: IntimacyKindColumn;
+  place: string | null;
+  note: string | null;
+  mood: number | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type FlowerRow = {
+  id: string;
+  couple_id: string;
+  from_profile: string;
+  to_profile: string;
+  kind: FlowerKindColumn;
+  note: string | null;
+  seen: boolean;
+  created_at: string;
+};
+
 /** Columns the database fills in for us on insert. */
 type Generated = 'id' | 'created_at' | 'updated_at';
 
@@ -253,6 +326,11 @@ export type Database = {
       trip_items: TableDef<TripItemRow, 'trip_id' | 'title'>;
       expenses: TableDef<ExpenseRow, 'couple_id' | 'paid_by' | 'label' | 'amount_cents'>;
       gift_ideas: TableDef<GiftIdeaRow, 'couple_id' | 'author_id' | 'idea'>;
+      places: TableDef<PlaceRow, 'couple_id' | 'label' | 'latitude' | 'longitude'>;
+      checkins: TableDef<CheckinRow, 'couple_id' | 'profile_id' | 'label'>;
+      plans: TableDef<PlanRow, 'couple_id' | 'title' | 'day'>;
+      intimacy_entries: TableDef<IntimacyEntryRow, 'couple_id' | 'date'>;
+      flowers: TableDef<FlowerRow, 'couple_id' | 'from_profile' | 'to_profile' | 'kind'>;
     };
     Views: { [_ in never]: never };
     Functions: {

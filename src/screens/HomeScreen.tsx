@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { CalendarDays, ChevronRight, Copy, Gift, Images, NotebookPen, Scale } from 'lucide-react';
+import { ArrivalCard } from '@/components/ArrivalCard';
 import { BalanceBar } from '@/components/BalanceBar';
 import { ButtonLink } from '@/components/ui/Button';
 import { LoadingBlock } from '@/components/ui/Bits';
@@ -138,6 +139,9 @@ export function HomeScreen() {
         <LoadingBlock />
       ) : (
         <div className="mt-9 flex flex-col gap-9">
+          {/* --- Home safe --------------------------------------------------- */}
+          <ArrivalCard />
+
           {/* --- Next up ---------------------------------------------------- */}
           <section aria-labelledby="next-up">
             <h2 id="next-up" className="label-kicker mb-3">

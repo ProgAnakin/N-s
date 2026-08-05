@@ -5,6 +5,7 @@ import { ErrorNote } from '@/components/ui/Bits';
 import { SelectField, TextField, Toggle } from '@/components/ui/Field';
 import { ConfirmDialog } from '@/components/ui/Modal';
 import { PageHeader, Sheet } from '@/components/ui/Surface';
+import { PlacesSection } from '@/components/PlacesSection';
 import { Seal } from '@/components/ui/Seal';
 import { useSession } from '@/data/session';
 import { clearTableCache } from '@/data/useTable';
@@ -206,7 +207,22 @@ export function SettingsScreen() {
           </Sheet>
         </section>
 
-        {/* --- Distance mode -------------------------------------------------- */}
+        {/* --- Places and arrivals -------------------------------------------- */}
+        <PlacesSection />
+
+        {/* --- The optional features ------------------------------------------ */}
+        <section>
+          <h2 className="label-kicker mb-3">{s.settings.togetherMode}</h2>
+          <Sheet className="p-5">
+            <Toggle
+              label={couple.intimacy_mode ? s.together.disable : s.together.enable}
+              hint={s.together.enableHint}
+              checked={couple.intimacy_mode}
+              onChange={(intimacy_mode) => void updateCouple({ intimacy_mode })}
+            />
+          </Sheet>
+        </section>
+
         <section>
           <h2 className="label-kicker mb-3">{s.settings.distanceMode}</h2>
           <Sheet className="p-5">

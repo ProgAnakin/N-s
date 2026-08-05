@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import type { CalendarDate } from './calendar';
+import { daysBetween, type CalendarDate } from './calendar';
 import {
   cadenceFor,
   daysTogether,
   describeCountdown,
   formatDate,
   groupByMonth,
+  monthGrid,
   monthsTogether,
   nextMonthiversary,
   nextOccurrence,
@@ -204,5 +205,53 @@ describe('groupByMonth', () => {
     const groups = groupByMonth(items, (item) => item.date);
     expect(groups.map((g) => g.key)).toEqual(['2026-03', '2026-01']);
     expect(groups[0]!.items.map((i) => i.id)).toEqual(['b', 'c']);
+  });
+});
+
+describe('monthGrid', () => {
+  it('always returns six whole weeks, so the layout never jumps', () => {
+    for (const [year, month] of [[2026, 2], [2026, 3], [2026, 8], [2024, 2]] as const) {
+      const grid = monthGrid(year, month, d(2026, 3, 14));
+      expect(grid).toHaveLength(6);
+      expect(grid.every((week) => week.length === 7)).toBe(true);
+    }
+  });
+
+  it('starts the week on Monday', () => {
+    // 1 March 2026 is a Sunday, so a Monday-start grid opens on 23 February.
+    const grid = monthGrid(2026, 3, d(2026, 3, 14));
+    expect(grid[0]![0]!.date).toEqual(d(2026, 2, 23));
+  });
+
+  it('marks the borrowed days from the neighbouring months', () => {
+    const grid = monthGrid(2026, 3, d(2026, 3, 14));
+    expect(grid[0]![0]!.inMonth).toBe(false);
+    expect(grid[0]![6]!.inMonth).toBe(true);
+    expect(grid[0]![6]!.date).toEqual(d(2026, 3, 1));
+  });
+
+  it('marks today, and only today', () => {
+    const grid = monthGrid(2026, 3, d(2026, 3, 14));
+    const marked = grid.flat().filter((cell) => cell.isToday);
+    expect(marked).toHaveLength(1);
+    expect(marked[0]!.date).toEqual(d(2026, 3, 14));
+  });
+
+  it('marks no day when today is in another month', () => {
+    expect(monthGrid(2026, 5, d(2026, 3, 14)).flat().some((cell) => cell.isToday)).toBe(false);
+  });
+
+  it('runs in an unbroken sequence of days across month ends', () => {
+    const cells = monthGrid(2026, 2, d(2026, 3, 14)).flat();
+    for (let i = 1; i < cells.length; i += 1) {
+      expect(daysBetween(cells[i - 1]!.date, cells[i]!.date)).toBe(1);
+    }
+  });
+
+  it('handles a leap February', () => {
+    const days = monthGrid(2024, 2, d(2026, 3, 14))
+      .flat()
+      .filter((cell) => cell.inMonth);
+    expect(days).toHaveLength(29);
   });
 });

@@ -51,12 +51,20 @@ interface SessionValue {
   }) => Promise<CoupleRow>;
   joinCouple: (inviteCode: string) => Promise<void>;
   rotateInviteCode: () => Promise<string>;
-  updateProfile: (values: Partial<Pick<ProfileRow, 'display_name' | 'avatar_path' | 'locale'>>) => Promise<void>;
+  updateProfile: (
+    values: Partial<Pick<ProfileRow, 'display_name' | 'avatar_path' | 'locale' | 'auto_checkin'>>,
+  ) => Promise<void>;
   updateCouple: (
     values: Partial<
       Pick<
         CoupleRow,
-        'couple_name' | 'anniversary_date' | 'currency' | 'distance_mode' | 'reunion_date' | 'reunion_note'
+        | 'couple_name'
+        | 'anniversary_date'
+        | 'currency'
+        | 'distance_mode'
+        | 'reunion_date'
+        | 'reunion_note'
+        | 'intimacy_mode'
       >
     >,
   ) => Promise<void>;

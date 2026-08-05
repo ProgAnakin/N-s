@@ -1,5 +1,7 @@
 import {
   CalendarDays,
+  CalendarHeart,
+  Sparkles,
   Compass,
   Gift,
   Home,
@@ -21,8 +23,13 @@ export interface NavItem {
   label: (s: Strings) => string;
   /** Only these appear in the phone's bottom bar; the rest live behind "More". */
   primary?: boolean;
-  /** Distance mode is hidden until it is switched on. */
-  requiresDistanceMode?: boolean;
+  /** Some destinations stay hidden until their feature is switched on. */
+  requires?: 'distanceMode' | 'intimacyMode';
+}
+
+export interface FeatureFlags {
+  distanceMode: boolean;
+  intimacyMode: boolean;
 }
 
 export interface NavGroup {
@@ -52,9 +59,11 @@ const NAV_GROUPS: NavGroup[] = [
     label: (s) => s.nav.sections.us,
     items: [
       { to: '/memories', icon: Images, label: (s) => s.nav.memories, primary: true },
+      { to: '/calendar', icon: CalendarHeart, label: (s) => s.nav.calendar, primary: true },
       { to: '/dates', icon: CalendarDays, label: (s) => s.nav.dates },
       { to: '/trips', icon: Luggage, label: (s) => s.nav.trips },
-      { to: '/distance', icon: MapPin, label: (s) => s.nav.distance, requiresDistanceMode: true },
+      { to: '/together', icon: Sparkles, label: (s) => s.nav.together, requires: 'intimacyMode' },
+      { to: '/distance', icon: MapPin, label: (s) => s.nav.distance, requires: 'distanceMode' },
     ],
   },
   {
@@ -68,15 +77,15 @@ const NAV_GROUPS: NavGroup[] = [
   },
 ];
 
-export function visibleGroups(distanceMode: boolean): NavGroup[] {
+export function visibleGroups(flags: FeatureFlags): NavGroup[] {
   return NAV_GROUPS.map((group) => ({
     ...group,
-    items: group.items.filter((item) => !item.requiresDistanceMode || distanceMode),
+    items: group.items.filter((item) => !item.requires || flags[item.requires]),
   })).filter((group) => group.items.length > 0);
 }
 
-export function primaryItems(distanceMode: boolean): NavItem[] {
-  return visibleGroups(distanceMode)
+export function primaryItems(flags: FeatureFlags): NavItem[] {
+  return visibleGroups(flags)
     .flatMap((group) => group.items)
     .filter((item) => item.primary);
 }

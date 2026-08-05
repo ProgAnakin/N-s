@@ -13,7 +13,9 @@ import {
   addYears,
   compareDates,
   daysBetween,
+  isSameDay,
   monthsBetween,
+  toEpochDay,
   yearsBetween,
 } from './calendar';
 
@@ -260,6 +262,55 @@ export function formatMonthYear(date: CalendarDate, locale = 'en-GB'): string {
   } catch {
     return `${date.month}/${date.year}`;
   }
+}
+
+/* ------------------------------------------------------------------ *
+ * Month grid
+ * ------------------------------------------------------------------ */
+
+export interface MonthCell {
+  date: CalendarDate;
+  /** False for the leading and trailing days borrowed from adjacent months. */
+  inMonth: boolean;
+  isToday: boolean;
+}
+
+/**
+ * A month laid out as whole weeks.
+ *
+ * Always six rows. A month can genuinely span six weeks, and a grid that
+ * changes height as you page through the year makes everything below it
+ * jump — so the shape is constant and the spare row is simply next month's
+ * first days, greyed.
+ *
+ * `weekStartsOn` is 1 for Monday, which is what both Brazil and China use.
+ */
+export function monthGrid(
+  year: number,
+  month: number,
+  today: CalendarDate,
+  weekStartsOn = 1,
+): MonthCell[][] {
+  const first: CalendarDate = { year, month, day: 1 };
+  // How far back to reach for the first cell of the grid.
+  const firstWeekday = (((toEpochDay(first) + 4) % 7) + 7) % 7; // 0 = Sunday
+  const lead = (firstWeekday - weekStartsOn + 7) % 7;
+  const start = addDays(first, -lead);
+
+  const weeks: MonthCell[][] = [];
+  for (let week = 0; week < 6; week += 1) {
+    const row: MonthCell[] = [];
+    for (let day = 0; day < 7; day += 1) {
+      const date = addDays(start, week * 7 + day);
+      row.push({
+        date,
+        inMonth: date.year === year && date.month === month,
+        isToday: isSameDay(date, today),
+      });
+    }
+    weeks.push(row);
+  }
+  return weeks;
 }
 
 /** Groups dated records into month buckets, newest first — for the timeline. */

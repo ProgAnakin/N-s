@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { MoreHorizontal, X, type LucideIcon } from 'lucide-react';
-import { primaryItems, visibleGroups } from './nav-items';
+import { primaryItems, visibleGroups, type FeatureFlags } from './nav-items';
+import { FlowerCounter, FlowerOffer } from '@/components/Flowers';
 import { Seal } from '@/components/ui/Seal';
 import { useSession } from '@/data/session';
 import { useStrings } from '@/i18n';
@@ -22,9 +23,12 @@ export function AppShell() {
   const location = useLocation();
   const [moreOpen, setMoreOpen] = useState(false);
 
-  const distanceMode = couple?.distance_mode ?? false;
-  const groups = visibleGroups(distanceMode);
-  const bottomItems = primaryItems(distanceMode);
+  const flags: FeatureFlags = {
+    distanceMode: couple?.distance_mode ?? false,
+    intimacyMode: couple?.intimacy_mode ?? false,
+  };
+  const groups = visibleGroups(flags);
+  const bottomItems = primaryItems(flags);
 
   useEffect(() => {
     setMoreOpen(false);
@@ -56,6 +60,7 @@ export function AppShell() {
             <span className="display-warm font-display text-xl font-medium text-ink">
               {s.app.name}
             </span>
+            <FlowerCounter className="ml-auto" />
           </div>
 
           {groups.map((group) => (
@@ -80,6 +85,10 @@ export function AppShell() {
 
         {/* Content */}
         <main id="main" className="min-w-0 flex-1 pb-28 pt-6 lg:pb-16 lg:pt-8">
+          {/* On a phone there is no rail to hang it from. */}
+          <div className="mb-2 flex justify-end lg:hidden">
+            <FlowerCounter />
+          </div>
           <div className="mx-auto w-full max-w-page">
             <AnimatePresence mode="wait" initial={false}>
               <motion.div
@@ -122,6 +131,7 @@ export function AppShell() {
       </nav>
 
       <MoreSheet open={moreOpen} onClose={() => setMoreOpen(false)} />
+      <FlowerOffer />
     </div>
   );
 }
@@ -193,7 +203,10 @@ function BarLink({
 function MoreSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const s = useStrings();
   const { couple } = useSession();
-  const groups = visibleGroups(couple?.distance_mode ?? false);
+  const groups = visibleGroups({
+    distanceMode: couple?.distance_mode ?? false,
+    intimacyMode: couple?.intimacy_mode ?? false,
+  });
 
   return (
     <AnimatePresence>

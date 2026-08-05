@@ -55,6 +55,8 @@ export const en = {
     spending: 'Spending',
     gifts: 'Gift radar',
     distance: 'Distance',
+    calendar: 'Calendar',
+    together: 'Together',
     settings: 'Settings',
     more: 'More',
     sections: {
@@ -491,6 +493,8 @@ export const en = {
     themeSystem: 'Match my device',
     language: 'Language',
     distanceMode: 'Distance mode',
+    togetherMode: 'Together log',
+    places: 'Places',
     privacy: 'Privacy',
     privacyBody:
       'Shared pages are visible to both of you. Your private notes and your gift radar are visible only to you — enforced by the database, not just hidden in the app.',
@@ -498,6 +502,152 @@ export const en = {
     roleA: 'Partner A',
     roleB: 'Partner B',
     roleHint: 'Only used to label who paid for what.',
+  },
+
+  calendar: {
+    title: 'Calendar',
+    subtitle: 'What’s coming, and what already happened.',
+    today: 'Today',
+    previousMonth: 'Previous month',
+    nextMonth: 'Next month',
+    backToToday: 'Back to today',
+    nothingOn: (date: string) => `Nothing on ${date} yet.`,
+    addPlan: 'Add a plan',
+    editPlan: 'Edit plan',
+    planTitle: 'What are you doing?',
+    planTitlePlaceholder: 'e.g. That Japanese place she mentioned',
+    planDay: 'Which day',
+    planTime: 'Time',
+    planLocation: 'Where',
+    planLocationPlaceholder: 'e.g. Rua das Flores, 40',
+    planNote: 'Notes',
+    planKind: 'Kind',
+    planDone: 'Already happened',
+    upcoming: 'Coming up',
+    legend: 'On this calendar',
+    legendPlan: 'Plans',
+    legendDate: 'Dates that matter',
+    legendTrip: 'Trips',
+    legendIntimacy: 'Together',
+    emptyTitle: 'Nothing planned yet',
+    emptyBody:
+      'Put in the next thing you’re doing together — even if it’s just a film on Sunday. Half of a good date is looking forward to it.',
+    weekdays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+  },
+
+  planKinds: {
+    date: 'A date',
+    celebration: 'A celebration',
+    outing: 'An outing',
+    other: 'Something else',
+  },
+
+  arrivals: {
+    title: 'Home safe',
+    imHere: (place: string) => `I’m at ${place}`,
+    imHome: 'I’m home',
+    arrived: 'Sent',
+    arrivedAt: (name: string, place: string) => `${name} arrived at ${place}`,
+    lastSeen: 'Recently',
+    noneYet: 'No arrivals yet',
+    noneYetBody:
+      'One tap tells them you got in, so neither of you has to write the message.',
+    savePlace: 'Save a place',
+    editPlace: 'Edit place',
+    placeLabel: 'Call it what?',
+    placeLabelPlaceholder: 'e.g. Home',
+    placeRadius: 'How close counts as “there”',
+    placeRadiusHint: 'Phone GPS is easily off by a block, so anything under 100 m tends to never trigger.',
+    useCurrentLocation: 'Use where I am now',
+    locating: 'Finding you…',
+    locationDenied:
+      'Your browser refused the location. You can still save a place by hand, and the button always works.',
+    locationUnavailable: 'Couldn’t get a location just now.',
+    autoCheckin: 'Notice when I arrive',
+    autoCheckinHint:
+      'While the app is open, it can spot that you’ve reached a saved place and send the arrival for you.',
+    autoCheckinLimit:
+      'The web has no background location: this only works with the app open, and never records where you’ve been — only that you arrived.',
+    placesTitle: 'Your places',
+    placesEmpty: 'No places saved. The button still works without them.',
+    detectedAt: (place: string) => `Looks like you’re at ${place}.`,
+    detectedSend: 'Let them know',
+  },
+
+  together: {
+    title: 'Together',
+    subtitle: 'Yours both, and nobody else’s.',
+    intro:
+      'A private record of the two of you — kept because it’s nice to look back on, not because anything here is a target.',
+    enable: 'Turn on the together log',
+    enableHint: 'Adds a private page and small marks on the calendar. Off unless you want it.',
+    disable: 'Turn off the together log',
+    disabledTitle: 'Not switched on',
+    disabledBody:
+      'This one is off by default. You can turn it on in Settings, and turning it off again hides the page without deleting anything.',
+    add: 'Add',
+    edit: 'Edit',
+    date: 'When',
+    kind: 'What',
+    place: 'Where',
+    placePlaceholder: 'e.g. the kitchen, that hotel in Lisbon',
+    note: 'Anything to remember',
+    total: 'All time',
+    thisMonth: 'This month',
+    lastThirty: 'Last 30 days',
+    activeDays: 'Days',
+    daysSince: (days: number) =>
+      days === 0 ? 'Today' : days === 1 ? 'Yesterday' : `${days} days ago`,
+    daysSinceLabel: 'Last time',
+    byKind: 'What, mostly',
+    places: 'Where, mostly',
+    byMonth: 'Month by month',
+    history: 'Everything',
+    emptyTitle: 'Nothing logged yet',
+    emptyBody: 'Add the last time. It takes five seconds and it’s lovely a year from now.',
+    privacyNote:
+      'Only the two of you can read this, enforced by the database. Nothing here is shown anywhere else in the app.',
+    countOf: (n: number) => (n === 1 ? '1 time' : `${n} times`),
+  },
+
+  intimacyKinds: {
+    affection: 'Closeness',
+    kiss: 'Kissing',
+    massage: 'Massage',
+    foreplay: 'Foreplay',
+    sex: 'Sex',
+    other: 'Something else',
+  },
+
+  flowers: {
+    counter: 'Flowers',
+    offerTitle: 'A flower turned up',
+    offerBody: 'Send one across. No reason needed — that’s rather the point.',
+    send: 'Send it',
+    sent: 'On its way',
+    notNow: 'Maybe later',
+    receivedTitle: 'Flowers you’ve been given',
+    receivedNone: 'None yet. They arrive when they arrive.',
+    receivedTotal: (n: number) => (n === 1 ? '1 flower' : `${n} flowers`),
+    fromPartner: (name: string) => `from ${name}`,
+    newOnes: (n: number) => (n === 1 ? '1 new' : `${n} new`),
+    meaningTitle: 'What it means',
+    kinds: {
+      rose: {
+        name: 'Pink rose',
+        meaning: 'Gratitude, and quiet admiration. The one you send for no occasion.',
+      },
+      peony: {
+        name: 'Peony 牡丹',
+        meaning:
+          'The king of flowers in China: prosperous love, honour, a wish for a good life together.',
+      },
+      cherry: {
+        name: 'Cherry blossom 樱花',
+        meaning:
+          'Beauty that doesn’t last, which is why it matters. A reminder to notice the day you’re in.',
+      },
+    },
   },
 
   factCategories: {
