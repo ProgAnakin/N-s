@@ -584,7 +584,20 @@ export const en = {
     network: 'Can’t reach the server right now.',
     notConfigured: 'The app isn’t connected to a database yet.',
     notConfiguredBody:
-      'Copy .env.example to .env, fill in your Supabase project URL and anon key, and restart the dev server.',
+      'It needs two build-time variables. Below is exactly what this build received.',
+    notConfiguredSaw: 'What this build received',
+    notConfiguredMissing: 'not found',
+    notConfiguredKeyFound: (length: number, prefix: string) =>
+      `found — ${length} characters, starts with ${prefix}`,
+    notConfiguredLocal: 'Running locally',
+    notConfiguredLocalBody:
+      'Copy .env.example to .env, fill in both values, then restart the dev server. Vite only reads them on start-up.',
+    notConfiguredHosted: 'Deployed on Vercel',
+    notConfiguredHostedBody:
+      'Add both under Settings → Environment Variables with the Production environment ticked, then redeploy. Saving them is not enough on its own: Vite bakes the values into the bundle at build time, so only a build that runs after they were saved will have them.',
+    notConfiguredNames:
+      'The names must match exactly, VITE_ prefix included — a variable named SUPABASE_URL will be ignored by the browser build.',
+    notConfiguredWhere: 'Both values live in your Supabase dashboard under Project Settings → API.',
     signIn: 'That email and password didn’t match.',
     signUp: 'Couldn’t create that account.',
     weakPassword: 'Use at least 8 characters.',
