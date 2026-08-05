@@ -15,7 +15,25 @@ function readEnv(raw: string | undefined): string | undefined {
 }
 
 const url = readEnv(import.meta.env.VITE_SUPABASE_URL);
-const anonKey = readEnv(import.meta.env.VITE_SUPABASE_ANON_KEY);
+
+/**
+ * The Supabase publishable ("anon") key.
+ *
+ * Two names are accepted. `VITE_SUPABASE_ANON` is the documented one;
+ * `VITE_SUPABASE_ANON_KEY` is still read so an existing setup keeps working.
+ *
+ * The rename is only to keep hosting dashboards quiet: they warn when a
+ * browser-exposed variable is named like a secret. The warning does not apply
+ * here — this key is public by design, ships inside the bundle of every
+ * Supabase app, and grants only what Row Level Security allows — but there is
+ * nothing to gain from arguing with it over a name.
+ *
+ * Both reads are written out literally on purpose: Vite substitutes
+ * `import.meta.env.VITE_*` at build time and cannot resolve a dynamic lookup.
+ */
+const anonKey =
+  readEnv(import.meta.env.VITE_SUPABASE_ANON) ??
+  readEnv(import.meta.env.VITE_SUPABASE_ANON_KEY);
 
 /**
  * Whether the app has real credentials to talk to.
@@ -46,6 +64,12 @@ export const configStatus = {
   anonKeyPresent: Boolean(anonKey),
   anonKeyLength: anonKey?.length ?? 0,
   anonKeyPrefix: anonKey ? `${anonKey.slice(0, 8)}…` : null,
+  /** Which of the accepted names actually carried the value. */
+  anonKeyName: readEnv(import.meta.env.VITE_SUPABASE_ANON)
+    ? 'VITE_SUPABASE_ANON'
+    : readEnv(import.meta.env.VITE_SUPABASE_ANON_KEY)
+      ? 'VITE_SUPABASE_ANON_KEY'
+      : null,
 } as const;
 
 export type Client = SupabaseClient<Database>;

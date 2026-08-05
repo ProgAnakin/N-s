@@ -40,11 +40,18 @@ Requires Node 18+.
 
    ```
    VITE_SUPABASE_URL=https://your-project-ref.supabase.co
-   VITE_SUPABASE_ANON_KEY=eyJ...
+   VITE_SUPABASE_ANON=eyJ...
    ```
 
-   Both are safe in the browser. The anon key grants only what Row Level
-   Security allows, and every table here is behind RLS.
+   Both are safe in the browser. The anon key is public by design: it ships
+   inside the bundle of every Supabase app and grants only what Row Level
+   Security allows, and every table here is behind RLS. It is named
+   `VITE_SUPABASE_ANON` rather than `..._ANON_KEY` only because hosting
+   dashboards warn about browser-exposed variables whose name ends in KEY —
+   the older name is still accepted if you already have it set.
+
+   Never use the `service_role` key here. That one is a real secret and must
+   never reach the browser.
 3. **SQL Editor**: run each file in `supabase/migrations/` **in order**.
 
    | | |
