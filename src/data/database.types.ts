@@ -1,0 +1,284 @@
+/**
+ * Hand-written database types.
+ *
+ * These mirror /supabase/migrations exactly and are what `supabase gen types
+ * typescript` would produce, kept by hand so the repo needs no generation
+ * step. They exist so the app can be strictly typed end to end without a
+ * single `any` at the network boundary.
+ *
+ * If you change a migration, change the matching Row here.
+ */
+
+export type PartnerRoleColumn = 'partner_a' | 'partner_b';
+export type CurrencyColumn = 'EUR' | 'BRL' | 'CNY' | 'USD';
+export type VisibilityColumn = 'shared' | 'private';
+export type SplitRuleColumn = '50_50' | 'custom_pct' | 'treat';
+export type FactCategoryColumn =
+  | 'communication'
+  | 'love_language'
+  | 'culture'
+  | 'preferences'
+  | 'boundaries'
+  | 'past'
+  | 'other';
+export type ExpenseCategoryColumn =
+  | 'food'
+  | 'transport'
+  | 'stay'
+  | 'activity'
+  | 'gift'
+  | 'home'
+  | 'health'
+  | 'other';
+export type CultureCategoryColumn =
+  | 'lucky'
+  | 'unlucky'
+  | 'tradition'
+  | 'food'
+  | 'etiquette'
+  | 'gift';
+export type DateTypeColumn =
+  | 'birthday'
+  | 'anniversary'
+  | 'monthiversary'
+  | 'milestone'
+  | 'custom';
+export type TripItemTypeColumn = 'flight' | 'stay' | 'activity' | 'doc';
+
+export type CoupleRow = {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  couple_name: string | null;
+  anniversary_date: string | null;
+  currency: CurrencyColumn;
+  invite_code: string;
+  distance_mode: boolean;
+  reunion_date: string | null;
+  reunion_note: string | null;
+  created_by: string | null;
+}
+
+export type ProfileRow = {
+  id: string;
+  couple_id: string | null;
+  display_name: string;
+  role: PartnerRoleColumn | null;
+  avatar_path: string | null;
+  locale: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export type MemoryRow = {
+  id: string;
+  couple_id: string;
+  title: string;
+  note: string | null;
+  date: string;
+  photo_path: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type ImportantDateRow = {
+  id: string;
+  couple_id: string;
+  label: string;
+  date: string;
+  type: DateTypeColumn;
+  recurring: boolean;
+  icon: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type RememberFactRow = {
+  id: string;
+  couple_id: string;
+  author_id: string;
+  category: FactCategoryColumn;
+  question: string;
+  answer: string;
+  visibility: VisibilityColumn;
+  remind_on: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type DismissedQuestionRow = {
+  id: string;
+  couple_id: string;
+  author_id: string;
+  question_id: string;
+  created_at: string;
+}
+
+export type FamilyMemberRow = {
+  id: string;
+  couple_id: string;
+  belongs_to: PartnerRoleColumn;
+  name: string;
+  relation: string;
+  age: number | null;
+  birthday: string | null;
+  notes: string | null;
+  sensitive: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export type PhraseRow = {
+  id: string;
+  couple_id: string;
+  script_original: string;
+  pinyin_or_reading: string | null;
+  translation: string;
+  audio_path: string | null;
+  learned: boolean;
+  note: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type CultureNoteRow = {
+  id: string;
+  couple_id: string;
+  title: string;
+  note: string;
+  category: CultureCategoryColumn;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type TripRow = {
+  id: string;
+  couple_id: string;
+  destination: string;
+  start_date: string | null;
+  end_date: string | null;
+  budget_total_cents: number | null;
+  currency: CurrencyColumn;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type TripItemRow = {
+  id: string;
+  trip_id: string;
+  type: TripItemTypeColumn;
+  title: string;
+  datetime: string | null;
+  day: string | null;
+  attachment_path: string | null;
+  note: string | null;
+  done: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export type ExpenseRow = {
+  id: string;
+  couple_id: string;
+  paid_by: PartnerRoleColumn;
+  label: string;
+  amount_cents: number;
+  currency: CurrencyColumn;
+  date: string;
+  category: ExpenseCategoryColumn;
+  split_rule: SplitRuleColumn;
+  partner_a_percent: number | null;
+  trip_id: string | null;
+  note: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type GiftIdeaRow = {
+  id: string;
+  couple_id: string;
+  author_id: string;
+  idea: string;
+  occasion: string | null;
+  noticed_on: string | null;
+  note: string | null;
+  used: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Columns the database fills in for us on insert. */
+type Generated = 'id' | 'created_at' | 'updated_at';
+
+type Insertable<Row, RequiredKeys extends keyof Row> = Pick<Row, RequiredKeys> &
+  Partial<Omit<Row, RequiredKeys | Generated>>;
+
+type Updatable<Row> = Partial<Omit<Row, Generated>>;
+
+type TableDef<Row, RequiredKeys extends keyof Row> = {
+  Row: Row;
+  Insert: Insertable<Row, RequiredKeys>;
+  Update: Updatable<Row>;
+  Relationships: [];
+}
+
+export type Database = {
+  public: {
+    Tables: {
+      couples: TableDef<CoupleRow, 'invite_code'>;
+      profiles: TableDef<ProfileRow, 'id'>;
+      memories: TableDef<MemoryRow, 'couple_id' | 'title' | 'date'>;
+      important_dates: TableDef<ImportantDateRow, 'couple_id' | 'label' | 'date'>;
+      remember_facts: TableDef<RememberFactRow, 'couple_id' | 'author_id' | 'question'>;
+      dismissed_questions: TableDef<
+        DismissedQuestionRow,
+        'couple_id' | 'author_id' | 'question_id'
+      >;
+      family_members: TableDef<FamilyMemberRow, 'couple_id' | 'name'>;
+      phrases: TableDef<PhraseRow, 'couple_id' | 'script_original' | 'translation'>;
+      culture_notes: TableDef<CultureNoteRow, 'couple_id' | 'title'>;
+      trips: TableDef<TripRow, 'couple_id' | 'destination'>;
+      trip_items: TableDef<TripItemRow, 'trip_id' | 'title'>;
+      expenses: TableDef<ExpenseRow, 'couple_id' | 'paid_by' | 'label' | 'amount_cents'>;
+      gift_ideas: TableDef<GiftIdeaRow, 'couple_id' | 'author_id' | 'idea'>;
+    };
+    Views: { [_ in never]: never };
+    Functions: {
+      create_couple: {
+        Args: {
+          p_couple_name?: string | null;
+          p_anniversary_date?: string | null;
+          p_currency?: string;
+        };
+        Returns: CoupleRow;
+      };
+      join_couple: {
+        Args: { p_invite_code: string };
+        Returns: CoupleRow;
+      };
+      rotate_invite_code: {
+        Args: Record<PropertyKey, never>;
+        Returns: string;
+      };
+      current_couple_id: {
+        Args: Record<PropertyKey, never>;
+        Returns: string | null;
+      };
+    };
+    Enums: { [_ in never]: never };
+    CompositeTypes: { [_ in never]: never };
+  };
+}
+
+export type TableName = keyof Database['public']['Tables'];
+export type RowOf<T extends TableName> = Database['public']['Tables'][T]['Row'];
+export type InsertOf<T extends TableName> = Database['public']['Tables'][T]['Insert'];
+export type UpdateOf<T extends TableName> = Database['public']['Tables'][T]['Update'];
