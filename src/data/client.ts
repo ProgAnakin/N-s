@@ -60,6 +60,18 @@ export const configStatus = {
   anonKeyPresent: Boolean(anonKey),
   anonKeyLength: anonKey?.length ?? 0,
   anonKeyPrefix: anonKey ? `${anonKey.slice(0, 8)}…` : null,
+  /**
+   * Every `VITE_*` name this build received.
+   *
+   * A missing variable and a misspelled one look identical from the outside,
+   * and reading a name off a dashboard screenshot is how you end up chasing
+   * the same typo twice. Listing what actually arrived turns the guess into
+   * something you can read. Names only — never values, since an unexpected
+   * name is exactly the case where you cannot assume the value is harmless.
+   */
+  receivedNames: Object.keys(import.meta.env)
+    .filter((name) => name.startsWith('VITE_'))
+    .sort(),
 } as const;
 
 export type Client = SupabaseClient<Database>;

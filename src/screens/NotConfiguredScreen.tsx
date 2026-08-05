@@ -42,6 +42,24 @@ export function NotConfiguredScreen() {
           <p className="mt-4 text-xs leading-relaxed text-ink-faint">
             {s.errors.notConfiguredNames}
           </p>
+
+          {/* The actual names, so a misspelling can be read rather than guessed at. */}
+          <div className="mt-4 border-t border-rule pt-3">
+            <p className="label-kicker mb-2">{s.errors.notConfiguredReceived}</p>
+            {configStatus.receivedNames.length === 0 ? (
+              <p className="text-xs leading-relaxed text-ink-faint">
+                {s.errors.notConfiguredReceivedNone}
+              </p>
+            ) : (
+              <ul className="flex flex-col gap-1">
+                {configStatus.receivedNames.map((name) => (
+                  <li key={name} className="break-all font-mono text-xs text-ink-soft">
+                    {name}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
 
         <div className="sheet p-5">
