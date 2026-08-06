@@ -94,6 +94,46 @@ interface SessionValue {
 
 const SessionContext = createContext<SessionValue | null>(null);
 
+/**
+ * Fills in columns a not-yet-applied migration would leave absent.
+ *
+ * The schema and the deployed app move at different speeds: migrations are
+ * run by hand in the Supabase SQL editor, and a deploy can land first. When
+ * it does, `profile.pinned` comes back `undefined` and the settings screen
+ * calls `.indexOf` on nothing — a blank page, for a feature the reader was
+ * not even using.
+ *
+ * These defaults match the `default` clauses in the migrations exactly, so
+ * the app behaves identically before and after; the only difference is that
+ * changing one of these settings silently fails until the migration runs,
+ * instead of taking the whole screen down. Every entry here can be deleted
+ * once its migration is certain to have been applied.
+ */
+function normaliseProfile(row: ProfileRow | null): ProfileRow | null {
+  if (!row) return null;
+  return {
+    ...row,
+    // 0006
+    time_zone: row.time_zone ?? null,
+    awake_start: row.awake_start ?? 8,
+    awake_end: row.awake_end ?? 23,
+    // 0008
+    pinned: row.pinned ?? [],
+    nudges: row.nudges ?? true,
+  };
+}
+
+function normaliseCouple(row: CoupleRow | null): CoupleRow | null {
+  if (!row) return null;
+  return {
+    ...row,
+    // 0008
+    week_starts_on: row.week_starts_on ?? 1,
+    accent: row.accent ?? 'cinnabar',
+    seal_text: row.seal_text ?? null,
+  };
+}
+
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<SessionStatus>(isConfigured ? 'loading' : 'unconfigured');
   const [user, setUser] = useState<User | null>(null);
@@ -130,7 +170,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       .maybeSingle();
 
     if (!settled()) return;
-    setProfile(profileRow ?? null);
+    setProfile(normaliseProfile(profileRow ?? null));
 
     if (!profileRow?.couple_id) {
       setCouple(null);
@@ -145,8 +185,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     ]);
 
     if (!settled()) return;
-    setCouple(coupleResult.data ?? null);
-    setPartner((membersResult.data ?? []).find((row) => row.id !== nextUser.id) ?? null);
+    setCouple(normaliseCouple(coupleResult.data ?? null));
+    setPartner(
+      normaliseProfile((membersResult.data ?? []).find((row) => row.id !== nextUser.id) ?? null),
+    );
     setStatus(coupleResult.data ? 'ready' : 'no_couple');
   }, []);
 
@@ -265,7 +307,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       if (!profile) return;
       const { error } = await client.from('profiles').update(values).eq('id', profile.id);
       if (error) throw error;
-      setProfile({ ...profile, ...values });
+      setProfile(normaliseProfile({ ...profile, ...values }));
     },
     [profile],
   );
@@ -276,7 +318,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       if (!couple) return;
       const { error } = await client.from('couples').update(values).eq('id', couple.id);
       if (error) throw error;
-      setCouple({ ...couple, ...values });
+      setCouple(normaliseCouple({ ...couple, ...values }));
     },
     [couple],
   );
