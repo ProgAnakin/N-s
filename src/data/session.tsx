@@ -70,6 +70,11 @@ interface SessionValue {
         | 'awake_end'
         | 'pinned'
         | 'nudges'
+        | 'home_country'
+        | 'native_language'
+        | 'shared_language'
+        | 'cycle_tracking'
+        | 'cycle_shared'
       >
     >,
   ) => Promise<boolean>;
@@ -121,6 +126,12 @@ function normaliseProfile(row: ProfileRow | null): ProfileRow | null {
     // 0008
     pinned: row.pinned ?? [],
     nudges: row.nudges ?? true,
+    // 0011
+    home_country: row.home_country ?? null,
+    native_language: row.native_language ?? null,
+    shared_language: row.shared_language ?? null,
+    cycle_tracking: row.cycle_tracking ?? false,
+    cycle_shared: row.cycle_shared ?? false,
   };
 }
 
@@ -132,6 +143,9 @@ function normaliseCouple(row: CoupleRow | null): CoupleRow | null {
     week_starts_on: row.week_starts_on ?? 1,
     accent: row.accent ?? 'cinnabar',
     seal_text: row.seal_text ?? null,
+    // 0011
+    ended_on: row.ended_on ?? null,
+    ended_by: row.ended_by ?? null,
   };
 }
 

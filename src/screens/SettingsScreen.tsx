@@ -8,6 +8,7 @@ import { PageHeader, Sheet } from '@/components/ui/Surface';
 import { PlacesSection } from '@/components/PlacesSection';
 import { ClockSection } from '@/components/ClockSection';
 import { YoursSection } from '@/components/YoursSection';
+import { OriginSection } from '@/components/OriginSection';
 import { Seal } from '@/components/ui/Seal';
 import { useSession } from '@/data/session';
 import { clearTableCache } from '@/data/useTable';
@@ -229,6 +230,9 @@ export function SettingsScreen() {
             </div>
           </Sheet>
         </section>
+
+        {/* --- Where each of you is from --------------------------------------- */}
+        <OriginSection />
 
         {/* --- Make it yours --------------------------------------------------- */}
         <YoursSection />

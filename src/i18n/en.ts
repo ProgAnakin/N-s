@@ -526,6 +526,21 @@ export const en = {
     roleA: 'Partner A',
     roleB: 'Partner B',
     roleHint: 'Only used to label who paid for what.',
+    /* The cultural profile. Per person, because the entire point is that
+       the two answers differ — a shared field would erase the thing the app
+       exists to help with. */
+    origin: 'Where you’re from',
+    originHint:
+      'Used for the holidays the app watches for you, and nothing else. Your partner sees which country you picked — that is the point of it.',
+    homeCountry: 'Your country',
+    homeCountryNone: 'Rather not say',
+    nativeLanguage: 'Your first language',
+    sharedLanguage: 'What the two of you speak together',
+    sharedLanguageHint:
+      'Often neither of your first languages. Worth naming: two people both working in a second language explains a lot of friction that otherwise gets blamed on character.',
+    partnerOrigin: (name: string, country: string) => `${name} is from ${country}.`,
+    partnerOriginUnset: (name: string) => `${name} hasn’t said where they’re from yet.`,
+
     yours: 'Make it yours',
     weekStarts: 'The week starts on',
     weekStartsHint:
@@ -792,18 +807,106 @@ export const en = {
 
   holidays: {
     title: 'Coming up where you’re from',
-    tabulatedNote: 'Lunisolar dates are from a checked table and stop after 2030.',
+    tabulatedNote: 'Lunisolar dates come from a checked table and stop after 2030.',
+    /* Which country a date belongs to. Shown beside it, because "it's her
+       country's day, not yours" is the single most useful thing the app can
+       tell somebody here. */
+    countries: {
+      BR: 'Brazil',
+      CN: 'China',
+      IT: 'Italy',
+      PT: 'Portugal',
+      US: 'United States',
+      ES: 'Spain',
+      FR: 'France',
+      DE: 'Germany',
+      GB: 'United Kingdom',
+      MX: 'Mexico',
+      JP: 'Japan',
+      KR: 'South Korea',
+    } as Record<string, string>,
     ids: {
-      chinese_new_year: { name: 'Chinese New Year 春节', note: 'The family holiday. Being wished well on it lands.' },
-      mid_autumn: { name: 'Mid-Autumn 中秋节', note: 'Family, mooncakes, the full moon.' },
-      national_day_cn: { name: 'National Day 国庆节', note: 'Golden Week — she may be travelling to family.' },
-      carnival: { name: 'Carnaval', note: 'Moves with Easter every year.' },
-      dia_dos_namorados: { name: 'Dia dos Namorados', note: 'Brazil’s lovers’ day is 12 June, not 14 February.' },
-      sao_joao: { name: 'São João', note: 'Festa junina — quadrilha, canjica, bonfires.' },
-      independencia: { name: 'Independência', note: '' },
+      /* Universal */
       new_year: { name: 'New Year', note: '' },
       christmas: { name: 'Christmas', note: '' },
-    },
+
+      /* Brazil */
+      carnaval: { name: 'Carnaval', note: 'Moves with Easter every year.' },
+      dia_dos_namorados: {
+        name: 'Dia dos Namorados',
+        note: 'Brazil’s lovers’ day is 12 June, not 14 February. This one catches every foreign partner out.',
+      },
+      sao_joao: { name: 'São João', note: 'Festa junina — quadrilha, canjica, bonfires.' },
+      independencia_br: { name: 'Independência', note: '' },
+
+      /* China */
+      chinese_new_year: {
+        name: 'Chinese New Year 春节',
+        note: 'The family holiday. Being wished well on it lands; forgetting it does not go unnoticed.',
+      },
+      qixi: {
+        name: 'Qixi 七夕',
+        note: 'China’s own lovers’ day. Not 14 February — and this is the one that matters.',
+      },
+      dragon_boat: { name: 'Dragon Boat 端午节', note: 'Zongzi, and a long weekend.' },
+      mid_autumn: { name: 'Mid-Autumn 中秋节', note: 'Family, mooncakes, the full moon.' },
+      national_day_cn: {
+        name: 'National Day 国庆节',
+        note: 'Golden Week — they may be travelling to family.',
+      },
+
+      /* Italy */
+      san_valentino: { name: 'San Valentino', note: '' },
+      epifania: { name: 'Epifania', note: 'La Befana — the stocking comes now, not at Christmas.' },
+      festa_repubblica: { name: 'Festa della Repubblica', note: '' },
+      ferragosto: { name: 'Ferragosto', note: 'Italy closes. Nothing gets done in August.' },
+
+      /* Portugal */
+      dia_dos_namorados_pt: { name: 'Dia dos Namorados', note: 'In Portugal it is 14 February.' },
+      dia_de_portugal: { name: 'Dia de Portugal', note: '' },
+      santo_antonio: { name: 'Santo António', note: 'Lisbon’s night — sardines and paper streamers.' },
+
+      /* United States */
+      valentines: { name: 'Valentine’s Day', note: '' },
+      independence_us: { name: 'Independence Day', note: '' },
+      thanksgiving_us: { name: 'Thanksgiving', note: 'Family, and travel. The fourth Thursday.' },
+
+      /* Spain */
+      san_valentin: { name: 'San Valentín', note: '' },
+      reyes: { name: 'Reyes', note: 'The presents come on 6 January, not on the 25th.' },
+      hispanidad: { name: 'Día de la Hispanidad', note: '' },
+
+      /* France */
+      saint_valentin: { name: 'Saint-Valentin', note: '' },
+      bastille: { name: 'Quatorze Juillet', note: '' },
+      fete_musique: { name: 'Fête de la Musique', note: 'The whole country plays outside.' },
+
+      /* Germany */
+      valentinstag: { name: 'Valentinstag', note: '' },
+      nikolaus: { name: 'Nikolaustag', note: 'Boots by the door on the night of the 5th.' },
+      einheit: { name: 'Tag der Deutschen Einheit', note: '' },
+
+      /* United Kingdom */
+      bonfire_night: { name: 'Bonfire Night', note: '' },
+      boxing_day: { name: 'Boxing Day', note: '' },
+
+      /* Mexico */
+      valentines_mx: { name: 'Día del Amor y la Amistad', note: 'Friends too, not only couples.' },
+      independencia_mx: { name: 'Independencia', note: 'The Grito is the night of the 15th.' },
+      dia_de_muertos: { name: 'Día de Muertos', note: 'For remembering, not for mourning.' },
+
+      /* Japan */
+      white_day: {
+        name: 'White Day',
+        note: 'A month after 14 February, the gift goes back the other way. Forgetting the second half is the classic mistake.',
+      },
+      tanabata: { name: 'Tanabata 七夕', note: 'A wish on a strip of paper, tied to bamboo.' },
+      golden_week: { name: 'Golden Week', note: 'A week of holidays; everything is booked.' },
+
+      /* South Korea */
+      pepero_day: { name: 'Pepero Day 빼빼로데이', note: '11/11, for the shape of the biscuit.' },
+      chuseok: { name: 'Chuseok 추석', note: 'The harvest holiday. Family, and a long journey.' },
+    } as Record<string, { name: string; note: string }>,
   },
 
   factCategories: {

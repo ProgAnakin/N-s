@@ -55,6 +55,14 @@ export type IntimacyKindColumn =
 export type FlowerKindColumn = 'rose' | 'peony' | 'cherry';
 export type LetterKindColumn = 'thanks' | 'small' | 'sorry' | 'love';
 export type AccentColumn = 'cinnabar' | 'jade' | 'amber' | 'ink';
+/** What kind of thing an answer is — the field that makes suggestions possible. */
+export type AnswerKindColumn =
+  | 'insight'
+  | 'taste'
+  | 'place'
+  | 'activity'
+  | 'boundary'
+  | 'date';
 
 export type CoupleRow = {
   id: string;
@@ -72,6 +80,9 @@ export type CoupleRow = {
   week_starts_on: number;
   accent: AccentColumn;
   seal_text: string | null;
+  /** Set when the couple has ended. Null while it is running. */
+  ended_on: string | null;
+  ended_by: string | null;
   created_by: string | null;
 }
 
@@ -89,6 +100,14 @@ export type ProfileRow = {
   /** Route paths pinned to the phone's bottom bar. Empty means the defaults. */
   pinned: string[];
   nudges: boolean;
+  /** ISO 3166-1 alpha-2, e.g. 'BR'. Null until asked. */
+  home_country: string | null;
+  /** ISO 639-1, e.g. 'pt'. */
+  native_language: string | null;
+  /** What the two of them actually speak together, often neither of the above. */
+  shared_language: string | null;
+  cycle_tracking: boolean;
+  cycle_shared: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -139,6 +158,9 @@ export type RememberFactRow = {
   answer: string;
   visibility: VisibilityColumn;
   remind_on: string | null;
+  /** Key into the question bank in lib/questions.ts, when it came from one. */
+  question_id: string | null;
+  answer_kind: AnswerKindColumn;
   created_at: string;
   updated_at: string;
 }
@@ -254,6 +276,8 @@ export type GiftIdeaRow = {
   noticed_on: string | null;
   note: string | null;
   used: boolean;
+  /** The answer that prompted it — "you saved this because she mentioned it". */
+  from_fact_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -291,9 +315,25 @@ export type PlanRow = {
   note: string | null;
   kind: PlanKindColumn;
   done: boolean;
+  /** Whether it was worth repeating. Null until somebody says. */
+  went_well: boolean | null;
+  reflection: string | null;
+  tags: string[];
+  /** The album page it became. */
+  memory_id: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
+};
+
+export type CycleEventRow = {
+  id: string;
+  profile_id: string;
+  /** Set by a trigger from the profile; never sent by the client. */
+  couple_id: string;
+  started_on: string;
+  note: string | null;
+  created_at: string;
 };
 
 export type IntimacyEntryRow = {
@@ -379,6 +419,8 @@ export type Database = {
       intimacy_entries: TableDef<IntimacyEntryRow, 'couple_id' | 'date'>;
       flowers: TableDef<FlowerRow, 'couple_id' | 'from_profile' | 'to_profile' | 'kind'>;
       letters: TableDef<LetterRow, 'couple_id' | 'from_profile' | 'to_profile' | 'body'>;
+      // couple_id is absent on purpose: the trigger fills it in.
+      cycle_events: TableDef<CycleEventRow, 'profile_id' | 'started_on'>;
     };
     Views: { [_ in never]: never };
     Functions: {
@@ -395,6 +437,14 @@ export type Database = {
         Returns: CoupleRow;
       };
       leave_couple: {
+        Args: Record<PropertyKey, never>;
+        Returns: void;
+      };
+      end_couple: {
+        Args: Record<PropertyKey, never>;
+        Returns: void;
+      };
+      reopen_couple: {
         Args: Record<PropertyKey, never>;
         Returns: void;
       };

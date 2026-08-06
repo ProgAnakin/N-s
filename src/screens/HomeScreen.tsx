@@ -16,7 +16,7 @@ import { parseISODate } from '@/lib/calendar';
 import { computeBalance } from '@/lib/money';
 import { daysTogether, formatDate, formatMonthShort, occurrenceFor } from '@/lib/dates';
 import { buildReminders, type Reminder } from '@/lib/reminders';
-import { upcomingHolidays } from '@/lib/holidays';
+import { coupleCountries, upcomingHolidays } from '@/lib/holidays';
 import { useI18n, useStrings } from '@/i18n';
 import { useCoupleTable, useCountdown, usePartnerNames, useToday } from './shared';
 import { cn } from '@/utils/cn';
@@ -42,7 +42,7 @@ const HOME_EXPENSE_LIMIT = 400;
 export function HomeScreen() {
   const s = useStrings();
   const { intlLocale } = useI18n();
-  const { couple } = useCouple();
+  const { couple, profile } = useCouple();
   const { partner } = useSession();
   const names = usePartnerNames();
   const today = useToday();
@@ -86,6 +86,14 @@ export function HomeScreen() {
   });
 
   const anniversary = parseISODate(couple.anniversary_date);
+
+  // Both people's countries, deduplicated. Empty until somebody says where
+  // they are from, at which point the section simply shows the universal
+  // dates — no worse than before, and it fills in the moment it is asked.
+  const countries = useMemo(
+    () => coupleCountries(profile.home_country, partner?.home_country),
+    [profile.home_country, partner?.home_country],
+  );
 
   const importantDates = useMemo(() => toImportantDates(dates.rows), [dates.rows]);
 
@@ -188,7 +196,7 @@ export function HomeScreen() {
           <LettersCard />
 
           {/* --- The dates each of them grew up with ------------------------- */}
-          <HolidaysSection today={today} />
+          <HolidaysSection today={today} countries={countries} />
 
           {/* --- Next up ---------------------------------------------------- */}
           <section aria-labelledby="next-up">
@@ -389,11 +397,20 @@ function ReminderCard({ reminder, index }: { reminder: Reminder; index: number }
  * one person is invisible to the other, because it was never on their
  * calendar. Missing 春节 is not like missing a bank holiday.
  */
-function HolidaysSection({ today }: { today: ReturnType<typeof useToday> }) {
+function HolidaysSection({
+  today,
+  countries,
+}: {
+  today: ReturnType<typeof useToday>;
+  countries: string[];
+}) {
   const s = useStrings();
   const { intlLocale } = useI18n();
   const countdown = useCountdown();
-  const holidays = useMemo(() => upcomingHolidays(today, 45, 3), [today]);
+  const holidays = useMemo(
+    () => upcomingHolidays(today, countries, { withinDays: 45, limit: 3 }),
+    [today, countries],
+  );
 
   if (holidays.length === 0) return null;
 
@@ -404,23 +421,34 @@ function HolidaysSection({ today }: { today: ReturnType<typeof useToday> }) {
       </h2>
       <ul className="flex flex-col gap-2">
         {holidays.map((holiday) => {
-          const copy = s.holidays.ids[holiday.id as keyof typeof s.holidays.ids];
+          const copy = s.holidays.ids[holiday.id];
           if (!copy) return null;
+          const where = holiday.countries
+            .map((code) => s.holidays.countries[code] ?? code)
+            .join(' · ');
           return (
             <li key={holiday.id}>
               <Sheet className="flex items-start gap-3">
+                {/* Cinnabar for the days that are about the two of you,
+                    jade for a country's own day, faint for everybody's.
+                    Colour by weight rather than by which partner it belongs
+                    to: the old version had one colour per culture, which
+                    only worked because there were exactly two. */}
                 <span
                   aria-hidden="true"
                   className={cn(
                     'mt-1.5 h-2 w-2 shrink-0 rounded-full',
-                    holiday.culture === 'chinese' && 'bg-cinnabar',
-                    holiday.culture === 'brazilian' && 'bg-jade',
-                    holiday.culture === 'shared' && 'bg-ink-faint',
+                    holiday.weight === 'romantic' && 'bg-cinnabar',
+                    holiday.weight === 'major' && 'bg-jade',
+                    holiday.weight === 'notable' && 'bg-ink-faint',
                   )}
                 />
                 <div className="min-w-0 flex-1">
                   <p className="text-pretty font-display text-base font-medium leading-snug text-ink">
                     {copy.name}
+                    {where && (
+                      <span className="ml-2 text-xs font-normal text-ink-faint">{where}</span>
+                    )}
                   </p>
                   <p className="mt-0.5 text-xs text-ink-faint">
                     {formatDate(holiday.date, 'long', intlLocale)} · {countdown(holiday.daysUntil)}
