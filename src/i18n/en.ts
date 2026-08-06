@@ -245,11 +245,25 @@ export const en = {
     note: 'Tell it',
     notePlaceholder: 'Write it the way you’d tell it to her in a year.',
     date: 'When',
-    photo: 'A photo',
-    photoAdd: 'Add a photo',
+    photo: 'Photos',
+    photoAdd: 'Add photos',
     photoReplace: 'Replace photo',
     photoRemove: 'Remove photo',
     photoAlt: (title: string) => `Photo from: ${title}`,
+
+    /* A memory holds a handful of photographs, not one — a day is a handful
+       of pictures with one story attached, which is what a page of an album
+       is. These are the words for that. */
+    addPhotos: 'Add photos here',
+    removePhoto: 'Remove this one',
+    previousPhoto: 'Previous photo',
+    nextPhoto: 'Next photo',
+    slideCount: (n: number, total: number) => `${n} of ${total}`,
+    photoOf: (n: number, total: number) =>
+      total === 1 ? '1 photo' : `Photo ${n} of ${total} from this day`,
+    pageCount: (n: number) => (n === 1 ? '1 photo' : `${n} photos`),
+    noPhotos: 'No photos yet',
+    openBook: (title: string) => `Open ${title}`,
     emptyTitle: 'The first page is blank',
     emptyBody: 'Start anywhere. The first thing you remember about her is a good place.',
     uploading: 'Uploading…',

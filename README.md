@@ -69,6 +69,8 @@ Requires Node 18+.
    | `0006_two_clocks.sql` | Each person's time zone and waking hours |
    | `0007_letters.sql` | Letters, and the seal that hides one until its day |
    | `0008_personalise.sql` | Week start, accent, seal text, pinned bar, nudges |
+   | `0009_exchange_rates.sql` | The rate snapshot frozen onto each expense |
+   | `0010_memory_books.sql` | Photographs get their own table; a memory becomes a page |
 
    Or, with the Supabase CLI linked to your project: `supabase db push`. Or,
    if you've connected this repo through Supabase's GitHub integration, it
@@ -350,6 +352,66 @@ assumption that happened to match one of the two households.
   same for two people in one couple, so it is stored per person.
 - **Nudges were unconditional.** The quiet-fortnight note on Letters is useful
   to some people and insufferable to others, so it is a per-person switch.
+
+## Money across two currencies
+
+Spending used to refuse to convert, and showed one balance card per currency
+side by side. That was honest and useless: a euro rent and a yuan dinner are
+the same shared life, and two bars reading "100% him" and "100% her" answer
+no question anybody asked.
+
+What had to survive the change is the past. **The rate is frozen the moment
+an expense is written down and never revisited.** If she pays ¥500 today and
+the yuan moves ten percent next month, what she carried does not change —
+recomputing history at today's rate would silently rewrite who paid for what,
+which is the same harm as letting somebody flip their partner role, arrived
+at by arithmetic instead of by policy.
+
+Each row therefore keeps its own snapshot: what one unit of *its* currency
+was worth in each of the four, that day. Converting is a multiplication with
+no lookup, no network and no drift.
+
+Rates come from [Frankfurter](https://frankfurter.app), which publishes the
+ECB's reference rates — free, no key, CORS open. No account, because an app
+for two people should not require registering for an API key to log a dinner.
+The ECB publishes once per working day, so a Saturday request returns
+Friday's rates; that is the correct answer, not a stale one.
+
+Everything degrades to null. An expense written down offline saves without a
+snapshot, stays **out** of the total rather than being folded in as a guess,
+and the page says how many and offers to fill them in at today's rate —
+date-stamped, so the approximation is visible. A partial rate table is
+refused outright in both the CHECK and the parser: converting three
+currencies and silently dropping the fourth is worse than converting none.
+
+## The album
+
+A memory holds a handful of photographs, not one. It used to hold exactly
+one, at whatever size the camera produced, in a single column — so a square
+logo and a wide screenshot came out as two completely different shapes, and
+an afternoon that produced six photographs had to be entered six times with
+the same date and the same story. That is not how anybody remembers a day.
+
+Two rules, and they point in opposite directions on purpose:
+
+- **The grid crops.** Every cover fills the same portrait rectangle, because
+  a grid whose cells are all different shapes is not a grid, and the eye
+  spends its time on the ragged edges instead of the photographs.
+- **The lightbox never crops.** Once you have chosen to look at something you
+  see all of it. A cover-fit there would quietly cut the top off somebody's
+  face.
+
+A page holding more than one photograph says so twice — a sheet of paper
+peeking out behind the cover, and a count — because the stack is what makes
+it read as an album at a glance and the number is what makes it legible to
+somebody who cannot see the stack.
+
+The arrow keys run through the **whole** album rather than the current
+memory, so you can start on an afternoon in March and keep going into April
+without closing anything, with the story beside the picture changing as you
+cross. They stop at both ends rather than looping: you cannot tell whether
+you have seen everything in a loop, and the first and last photograph are
+meaningful positions in a shared story.
 
 ## Architecture
 

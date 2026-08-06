@@ -1,34 +1,51 @@
 import { useMemo, useRef, useState } from 'react';
 import { m } from 'framer-motion';
-import { ImagePlus, Images, Plus, X } from 'lucide-react';
+import { ImagePlus, Images, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { ErrorNote, LoadingBlock, Spinner } from '@/components/ui/Bits';
 import { TextAreaField, TextField } from '@/components/ui/Field';
 import { Modal } from '@/components/ui/Modal';
 import { EmptyState, PageHeader } from '@/components/ui/Surface';
+import { Lightbox } from '@/components/Lightbox';
 import { useCouple } from '@/data/session';
 import { removeMedia, uploadMedia, useSignedUrls, UploadError } from '@/data/storage';
-import type { MemoryRow } from '@/data/database.types';
+import type { MemoryPhotoRow, MemoryRow } from '@/data/database.types';
 import { parseISODate, toISODate } from '@/lib/calendar';
 import { formatDate, formatMonthYear, groupByMonth } from '@/lib/dates';
+import {
+  buildBooks,
+  flattenAlbum,
+  nextSortOrder,
+  slideIndexOf,
+  type Book,
+} from '@/lib/album';
 import { useI18n, useStrings } from '@/i18n';
 import { RecordActions, useCoupleTable, useToday } from './shared';
+import { cn } from '@/utils/cn';
 
 interface Draft {
   id: string | null;
   title: string;
   note: string;
   date: string;
-  photoPath: string | null;
 }
 
 /**
- * The memories timeline.
+ * The album.
  *
- * Laid out as a vertical spine with entries hanging off it. The spine is the
- * signature curve rather than a straight rule — this is the one screen where
- * the app is unambiguously a keepsake rather than a tool, so it gets the most
- * generous typography and the most air.
+ * This used to be a single column of images at whatever size the camera
+ * produced, one per memory — so a square logo and a wide screenshot came out
+ * as two completely different shapes, and an afternoon that produced six
+ * photographs had to be entered six times. Neither is how anybody remembers
+ * a day.
+ *
+ * Now a memory is a page: one story, one date, and however many photographs
+ * belong to it. The grid crops every cover to the same portrait rectangle,
+ * because a tidy timeline is the point of a grid; the lightbox never crops,
+ * because once you have chosen to look at something you should see all of
+ * it. A page with more than one photograph shows it — stacked paper behind
+ * the cover, and a count — so the timeline reads as an album rather than a
+ * list of files.
  */
 export function MemoriesScreen() {
   const s = useStrings();
@@ -41,59 +58,85 @@ export function MemoriesScreen() {
     orderBy: 'date',
     ascending: false,
   });
+  const photos = useCoupleTable('memory_photos', {
+    coupleId: couple.id,
+    orderBy: 'sort_order',
+    ascending: true,
+  });
 
   const [draft, setDraft] = useState<Draft | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const fileInput = useRef<HTMLInputElement>(null);
+  const [openSlide, setOpenSlide] = useState(-1);
+  const newMemoryFiles = useRef<HTMLInputElement>(null);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
 
-  const photoUrls = useSignedUrls(memories.rows.map((row) => row.photo_path));
+  const photoUrls = useSignedUrls(photos.rows.map((row) => row.path));
+
+  const books = useMemo(
+    () => buildBooks(memories.rows, photos.rows),
+    [memories.rows, photos.rows],
+  );
+  const slides = useMemo(() => flattenAlbum(books), [books]);
 
   const groups = useMemo(
     () =>
       groupByMonth(
-        memories.rows.filter((row) => parseISODate(row.date) !== null),
-        (row) => parseISODate(row.date)!,
+        books.filter((book) => parseISODate(book.memory.date) !== null),
+        (book) => parseISODate(book.memory.date)!,
       ),
-    [memories.rows],
+    [books],
   );
 
   function startNew() {
-    setDraft({ id: null, title: '', note: '', date: toISODate(today), photoPath: null });
+    setDraft({ id: null, title: '', note: '', date: toISODate(today) });
+    setPendingFiles([]);
     setUploadError(null);
   }
 
   function startEdit(row: MemoryRow) {
-    setDraft({
-      id: row.id,
-      title: row.title,
-      note: row.note ?? '',
-      date: row.date,
-      photoPath: row.photo_path,
-    });
+    setDraft({ id: row.id, title: row.title, note: row.note ?? '', date: row.date });
+    setPendingFiles([]);
     setUploadError(null);
   }
 
-  async function onPickPhoto(file: File | undefined) {
-    if (!file || !draft) return;
-    setUploading(true);
-    setUploadError(null);
-    try {
-      const path = await uploadMedia(couple.id, 'memories', file);
-      // Replacing a photo removes the old object rather than orphaning it in
-      // the bucket forever.
-      if (draft.photoPath) await removeMedia(draft.photoPath);
-      setDraft({ ...draft, photoPath: path });
-    } catch (caught) {
-      setUploadError(
-        caught instanceof UploadError && caught.reason === 'too_large'
-          ? s.errors.uploadTooLarge
-          : s.errors.uploadFailed,
-      );
-    } finally {
-      setUploading(false);
+  /**
+   * Uploads files and hangs them off a memory.
+   *
+   * Sequential rather than parallel: a phone on a hotel connection uploading
+   * six photographs at once tends to fail all six, and one at a time means a
+   * failure costs one photograph rather than the afternoon.
+   */
+  async function attachPhotos(memoryId: string, files: readonly File[], startAt: number) {
+    let order = startAt;
+    for (const file of files) {
+      try {
+        const path = await uploadMedia(couple.id, 'memories', file);
+        await photos.create({ memory_id: memoryId, path, sort_order: order });
+        order += 1;
+      } catch (caught) {
+        setUploadError(
+          caught instanceof UploadError && caught.reason === 'too_large'
+            ? s.errors.uploadTooLarge
+            : s.errors.uploadFailed,
+        );
+        return;
+      }
     }
+  }
+
+  async function onAddPhotosToMemory(memoryId: string, files: FileList) {
+    const existing = photos.rows.filter((row) => row.memory_id === memoryId);
+    await attachPhotos(memoryId, Array.from(files), nextSortOrder(existing));
+  }
+
+  async function onRemovePhoto(photo: MemoryPhotoRow) {
+    await photos.remove(photo.id);
+    await removeMedia(photo.path);
+    // Stepping back keeps you next to where you were rather than jumping to
+    // whatever slid into that index.
+    setOpenSlide((current) => Math.max(-1, Math.min(current, slides.length - 2)));
   }
 
   async function onSubmit(event?: { preventDefault: () => void }) {
@@ -101,21 +144,34 @@ export function MemoriesScreen() {
     if (!draft || !draft.title.trim() || !draft.date) return;
 
     setSaving(true);
+    setUploading(pendingFiles.length > 0);
     const values = {
       title: draft.title.trim(),
       note: draft.note.trim() || null,
       date: draft.date,
-      photo_path: draft.photoPath,
     };
-    if (draft.id) await memories.update(draft.id, values);
-    else await memories.create({ ...values, couple_id: couple.id });
+
+    const memoryId = draft.id
+      ? ((await memories.update(draft.id, values))?.id ?? draft.id)
+      : (await memories.create({ ...values, couple_id: couple.id }))?.id;
+
+    if (memoryId && pendingFiles.length > 0) {
+      const existing = photos.rows.filter((row) => row.memory_id === memoryId);
+      await attachPhotos(memoryId, pendingFiles, nextSortOrder(existing));
+    }
+
+    setUploading(false);
     setSaving(false);
+    setPendingFiles([]);
     setDraft(null);
   }
 
-  async function onDelete(row: MemoryRow) {
+  async function onDeleteMemory(row: MemoryRow) {
+    const owned = photos.rows.filter((photo) => photo.memory_id === row.id);
     await memories.remove(row.id);
-    await removeMedia(row.photo_path);
+    // The rows go with the memory by cascade; the objects in the bucket do
+    // not, and an orphaned photograph of the two of them is a slow leak.
+    for (const photo of owned) await removeMedia(photo.path);
   }
 
   return (
@@ -134,7 +190,7 @@ export function MemoriesScreen() {
 
       {memories.loading ? (
         <LoadingBlock />
-      ) : memories.rows.length === 0 ? (
+      ) : books.length === 0 ? (
         <EmptyState
           icon={<Images />}
           title={s.memories.emptyTitle}
@@ -151,82 +207,45 @@ export function MemoriesScreen() {
             <section key={group.key}>
               <h2 className="label-kicker mb-4">{formatMonthYear(group.month, intlLocale)}</h2>
 
-              <ol className="relative flex flex-col gap-8 pl-6">
-                {/* The spine. Drawn, not ruled. */}
-                <span
-                  aria-hidden="true"
-                  className="absolute bottom-2 left-[3px] top-2 w-px bg-gradient-to-b from-transparent via-rule to-transparent"
-                />
-
-                {group.items.map((row, index) => {
-                  const date = parseISODate(row.date);
-                  const url = row.photo_path ? photoUrls[row.photo_path] : undefined;
-
-                  return (
-                    <m.li
-                      key={row.id}
-                      initial={{ opacity: 0, y: 12 }}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      viewport={{ once: true, margin: '-40px' }}
-                      transition={{ duration: 0.45, delay: index * 0.04, ease: [0.2, 0.7, 0.3, 1] }}
-                      className="relative"
-                    >
-                      {/* A small seal marks each entry on the spine. */}
-                      <span
-                        aria-hidden="true"
-                        className="absolute -left-6 top-1.5 h-[7px] w-[7px] rounded-sm bg-cinnabar"
-                        style={{ transform: 'rotate(-8deg)' }}
-                      />
-
-                      <article>
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            {date && (
-                              <p className="mb-1 text-xs text-ink-faint">
-                                {formatDate(date, 'long', intlLocale)}
-                              </p>
-                            )}
-                            <h3 className="display-warm text-balance font-display text-xl font-medium leading-snug text-ink">
-                              {row.title}
-                            </h3>
-                          </div>
-                          <RecordActions
-                            onEdit={() => startEdit(row)}
-                            onDelete={() => void onDelete(row)}
-                          />
-                        </div>
-
-                        {row.note && (
-                          <p className="mt-2 max-w-column whitespace-pre-line text-pretty text-base leading-relaxed text-ink-soft">
-                            {row.note}
-                          </p>
-                        )}
-
-                        {row.photo_path && (
-                          <div className="mt-3 max-w-column overflow-hidden rounded-md border border-rule bg-sunk">
-                            {url ? (
-                              <img
-                                src={url}
-                                alt={s.memories.photoAlt(row.title)}
-                                loading="lazy"
-                                className="block h-auto w-full"
-                              />
-                            ) : (
-                              <div className="flex aspect-[4/3] items-center justify-center">
-                                <Spinner />
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </article>
-                    </m.li>
-                  );
-                })}
-              </ol>
+              <ul className="grid grid-cols-2 gap-x-4 gap-y-7 sm:grid-cols-3 lg:grid-cols-4">
+                {group.items.map((book, index) => (
+                  <BookTile
+                    key={book.memory.id}
+                    book={book}
+                    index={index}
+                    url={book.cover ? photoUrls[book.cover.path] : undefined}
+                    dateLabel={
+                      parseISODate(book.memory.date)
+                        ? formatDate(parseISODate(book.memory.date)!, 'dayMonth', intlLocale)
+                        : book.memory.date
+                    }
+                    onOpen={() => {
+                      if (!book.cover) return;
+                      setOpenSlide(slideIndexOf(slides, book.cover.id));
+                    }}
+                    onEdit={() => startEdit(book.memory)}
+                    onDelete={() => void onDeleteMemory(book.memory)}
+                  />
+                ))}
+              </ul>
             </section>
           ))}
         </div>
       )}
+
+      <Lightbox
+        slides={slides}
+        index={openSlide}
+        urls={photoUrls}
+        onClose={() => setOpenSlide(-1)}
+        onIndexChange={setOpenSlide}
+        onAddPhotos={onAddPhotosToMemory}
+        onRemovePhoto={onRemovePhoto}
+        formatDate={(iso) => {
+          const date = parseISODate(iso);
+          return date ? formatDate(date, 'long', intlLocale) : iso;
+        }}
+      />
 
       <Modal
         open={draft !== null}
@@ -272,32 +291,22 @@ export function MemoriesScreen() {
             <div className="flex flex-col gap-2">
               <span className="text-sm font-medium text-ink">{s.memories.photo}</span>
               <input
-                ref={fileInput}
+                ref={newMemoryFiles}
                 type="file"
                 accept="image/*"
+                multiple
                 className="sr-only"
-                onChange={(event) => void onPickPhoto(event.target.files?.[0])}
+                onChange={(event) => setPendingFiles(Array.from(event.target.files ?? []))}
               />
               <div className="flex flex-wrap items-center gap-2">
-                <Button onClick={() => fileInput.current?.click()} disabled={uploading}>
+                <Button onClick={() => newMemoryFiles.current?.click()} disabled={uploading}>
                   {uploading ? <Spinner /> : <ImagePlus className="h-4 w-4" />}
-                  {uploading
-                    ? s.memories.uploading
-                    : draft.photoPath
-                      ? s.memories.photoReplace
-                      : s.memories.photoAdd}
+                  {uploading ? s.memories.uploading : s.memories.photoAdd}
                 </Button>
-                {draft.photoPath && (
-                  <Button
-                    variant="quiet"
-                    onClick={() => {
-                      void removeMedia(draft.photoPath);
-                      setDraft({ ...draft, photoPath: null });
-                    }}
-                  >
-                    <X className="h-4 w-4" />
-                    {s.memories.photoRemove}
-                  </Button>
+                {pendingFiles.length > 0 && (
+                  <span className="text-sm text-ink-soft">
+                    {s.memories.pageCount(pendingFiles.length)}
+                  </span>
                 )}
               </div>
               {uploadError && <ErrorNote>{uploadError}</ErrorNote>}
@@ -306,5 +315,123 @@ export function MemoriesScreen() {
         )}
       </Modal>
     </div>
+  );
+}
+
+/**
+ * One page of the album, as a tile.
+ *
+ * Every cover is the same portrait rectangle and cropped to fill it. That is
+ * the whole fix for the old layout: a grid whose cells are all different
+ * shapes is not a grid, and the eye spends its time on the ragged edges
+ * instead of on the photographs.
+ *
+ * A page holding more than one photograph says so twice — a sheet of paper
+ * peeking out behind the cover, and a count — because the stack is what
+ * makes it read as an album at a glance, and the number is what makes it
+ * legible to somebody who cannot see the stack.
+ */
+function BookTile({
+  book,
+  index,
+  url,
+  dateLabel,
+  onOpen,
+  onEdit,
+  onDelete,
+}: {
+  book: Book<MemoryRow, MemoryPhotoRow>;
+  index: number;
+  url: string | undefined;
+  dateLabel: string;
+  onOpen: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const s = useStrings();
+  const many = book.photos.length > 1;
+
+  return (
+    <m.li
+      initial={{ opacity: 0, y: 12 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-40px' }}
+      transition={{ duration: 0.4, delay: Math.min(index, 7) * 0.035, ease: [0.2, 0.7, 0.3, 1] }}
+      className="group relative"
+    >
+      <div className="relative">
+        {/* The stack. Two sheets, offset a degree or so, the way a pile of
+            prints actually sits — not a drop shadow pretending to be depth. */}
+        {many && (
+          <>
+            <span
+              aria-hidden="true"
+              className="absolute inset-0 translate-x-[6px] translate-y-[6px] rotate-[1.8deg] rounded-sm border border-rule bg-raised shadow-card"
+            />
+            <span
+              aria-hidden="true"
+              className="absolute inset-0 translate-x-[3px] translate-y-[3px] rotate-[0.9deg] rounded-sm border border-rule bg-raised shadow-card"
+            />
+          </>
+        )}
+
+        <button
+          type="button"
+          onClick={onOpen}
+          disabled={!book.cover}
+          aria-label={s.memories.openBook(book.memory.title)}
+          className={cn(
+            'relative block w-full overflow-hidden rounded-sm border border-rule bg-sunk',
+            'aspect-[4/5] transition-[transform,border-color] duration-300 ease-page',
+            book.cover && 'hover:-translate-y-0.5 hover:border-ink-faint',
+            !book.cover && 'cursor-default',
+          )}
+        >
+          {book.cover ? (
+            url ? (
+              <img
+                src={url}
+                alt={s.memories.photoAlt(book.memory.title)}
+                loading="lazy"
+                className="h-full w-full object-cover transition-transform duration-500 ease-page group-hover:scale-[1.03]"
+              />
+            ) : (
+              <span className="flex h-full w-full items-center justify-center">
+                <Spinner />
+              </span>
+            )
+          ) : (
+            <span className="flex h-full w-full items-center justify-center px-3 text-center text-xs text-ink-faint">
+              {s.memories.noPhotos}
+            </span>
+          )}
+
+          {many && (
+            <span className="absolute bottom-2 right-2 rounded-sm bg-ink/65 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-paper backdrop-blur-[2px]">
+              {book.photos.length}
+            </span>
+          )}
+        </button>
+      </div>
+
+      <div className="mt-2.5 flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-[11px] text-ink-faint">{dateLabel}</p>
+          <h3 className="display-warm truncate font-display text-base font-medium leading-snug text-ink">
+            {book.memory.title}
+          </h3>
+          {book.memory.note && (
+            <p className="mt-0.5 line-clamp-2 text-pretty text-xs leading-relaxed text-ink-soft">
+              {book.memory.note}
+            </p>
+          )}
+        </div>
+        {/* Held back until the tile is hovered or focused within, so a page
+            of photographs is not covered in controls. */}
+        <span className="shrink-0 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
+          <RecordActions onEdit={onEdit} onDelete={onDelete} />
+        </span>
+      </div>
+    </m.li>
   );
 }

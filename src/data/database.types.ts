@@ -105,6 +105,18 @@ export type MemoryRow = {
   updated_at: string;
 }
 
+export type MemoryPhotoRow = {
+  id: string;
+  memory_id: string;
+  /** Set by a database trigger from the parent memory; never sent by the client. */
+  couple_id: string;
+  /** A path inside the private bucket, never a URL. */
+  path: string;
+  caption: string | null;
+  sort_order: number;
+  created_at: string;
+};
+
 export type ImportantDateRow = {
   id: string;
   couple_id: string;
@@ -343,6 +355,9 @@ export type Database = {
       couples: TableDef<CoupleRow, 'invite_code'>;
       profiles: TableDef<ProfileRow, 'id'>;
       memories: TableDef<MemoryRow, 'couple_id' | 'title' | 'date'>;
+      // couple_id is absent from the required list on purpose: the trigger
+      // fills it in, so it is optional on insert but always present on read.
+      memory_photos: TableDef<MemoryPhotoRow, 'memory_id' | 'path'>;
       important_dates: TableDef<ImportantDateRow, 'couple_id' | 'label' | 'date'>;
       remember_facts: TableDef<RememberFactRow, 'couple_id' | 'author_id' | 'question'>;
       dismissed_questions: TableDef<
