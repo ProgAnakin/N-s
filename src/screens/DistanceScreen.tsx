@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { TextAreaField, TextField } from '@/components/ui/Field';
@@ -104,14 +104,14 @@ export function DistanceScreen() {
             {days > 0 ? (
               <>
                 <p className="label-kicker mb-3">{s.distance.untilTitle}</p>
-                <motion.p
+                <m.p
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, ease: [0.2, 0.7, 0.3, 1] }}
                   className="display-warm font-display text-5xl font-medium tabular-nums text-cinnabar"
                 >
                   {s.distance.countdown(days)}
-                </motion.p>
+                </m.p>
                 <Curve className="mt-3 max-w-[160px]" />
                 <p className="mt-4 text-sm text-ink-soft">
                   {formatDate(date, 'long', intlLocale)}

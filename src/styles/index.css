@@ -76,6 +76,103 @@
     color-scheme: dark;
   }
 
+  /* ---------------------------------------------------------------- *
+   * Accents
+   *
+   * Cinnabar is the house style and stays the default. But a red seal is
+   * a specific cultural object, and a couple who does not want it to be
+   * the loudest thing on their page should not have to live with it.
+   *
+   * Each accent redefines the primary only; the two-colour tension
+   * between a warm primary and a cool secondary is the point of the
+   * palette, so choosing jade as the primary hands the secondary role
+   * back to red rather than leaving the page monochrome.
+   *
+   * Every fill below was picked for the ivory (or ink) that sits on it,
+   * not for how it looks in isolation — the same reason `--stamp` is a
+   * separate token from `--cinnabar` in the first place.
+   *
+   * The selectors deliberately do NOT start at `:root`. The settings
+   * picker shows a swatch of each accent side by side, which means four
+   * nested elements each need to resolve a different `--stamp` — a
+   * root-only selector renders all four in the current accent, which is a
+   * colour picker that shows you one colour.
+   * ---------------------------------------------------------------- */
+  [data-accent='jade'] {
+    --cinnabar: 150 34% 27%;
+    --cinnabar-soft: 150 28% 34%;
+    --cinnabar-wash: 150 30% 93%;
+    --stamp: 150 30% 30%;
+    --stamp-hover: 150 32% 25%;
+    /* The secondary becomes the red the primary just gave up — including
+     * the second stone. Without this line both partners' seals come out
+     * the same green, and the spending bar loses the only way it has of
+     * telling them apart without labelling one of them first. */
+    --stamp-jade: 5 58% 44%;
+    --jade: 5 58% 44%;
+    --jade-soft: 6 56% 54%;
+    --jade-wash: 8 60% 94%;
+  }
+
+  .dark[data-accent='jade'],
+  .dark [data-accent='jade'] {
+    --cinnabar: 150 38% 60%;
+    --cinnabar-soft: 150 30% 50%;
+    --cinnabar-wash: 152 22% 16%;
+    --stamp: 150 30% 30%;
+    --stamp-hover: 150 30% 35%;
+    --stamp-jade: 6 52% 42%;
+    --jade: 8 62% 60%;
+    --jade-soft: 8 55% 52%;
+    --jade-wash: 8 30% 18%;
+  }
+
+  /* Ochre rather than yellow: amber at its usual lightness cannot hold a
+   * 4.5:1 ratio against cream, and lightening the paper to suit it would
+   * cost the whole page its warmth. */
+  [data-accent='amber'] {
+    --cinnabar: 30 68% 31%;
+    --cinnabar-soft: 30 60% 40%;
+    --cinnabar-wash: 36 62% 92%;
+    --stamp: 30 62% 35%;
+    --stamp-hover: 30 64% 29%;
+  }
+
+  .dark[data-accent='amber'],
+  .dark [data-accent='amber'] {
+    --cinnabar: 36 66% 62%;
+    --cinnabar-soft: 34 50% 52%;
+    --cinnabar-wash: 34 26% 17%;
+    --stamp: 30 56% 36%;
+    --stamp-hover: 30 56% 41%;
+  }
+
+  /* The quietest option, for a couple who wants the paper and not much
+   * else. Sepia rather than black: the first attempt sat ten points of
+   * lightness from the body ink, which made every link on every page stop
+   * looking like a link. Restrained is the goal; invisible is a bug.
+   *
+   * In the dark the seal inverts to a pale block with dark characters —
+   * which is 白文, a real way to carve one, rather than a compromise. */
+  [data-accent='ink'] {
+    --cinnabar: 26 38% 31%;
+    --cinnabar-soft: 28 28% 42%;
+    --cinnabar-wash: 32 26% 91%;
+    --stamp: 30 16% 18%;
+    --stamp-hover: 30 16% 25%;
+    --on-stamp: 38 58% 96%;
+  }
+
+  .dark[data-accent='ink'],
+  .dark [data-accent='ink'] {
+    --cinnabar: 34 34% 74%;
+    --cinnabar-soft: 34 20% 62%;
+    --cinnabar-wash: 34 8% 18%;
+    --stamp: 38 24% 86%;
+    --stamp-hover: 38 20% 78%;
+    --on-stamp: 34 10% 9%;
+  }
+
   html {
     -webkit-text-size-adjust: 100%;
     -webkit-tap-highlight-color: transparent;

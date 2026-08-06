@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, m } from 'framer-motion';
 import { MoreHorizontal, X, type LucideIcon } from 'lucide-react';
 import { primaryItems, visibleGroups, type FeatureFlags } from './nav-items';
 import { FlowerCounter, FlowerOffer } from '@/components/Flowers';
@@ -28,7 +28,7 @@ export function AppShell() {
     intimacyMode: couple?.intimacy_mode ?? false,
   };
   const groups = visibleGroups(flags);
-  const bottomItems = primaryItems(flags);
+  const bottomItems = primaryItems(flags, profile?.pinned ?? []);
 
   useEffect(() => {
     setMoreOpen(false);
@@ -56,7 +56,11 @@ export function AppShell() {
           className="sticky top-0 hidden h-dvh w-52 shrink-0 flex-col gap-7 overflow-y-auto py-8 lg:flex"
         >
           <div className="flex items-center gap-2.5 px-2">
-            <Seal name={couple?.couple_name || s.app.name} size="sm" />
+            <Seal
+              name={couple?.couple_name || s.app.name}
+              carved={couple?.seal_text ?? null}
+              size="sm"
+            />
             <span className="display-warm font-display text-xl font-medium text-ink">
               {s.app.name}
             </span>
@@ -91,7 +95,7 @@ export function AppShell() {
           </div>
           <div className="mx-auto w-full max-w-page">
             <AnimatePresence mode="wait" initial={false}>
-              <motion.div
+              <m.div
                 key={location.pathname}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -99,7 +103,7 @@ export function AppShell() {
                 transition={{ duration: 0.24, ease: [0.2, 0.7, 0.3, 1] }}
               >
                 <Outlet />
-              </motion.div>
+              </m.div>
             </AnimatePresence>
           </div>
         </main>
@@ -212,7 +216,7 @@ function MoreSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
     <AnimatePresence>
       {open && (
         <div className="fixed inset-0 z-50 lg:hidden">
-          <motion.div
+          <m.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -220,7 +224,7 @@ function MoreSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
             onClick={onClose}
             className="absolute inset-0 bg-ink/35"
           />
-          <motion.div
+          <m.div
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
@@ -267,7 +271,7 @@ function MoreSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
                 </div>
               ))}
             </div>
-          </motion.div>
+          </m.div>
         </div>
       )}
     </AnimatePresence>

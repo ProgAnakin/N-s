@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useId, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, m } from 'framer-motion';
 import { X } from 'lucide-react';
 import { Button, IconButton } from './Button';
 import { useStrings } from '@/i18n';
@@ -93,7 +93,7 @@ export function Modal({
     <AnimatePresence>
       {open && (
         <div className="fixed inset-0 z-[60] flex items-end justify-center sm:items-center">
-          <motion.div
+          <m.div
             key="backdrop"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -102,7 +102,7 @@ export function Modal({
             onClick={onClose}
             className="absolute inset-0 bg-ink/35"
           />
-          <motion.div
+          <m.div
             key="panel"
             ref={panelRef}
             role="dialog"
@@ -144,7 +144,7 @@ export function Modal({
                 {footer}
               </div>
             )}
-          </motion.div>
+          </m.div>
         </div>
       )}
     </AnimatePresence>,

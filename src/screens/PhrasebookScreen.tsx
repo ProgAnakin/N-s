@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, m } from 'framer-motion';
 import { Check, Languages, Mic, Plus, Volume2, X } from 'lucide-react';
 import { Button, IconButton } from '@/components/ui/Button';
 import { Chip, ErrorNote, ProgressBar, Spinner } from '@/components/ui/Bits';
@@ -408,7 +408,7 @@ function Practice({
 
         <AnimatePresence mode="wait">
           {revealed ? (
-            <motion.div
+            <m.div
               key="revealed"
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
@@ -428,13 +428,13 @@ function Practice({
                   {s.phrasebook.audio}
                 </Button>
               )}
-            </motion.div>
+            </m.div>
           ) : (
-            <motion.div key="hidden" exit={{ opacity: 0 }}>
+            <m.div key="hidden" exit={{ opacity: 0 }}>
               <Button variant="primary" size="lg" onClick={() => setRevealed(true)}>
                 {s.phrasebook.practiceReveal}
               </Button>
-            </motion.div>
+            </m.div>
           )}
         </AnimatePresence>
       </Sheet>

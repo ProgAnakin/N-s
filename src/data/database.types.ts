@@ -53,6 +53,8 @@ export type IntimacyKindColumn =
   | 'sex'
   | 'other';
 export type FlowerKindColumn = 'rose' | 'peony' | 'cherry';
+export type LetterKindColumn = 'thanks' | 'small' | 'sorry' | 'love';
+export type AccentColumn = 'cinnabar' | 'jade' | 'amber' | 'ink';
 
 export type CoupleRow = {
   id: string;
@@ -66,6 +68,10 @@ export type CoupleRow = {
   reunion_date: string | null;
   reunion_note: string | null;
   intimacy_mode: boolean;
+  /** 0 = Sunday, 1 = Monday. */
+  week_starts_on: number;
+  accent: AccentColumn;
+  seal_text: string | null;
   created_by: string | null;
 }
 
@@ -80,6 +86,9 @@ export type ProfileRow = {
   time_zone: string | null;
   awake_start: number;
   awake_end: number;
+  /** Route paths pinned to the phone's bottom bar. Empty means the defaults. */
+  pinned: string[];
+  nudges: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -293,6 +302,20 @@ export type FlowerRow = {
   created_at: string;
 };
 
+export type LetterRow = {
+  id: string;
+  couple_id: string;
+  from_profile: string;
+  to_profile: string;
+  kind: LetterKindColumn;
+  body: string;
+  /** Sealed until this day; null means readable now. */
+  open_on: string | null;
+  read_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 /** Columns the database fills in for us on insert. */
 type Generated = 'id' | 'created_at' | 'updated_at';
 
@@ -334,6 +357,7 @@ export type Database = {
       plans: TableDef<PlanRow, 'couple_id' | 'title' | 'day'>;
       intimacy_entries: TableDef<IntimacyEntryRow, 'couple_id' | 'date'>;
       flowers: TableDef<FlowerRow, 'couple_id' | 'from_profile' | 'to_profile' | 'kind'>;
+      letters: TableDef<LetterRow, 'couple_id' | 'from_profile' | 'to_profile' | 'body'>;
     };
     Views: { [_ in never]: never };
     Functions: {

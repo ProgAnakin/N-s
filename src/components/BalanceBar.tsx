@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import type { Balance } from '@/lib/money';
 import { formatPercent, isLevel, rebalanceSuggestion } from '@/lib/money';
 import { useI18n, useStrings } from '@/i18n';
@@ -56,13 +56,13 @@ export function BalanceBar({
         role="img"
         aria-label={`${names.partner_a} ${formatPercent(percentA, intlLocale)}, ${names.partner_b} ${formatPercent(percentB, intlLocale)}`}
       >
-        <motion.div
+        <m.div
           className="absolute inset-y-0 left-0 bg-cinnabar"
           initial={{ width: 0 }}
           animate={{ width: `${percentA}%` }}
           transition={{ duration: 0.6, ease: [0.2, 0.7, 0.3, 1] }}
         />
-        <motion.div
+        <m.div
           className="absolute inset-y-0 right-0 bg-jade"
           initial={{ width: 0 }}
           animate={{ width: `${percentB}%` }}

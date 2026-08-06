@@ -1,9 +1,10 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { CalendarDays, ChevronRight, Copy, Gift, Images, NotebookPen, Scale } from 'lucide-react';
 import { ArrivalCard } from '@/components/ArrivalCard';
 import { TwoClocks } from '@/components/TwoClocks';
+import { LettersCard } from '@/components/LettersCard';
 import { BalanceBar } from '@/components/BalanceBar';
 import { ButtonLink } from '@/components/ui/Button';
 import { LoadingBlock } from '@/components/ui/Bits';
@@ -144,6 +145,7 @@ export function HomeScreen() {
           {/* --- Two clocks, and getting in safe ----------------------------- */}
           <TwoClocks />
           <ArrivalCard />
+          <LettersCard />
 
           {/* --- The dates each of them grew up with ------------------------- */}
           <HolidaysSection today={today} />
@@ -315,7 +317,7 @@ function ReminderCard({ reminder, index }: { reminder: Reminder; index: number }
   }
 
   return (
-    <motion.li
+    <m.li
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: index * 0.06, ease: [0.2, 0.7, 0.3, 1] }}
@@ -336,7 +338,7 @@ function ReminderCard({ reminder, index }: { reminder: Reminder; index: number }
         </span>
         <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-ink-faint transition-transform group-hover:translate-x-0.5" />
       </Link>
-    </motion.li>
+    </m.li>
   );
 }
 

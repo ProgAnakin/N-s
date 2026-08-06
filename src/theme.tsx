@@ -79,3 +79,58 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 export function useTheme(): ThemeValue {
   return useContext(ThemeContext);
 }
+
+export const ACCENTS = ['cinnabar', 'jade', 'amber', 'ink'] as const;
+export type Accent = (typeof ACCENTS)[number];
+
+const ACCENT_KEY = 'nos.accent';
+
+function applyAccent(accent: Accent): void {
+  // Cinnabar is what the tokens already say, so it needs no attribute — and
+  // leaving it off means a couple who never touch this setting are not
+  // paying for a selector match on every element.
+  if (accent === 'cinnabar') delete document.documentElement.dataset.accent;
+  else document.documentElement.dataset.accent = accent;
+}
+
+/**
+ * Paints the last known accent before React has rendered anything.
+ *
+ * The accent is a property of the couple, which means it is not known until
+ * the profile request comes back — a second or so on a cold connection, all
+ * of it spent showing the wrong colour and then flipping. Remembering the
+ * last one locally makes the common case (same device, same couple) paint
+ * correctly on the first frame. It is a cache, not the truth: the moment
+ * the couple loads, the real value wins.
+ */
+export function primeAccent(): void {
+  try {
+    const stored = window.localStorage.getItem(ACCENT_KEY);
+    if (stored && (ACCENTS as readonly string[]).includes(stored)) applyAccent(stored as Accent);
+  } catch {
+    // Private mode, or a store that refuses. The colour is not worth a crash.
+  }
+}
+
+/**
+ * The couple's accent, applied as an attribute on the root element.
+ *
+ * It lives in the DOM rather than in React state because every colour in
+ * the app already resolves through CSS custom properties — one attribute
+ * repaints the lot, and no component needs to know it changed.
+ *
+ * It is a couple-level setting, not a per-person one: the two of them are
+ * looking at the same shelf, and it should look like the same shelf.
+ */
+export function AccentProvider({ accent, children }: { accent: Accent; children: ReactNode }) {
+  useEffect(() => {
+    applyAccent(accent);
+    try {
+      window.localStorage.setItem(ACCENT_KEY, accent);
+    } catch {
+      // See above — an accent that does not persist costs one flash.
+    }
+  }, [accent]);
+
+  return <>{children}</>;
+}

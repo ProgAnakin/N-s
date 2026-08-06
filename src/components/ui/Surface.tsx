@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { Curve } from './Curve';
 import { cn } from '@/utils/cn';
 
@@ -94,7 +94,7 @@ export function EmptyState({
   className?: string;
 }) {
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: [0.2, 0.7, 0.3, 1] }}
@@ -109,7 +109,7 @@ export function EmptyState({
         <p className="mt-2 max-w-[36ch] text-pretty text-sm leading-relaxed text-ink-soft">{body}</p>
       )}
       {action && <div className="mt-5">{action}</div>}
-    </motion.div>
+    </m.div>
   );
 }
 

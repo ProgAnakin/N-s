@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, m } from 'framer-motion';
 import { Flower2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
@@ -124,7 +124,7 @@ export function FlowerCounter({ className }: { className?: string }) {
         <Flower2 className="h-4 w-4 text-cinnabar" />
         <span className="tabular-nums">{counts.total}</span>
         {counts.unseen > 0 && (
-          <motion.span
+          <m.span
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             aria-hidden="true"
@@ -247,18 +247,18 @@ export function FlowerOffer() {
       <div className="pb-4">
         <AnimatePresence mode="wait">
           {sent ? (
-            <motion.p
+            <m.p
               key="sent"
               initial={{ opacity: 0, scale: 0.96 }}
               animate={{ opacity: 1, scale: 1 }}
               className="py-10 text-center font-display text-xl text-cinnabar"
             >
               {s.flowers.sent}
-            </motion.p>
+            </m.p>
           ) : (
-            <motion.div key="pick" exit={{ opacity: 0 }} className="grid grid-cols-3 gap-2">
+            <m.div key="pick" exit={{ opacity: 0 }} className="grid grid-cols-3 gap-2">
               {FLOWER_KINDS.map((kind, index) => (
-                <motion.button
+                <m.button
                   key={kind}
                   type="button"
                   onClick={() => void send(kind)}
@@ -279,9 +279,9 @@ export function FlowerOffer() {
                   <span className="text-center text-xs leading-snug text-ink">
                     {s.flowers.kinds[kind].name}
                   </span>
-                </motion.button>
+                </m.button>
               ))}
-            </motion.div>
+            </m.div>
           )}
         </AnimatePresence>
 

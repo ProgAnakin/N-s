@@ -57,13 +57,20 @@ interface SessionValue {
   leaveCouple: () => Promise<void>;
   rotateInviteCode: () => Promise<string>;
   updateProfile: (
-    values: Partial<Pick<ProfileRow, | 'display_name'
-      | 'avatar_path'
-      | 'locale'
-      | 'auto_checkin'
-      | 'time_zone'
-      | 'awake_start'
-      | 'awake_end'>>,
+    values: Partial<
+      Pick<
+        ProfileRow,
+        | 'display_name'
+        | 'avatar_path'
+        | 'locale'
+        | 'auto_checkin'
+        | 'time_zone'
+        | 'awake_start'
+        | 'awake_end'
+        | 'pinned'
+        | 'nudges'
+      >
+    >,
   ) => Promise<void>;
   updateCouple: (
     values: Partial<
@@ -76,6 +83,9 @@ interface SessionValue {
         | 'reunion_date'
         | 'reunion_note'
         | 'intimacy_mode'
+        | 'week_starts_on'
+        | 'accent'
+        | 'seal_text'
       >
     >,
   ) => Promise<void>;

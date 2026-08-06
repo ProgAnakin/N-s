@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { cn } from '@/utils/cn';
 
 /**
@@ -28,7 +28,7 @@ export function Curve({
       aria-hidden="true"
       className={cn('h-[14px] w-full max-w-[280px]', className)}
     >
-      <motion.path
+      <m.path
         d="M1 18C34 18 46 6 84 6c38 0 52 15 96 15s60-14 100-14 62 9 118 6"
         stroke={tone === 'cinnabar' ? 'hsl(var(--cinnabar))' : 'hsl(var(--rule))'}
         strokeWidth="1.5"

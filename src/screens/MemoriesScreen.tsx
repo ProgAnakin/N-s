@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { ImagePlus, Images, Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { ErrorNote, LoadingBlock, Spinner } from '@/components/ui/Bits';
@@ -163,7 +163,7 @@ export function MemoriesScreen() {
                   const url = row.photo_path ? photoUrls[row.photo_path] : undefined;
 
                   return (
-                    <motion.li
+                    <m.li
                       key={row.id}
                       initial={{ opacity: 0, y: 12 }}
                       whileInView={{ opacity: 1, y: 0 }}
@@ -219,7 +219,7 @@ export function MemoriesScreen() {
                           </div>
                         )}
                       </article>
-                    </motion.li>
+                    </m.li>
                   );
                 })}
               </ol>

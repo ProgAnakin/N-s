@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { cn } from '@/utils/cn';
 
 /**
@@ -49,8 +49,18 @@ export interface SealProps {
   /** Plays the press-down animation, e.g. when something has just been saved. */
   press?: boolean;
   imageUrl?: string | null;
+  /**
+   * What is carved on it, when the couple has said. Overrides the derived
+   * initials — the point of a chop is that it is the mark you chose, and a
+   * couple with a word for themselves would rather see that than an initial
+   * an algorithm picked.
+   */
+  carved?: string | null;
   className?: string;
 }
+
+/** Four characters is what fits before a chop stops reading as a chop. */
+const MAX_CARVED = 4;
 
 export function Seal({
   name,
@@ -58,12 +68,17 @@ export function Seal({
   size = 'md',
   press = false,
   imageUrl = null,
+  carved = null,
   className,
 }: SealProps) {
   const tilt = tiltOf(name);
+  const mark = carved?.trim() ? [...carved.trim()].slice(0, MAX_CARVED).join('') : initialsOf(name);
+  // Two characters fill the stone; four need to shrink to fit inside the
+  // carved border rather than crowding it.
+  const dense = [...mark].length > 2;
 
   return (
-    <motion.span
+    <m.span
       aria-hidden="true"
       initial={press ? { scale: 1.25, rotate: tilt - 7, opacity: 0 } : false}
       animate={{ scale: 1, rotate: tilt, opacity: 1 }}
@@ -79,9 +94,11 @@ export function Seal({
       {imageUrl ? (
         <img src={imageUrl} alt="" className="h-full w-full object-cover" />
       ) : (
-        <span className="relative z-10 pt-px">{initialsOf(name)}</span>
+        <span className={cn('relative z-10 pt-px', dense && 'text-[0.62em] tracking-tight')}>
+          {mark}
+        </span>
       )}
-    </motion.span>
+    </m.span>
   );
 }
 

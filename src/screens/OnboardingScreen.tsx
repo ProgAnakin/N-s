@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { Check, Copy, Eye, Lock, Scale } from 'lucide-react';
 import { Cover } from '@/components/layout/Cover';
 import { Button } from '@/components/ui/Button';
@@ -259,14 +259,14 @@ export function OnboardingScreen() {
   return (
     <Cover title={s.onboarding.inviteTitle} subtitle={s.onboarding.inviteBody}>
       <div className="sheet flex flex-col items-center gap-5 p-6">
-        <motion.p
+        <m.p
           initial={{ scale: 1.15, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ type: 'spring', stiffness: 380, damping: 24 }}
           className="select-all font-mono text-3xl font-semibold tracking-[0.3em] text-cinnabar"
         >
           {inviteCode}
-        </motion.p>
+        </m.p>
 
         <Button onClick={copyCode} className="min-w-[9rem]">
           {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}

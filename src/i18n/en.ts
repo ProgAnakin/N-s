@@ -58,6 +58,7 @@ export const en = {
     distance: 'Distance',
     calendar: 'Calendar',
     together: 'Together',
+    letters: 'Letters',
     settings: 'Settings',
     more: 'More',
     sections: {
@@ -503,6 +504,31 @@ export const en = {
     roleA: 'Partner A',
     roleB: 'Partner B',
     roleHint: 'Only used to label who paid for what.',
+    yours: 'Make it yours',
+    weekStarts: 'The week starts on',
+    weekStartsHint:
+      'Brazil says Sunday, China says Monday, and every calendar either of you grew up with disagrees with the other. Pick one.',
+    sunday: 'Sunday',
+    monday: 'Monday',
+    accent: 'Accent',
+    accentHint: 'The colour of the seal, the active marks, the small emphases.',
+    accents: {
+      cinnabar: 'Cinnabar',
+      jade: 'Jade',
+      amber: 'Amber',
+      ink: 'Ink',
+    },
+    sealText: 'What’s on the seal',
+    sealTextHint:
+      'Up to four characters. A word for the two of you, two initials, 我们 — whatever you’d actually carve.',
+    pinned: 'Your bottom bar',
+    pinnedHint:
+      'Four places, chosen by you and not by us. This one is yours alone — your partner keeps their own.',
+    pinnedReset: 'Back to the defaults',
+    pinnedFull: 'Four is the most that fits. Unpin one first.',
+    nudges: 'Let the app nudge me',
+    nudgesHint:
+      'The quiet-fortnight note on Letters, and nothing else. Some people find it useful; some find being nudged about their own relationship insufferable. Both fair.',
     leaveCouple: 'Leave this space',
     leaveCoupleHint:
       'Pairs the wrong way round, or a code typed by a stranger — this is the way out.',
@@ -655,6 +681,58 @@ export const en = {
           'Beauty that doesn’t last, which is why it matters. A reminder to notice the day you’re in.',
       },
     },
+  },
+
+  letters: {
+    title: 'Letters',
+    subtitle: 'The things that aren’t worth a phone call, which turn out to be most of them.',
+    empty:
+      'Nothing on the shelf yet. The first one is the awkward one; after that it stops being a gesture and starts being a habit.',
+    write: 'Write one',
+    editing: 'Edit letter',
+    to: (name: string) => `To ${name}`,
+    from: (name: string) => `From ${name}`,
+    body: 'What you want to say',
+    bodyPlaceholder: 'It doesn’t have to be good. It has to be true.',
+    kind: 'What kind',
+    kinds: {
+      thanks: {
+        name: 'Thank you',
+        hint: 'Something they did. Name the specific thing — it lands harder than “you’re wonderful”.',
+      },
+      small: {
+        name: 'Something small',
+        hint: 'The bread, the song, the thing you saw and thought of them. Too minor to call about, which is exactly why it belongs here.',
+      },
+      sorry: {
+        name: 'Repair',
+        hint: 'After a bad one. Written and slow, so neither of you has to read the other’s tone.',
+      },
+      love: {
+        name: 'No occasion',
+        hint: 'No reason. Those are the ones that get reread.',
+      },
+    },
+    seal: 'Seal it until a day',
+    sealHint:
+      'They won’t be able to open it — or even see that it exists — before then. That’s enforced by the database, not by the app being polite.',
+    sealedUntil: (date: string) => `Sealed until ${date}`,
+    sealedNote: 'You can still change or unsend this until it opens.',
+    unread: 'New',
+    unreadCount: (n: number) => (n === 1 ? '1 unopened' : `${n} unopened`),
+    opened: 'Opened',
+    notOpenedYet: 'Not opened yet',
+    open: 'Open it',
+    shelf: (n: number) =>
+      n === 1 ? '1 letter between you' : `${n} letters between you, and counting`,
+    quiet: (days: number) =>
+      `It’s been ${days} days since either of you left one. Not a reproach — just the sort of thing that slips.`,
+    quietAction: 'Write something small',
+    readingNote:
+      'Written to be reread. On a bad month, the shelf is more use than anything either of you can say in the moment.',
+    deleteConfirm: 'Unsend this letter?',
+    deleteConfirmBody: 'It hasn’t been opened, so it disappears entirely.',
+    cannotDelete: 'Already opened — this one’s theirs now.',
   },
 
   clocks: {

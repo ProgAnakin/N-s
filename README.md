@@ -65,6 +65,10 @@ Requires Node 18+.
    | `0002_rls.sql` | Row Level Security, and the pairing functions |
    | `0003_storage.sql` | The private `media` bucket and its policies |
    | `0004_together.sql` | Places, arrivals, plans, the together log, flowers |
+   | `0005_hardening.sql` | Freezes membership and the invite code; adds `leave_couple()` |
+   | `0006_two_clocks.sql` | Each person's time zone and waking hours |
+   | `0007_letters.sql` | Letters, and the seal that hides one until its day |
+   | `0008_personalise.sql` | Week start, accent, seal text, pinned bar, nudges |
 
    Or, with the Supabase CLI linked to your project: `supabase db push`. Or,
    if you've connected this repo through Supabase's GitHub integration, it
@@ -137,6 +141,42 @@ profiles policy recursing into itself.
 
 A trigger freezes `author_id` on both tables, so nobody can edit a shared note
 into their own name and then make it private.
+
+**Sealed** — one table, `letters`, with a third rule. A letter can carry an
+`open_on` date, and until that day arrives its recipient cannot see it — not
+its text, not its subject, not that it exists. That is a row policy, not a
+client check: the alternative would ship the letter's text to the browser and
+ask the interface not to draw it, which is a suggestion rather than a seal.
+The author sees their own the whole time and can change or unsend it right up
+until it is read; after that it is the other person's, and taking it back
+would delete something off their side of the shelf.
+
+### What an audit of the policies turned up
+
+Row Level Security decides **which rows** you may write. It has nothing to say
+about **which columns**, and that gap was reachable here.
+
+The policy on `profiles` correctly restricted you to your own row — and then
+let you rewrite every field in it, including `role` and `couple_id`. Either
+partner could flip their own role from `partner_b` to `partner_a`, which
+silently reassigns the ownership of every expense ever logged: the balance bar
+redraws with the history rewritten and nothing anywhere says why. Pointing the
+same hole at `couple_id` would make you a member of somebody else's couple,
+which needs a guessed UUIDv4 and is not practically reachable — but "hard to
+guess" is obscurity, not a control.
+
+`0005_hardening.sql` closes it. Membership now moves only through the pairing
+functions, which opt in with a transaction-local flag that a `BEFORE UPDATE`
+trigger checks; a direct update raises `42501`. The same treatment covers
+`invite_code`, which either partner could otherwise set by hand, defeating the
+point of rotating it to lock somebody out. A `CHECK` keeps `couple_id` and
+`role` null or non-null together, so a null role can never slip past the
+`(couple_id, role)` unique index and admit a third member. Flowers now have to
+be addressed to somebody actually in the couple.
+
+Freezing the direct route meant there had to be a deliberate one, so
+`leave_couple()` exists and Settings can reach it. Before that, a wrong pairing
+was permanent.
 
 Uploads live in a private bucket under `<couple_id>/…`, and the storage
 policies check that first path segment against the same `current_couple_id()`.
@@ -237,6 +277,80 @@ world — a peony (牡丹) is the imperial flower of China, cherry blossom (樱�
 carries the same character in both languages, and a pink rose needs no
 translation anywhere.
 
+## Letters
+
+The best-evidenced thing a couple can do is unglamorous: keep the small
+positives well ahead of the negatives. Gottman's ratio is roughly five to one
+and it holds up. What nobody warns you about is that distance strips the
+positives out silently — the hand on the shoulder, the coffee made without
+asking, *I got the bread you like*. None of it survives the jump to a
+scheduled video call, because none of it is worth a call. The negatives
+survive the jump perfectly well. So the ratio collapses without either person
+doing anything wrong, and the first sign is that an ordinary disagreement
+suddenly feels enormous.
+
+A letter is the cheap channel for the things that are not worth a call. Four
+kinds — thanks, something small, repair, no occasion — and they keep, which
+matters: rereading the record of a good year is what actually helps during a
+bad month.
+
+The repair kind does a second job. Across Brazil and China the conflict styles
+differ in a way that is nobody's fault and reliably misread in real time:
+expressiveness reads as escalation, and stepping back to keep the peace reads
+as going cold. Written and asynchronous, neither misreading gets the chance to
+happen.
+
+What it deliberately does not do is count who wrote more. That is "who owes
+whom" wearing a nicer coat, and `letters.test.ts` has an assertion that fails
+if a per-author tally ever appears in the module.
+
+## Two clocks
+
+Eleven hours apart, the daily friction is not distance but arithmetic: is she
+awake, is this a terrible hour to ring, what is my evening in her morning. It
+gets worked out wrong several times a day.
+
+Each person keeps their own zone and their own waking hours, because *when can
+we talk* is a question about two people's habits rather than a map. Windows
+are stated in **both** clocks, since one stated in yours is useless to her.
+
+São Paulo–Shanghai turns out to have two windows a day, not one: his morning
+is her evening, his late night is her morning. Six hours in total. The test
+that asserted one window was wrong and the code was right.
+
+Only the zone name is stored — never a location.
+
+## Holidays
+
+Easter is computed exactly, by the anonymous Gregorian algorithm, and Carnaval
+falls out of it at Easter minus 47 days. Chinese New Year and Mid-Autumn are
+lunisolar and cannot be reduced to a short formula, so they are tabulated for
+2025–2030 with the horizon stated in the module; past it the section goes
+quiet rather than confidently wrong. Dia dos Namorados is 12 June, not 14
+February, which is the sort of thing worth getting right in a
+Brazilian–Chinese household.
+
+## Room to be a specific couple
+
+Some of what the app decided for people was not an opinion, it was an
+assumption that happened to match one of the two households.
+
+- **The week started on Monday.** In Brazil it starts on Sunday. Every
+  calendar either of them grew up with disagrees with the other, and the app
+  had quietly sided with one of them. Now they pick.
+- **The accent was always cinnabar.** It stays the default, but a red seal is
+  a specific cultural object. Jade, amber and a near-monochrome ink are
+  alternatives, and each keeps the two-stone system intact — choosing jade as
+  the primary hands the second stone back to red, so the two partners' seals
+  never come out the same colour and the spending bar keeps the one way it has
+  of telling them apart without labelling one of them first.
+- **The seal showed a derived initial.** A couple with a word for themselves
+  can carve it: up to four characters, so 我们 and L&Y both sit properly.
+- **The bottom bar was four fixed destinations.** Which four matter is not the
+  same for two people in one couple, so it is stored per person.
+- **Nudges were unconditional.** The quiet-fortnight note on Letters is useful
+  to some people and insufferable to others, so it is a per-person switch.
+
 ## Architecture
 
 ```
@@ -282,7 +396,40 @@ resolves to `never`.)
 
 Reads are cached in `localStorage` and replayed on mount, so opening the app on
 a train shows the last known state instead of a spinner that never resolves.
-The cache is cleared on sign-out.
+The cache is cleared on sign-out, and on leaving a couple.
+
+### What the browser downloads before it can show anything
+
+There are sixteen destinations and nobody opens sixteen, so every route past
+Home is code-split and arrives when it is asked for. Home stays eager: it is
+what the gate lands on, and a fallback there would be a spinner on launch.
+
+Framer Motion is behind `LazyMotion` with the `m` components and the
+`domAnimation` feature bundle — animations, exit animations and pointer
+gestures, which is everything used here; nothing drags or does layout
+projection. `strict` turns a stray `motion.div` into a thrown error rather
+than a silent re-inclusion of the thing that was just removed.
+
+One trap, recorded because it cost a build to find: `framer-motion` used to be
+named in `manualChunks`. Naming a package there forces every module in it into
+one chunk, which quietly cancelled the split — the engine that was supposed to
+arrive on demand became a static dependency of the entry again, and the
+"optimised" build was *larger*. It is left out of `manualChunks` on purpose.
+
+The result, gzipped, blocking first paint:
+
+| | before | after |
+|---|---|---|
+| entry | 59.2 kB | 49.9 kB |
+| react | 53.5 kB | 53.5 kB |
+| supabase | 57.0 kB | 57.0 kB |
+| motion | 38.2 kB | — (18.7 kB, after paint) |
+| **total blocking** | **208 kB** | **160 kB** |
+
+The accent is written to `localStorage` and applied before React's first
+frame. It belongs to the couple, so it is not known until the profile request
+comes back — without the priming step every launch opens cinnabar and then
+changes colour under the reader.
 
 ### Internationalisation
 
@@ -356,10 +503,26 @@ control is labelled, and the layout is built phone-first.
 npm test
 ```
 
-197 tests. The bulk cover `src/lib/`: the spending maths (including a
+257 tests. The bulk cover `src/lib/`: the spending maths (including a
 round-trip proving the rebalance suggestion lands exactly level, and that
 treats never enter the calculation), calendar arithmetic across leap years and
 month-end clamping, recurrence, the reminder rules, and the question bank.
-Newer additions: haversine distance checked against real city pairs, the
-month grid across leap years and month boundaries, the intimacy summary, and
-the flower pacing rules. The rest cover the spending UI's language.
+Also: haversine distance checked against real city pairs, the month grid
+across leap years and month boundaries, the intimacy summary, the flower
+pacing rules, call-window overlap across the date line, Easter and the
+lunisolar table, and the letter shelf.
+
+Two of them guard product rules rather than behaviour, and both fail loudly if
+somebody reverses a decision without meaning to. `BalanceBar.test.tsx` renders
+a heavily lopsided balance and asserts the output never contains *owes*,
+*debt* or *settle up*. `letters.test.ts` asserts the module exports no
+per-author tally. Neither is testing an implementation; both are testing that
+the app has not quietly become a scoreboard.
+
+Three defects in this codebase were only ever visible in a rendered build, and
+none of them were caught by review: a bar chart with zero height, because a
+percentage height inside an auto-height flex item resolves to nothing; two
+different calendar markers that looked identical; and a colour picker showing
+four swatches in the same colour, because the accent selectors started at
+`:root` and a swatch is a nested element. Worth screenshotting new surfaces in
+both themes before believing them.

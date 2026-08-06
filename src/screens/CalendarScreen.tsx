@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { CalendarDays, ChevronLeft, ChevronRight, MapPin, Plus } from 'lucide-react';
 import { Button, IconButton } from '@/components/ui/Button';
 import { Tag } from '@/components/ui/Bits';
@@ -59,9 +59,19 @@ export function CalendarScreen() {
   const [draft, setDraft] = useState<Draft | null>(null);
   const [saving, setSaving] = useState(false);
 
+  // Brazil starts the week on Sunday, China on Monday. The app used to pick
+  // for them; now the couple does, in Settings.
+  const weekStartsOn = couple.week_starts_on;
   const grid = useMemo(
-    () => monthGrid(cursor.year, cursor.month, today),
-    [cursor.year, cursor.month, today],
+    () => monthGrid(cursor.year, cursor.month, today, weekStartsOn),
+    [cursor.year, cursor.month, today, weekStartsOn],
+  );
+  const weekdayLabels = useMemo(
+    () =>
+      weekStartsOn === 1
+        ? s.calendar.weekdays
+        : [s.calendar.weekdays[6]!, ...s.calendar.weekdays.slice(0, 6)],
+    [s.calendar.weekdays, weekStartsOn],
   );
 
   /** Everything that lands on a given day, keyed by ISO date for O(1) lookup. */
@@ -189,7 +199,7 @@ export function CalendarScreen() {
         </div>
 
         <div className="grid grid-cols-7 gap-1">
-          {s.calendar.weekdays.map((day) => (
+          {weekdayLabels.map((day) => (
             <div key={day} className="pb-1 text-center text-xs text-ink-faint">
               {day}
             </div>
@@ -358,7 +368,7 @@ export function CalendarScreen() {
             {upcoming.map((plan) => {
               const day = parseISODate(plan.day);
               return (
-                <motion.li
+                <m.li
                   key={plan.id}
                   initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -381,7 +391,7 @@ export function CalendarScreen() {
                       {plan.time_of_day ? ` · ${plan.time_of_day.slice(0, 5)}` : ''}
                     </span>
                   </button>
-                </motion.li>
+                </m.li>
               );
             })}
           </ul>

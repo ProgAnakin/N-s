@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { Curve } from '@/components/ui/Curve';
 import { Seal } from '@/components/ui/Seal';
 import { useStrings } from '@/i18n';
@@ -25,7 +25,7 @@ export function Cover({
 
   return (
     <div className="grain flex min-h-dvh flex-col items-center justify-center bg-paper px-5 py-12">
-      <motion.div
+      <m.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.2, 0.7, 0.3, 1] }}
@@ -43,7 +43,7 @@ export function Cover({
         </div>
 
         {children}
-      </motion.div>
+      </m.div>
 
       {footer && <div className="mt-8 w-full max-w-md">{footer}</div>}
     </div>

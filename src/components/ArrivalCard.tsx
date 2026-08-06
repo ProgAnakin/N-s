@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, m } from 'framer-motion';
 import { Check, House, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Sheet } from '@/components/ui/Surface';
@@ -120,7 +120,7 @@ export function ArrivalCard() {
       {/* --- The detected prompt ------------------------------------------- */}
       <AnimatePresence>
         {detected && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: -6 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
@@ -132,7 +132,7 @@ export function ArrivalCard() {
             <Button size="sm" variant="primary" onClick={() => void send(detected, true)}>
               {s.arrivals.detectedSend}
             </Button>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
 

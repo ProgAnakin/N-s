@@ -7,6 +7,7 @@ import { ConfirmDialog } from '@/components/ui/Modal';
 import { PageHeader, Sheet } from '@/components/ui/Surface';
 import { PlacesSection } from '@/components/PlacesSection';
 import { ClockSection } from '@/components/ClockSection';
+import { YoursSection } from '@/components/YoursSection';
 import { Seal } from '@/components/ui/Seal';
 import { useSession } from '@/data/session';
 import { clearTableCache } from '@/data/useTable';
@@ -228,6 +229,9 @@ export function SettingsScreen() {
             </div>
           </Sheet>
         </section>
+
+        {/* --- Make it yours --------------------------------------------------- */}
+        <YoursSection />
 
         {/* --- Your clock ------------------------------------------------------ */}
         <ClockSection />
