@@ -15,7 +15,7 @@ import {
   type Suggestion,
   type SuggestionKind,
 } from '@/lib/suggestions';
-import { useI18n, useStrings } from '@/i18n';
+import { useStrings } from '@/i18n';
 import { useCoupleTable, useCountdown, useToday } from '@/screens/shared';
 import { useSession } from '@/data/session';
 import { cn } from '@/utils/cn';
@@ -45,7 +45,6 @@ export function SuggestionList({
   className?: string;
 }) {
   const s = useStrings();
-  const { intlLocale } = useI18n();
   const { couple, profile } = useCouple();
   const { partner } = useSession();
   const today = useToday();
@@ -168,7 +167,6 @@ export function SuggestionList({
             <SuggestionCard
               suggestion={suggestion}
               countdown={countdown}
-              intlLocale={intlLocale}
               kept={keptFactIds.has(suggestion.sourceId)}
               onKeep={
                 suggestion.kind === 'gift' ? () => void keep(suggestion) : undefined
@@ -199,7 +197,6 @@ function SuggestionCard({
 }: {
   suggestion: Suggestion;
   countdown: (days: number) => string;
-  intlLocale: string;
   kept: boolean;
   /** Only gift suggestions can be kept; everything else is a thought. */
   onKeep?: () => void;

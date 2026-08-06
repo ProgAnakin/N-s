@@ -106,3 +106,57 @@ describe('not fetching more than is needed', () => {
     expect(db.selects[0]?.limit).toBeUndefined();
   });
 });
+
+describe('two sections asking the same question', () => {
+  it('asks it once', async () => {
+    // Home reads seven tables directly and mounts three components that read
+    // five more; two of those overlapped, so the same rows were fetched
+    // twice on one page, identically, milliseconds apart.
+    db.seed('letters', [{ id: 'l1', couple_id: 'c1' }]);
+
+    const options = { column: 'couple_id', value: 'c1', columns: 'id,created_at' };
+    const a = renderHook(() => useTable('letters', options));
+    const b = renderHook(() => useTable('letters', options));
+
+    await waitFor(() => {
+      expect(a.result.current.loading).toBe(false);
+      expect(b.result.current.loading).toBe(false);
+    });
+
+    expect(db.selects.filter((s) => s.table === 'letters')).toHaveLength(1);
+    expect(a.result.current.rows).toHaveLength(1);
+    expect(b.result.current.rows).toHaveLength(1);
+  });
+
+  it('does not share between sections wanting different columns', async () => {
+    // Sharing here would hand one section a row with fields missing.
+    db.seed('remember_facts', [{ id: 'f1', couple_id: 'c1' }]);
+
+    renderHook(() =>
+      useTable('remember_facts', { column: 'couple_id', value: 'c1', columns: 'id' }),
+    );
+    renderHook(() =>
+      useTable('remember_facts', {
+        column: 'couple_id',
+        value: 'c1',
+        columns: 'id,answer,answer_kind',
+      }),
+    );
+
+    await waitFor(() => {
+      expect(db.selects.filter((s) => s.table === 'remember_facts').length).toBe(2);
+    });
+  });
+
+  it('lets a later mount fetch fresh rows rather than replaying an old answer', async () => {
+    // This deduplicates concurrent work; it is not a response cache.
+    db.seed('memories', []);
+    const first = renderHook(() => useTable('memories', { column: 'couple_id', value: 'c1' }));
+    await waitFor(() => expect(first.result.current.loading).toBe(false));
+
+    renderHook(() => useTable('memories', { column: 'couple_id', value: 'c1' }));
+    await waitFor(() => {
+      expect(db.selects.filter((s) => s.table === 'memories').length).toBe(2);
+    });
+  });
+});

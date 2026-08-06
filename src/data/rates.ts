@@ -137,12 +137,3 @@ export async function captureRates(currency: CurrencyCode): Promise<CapturedRate
   return fx ? { fx, on: rates.date } : null;
 }
 
-/** Drops the cache. Used by tests, and by the "refresh rates" action. */
-export function forgetRates(): void {
-  try {
-    window.localStorage.removeItem(CACHE_KEY);
-  } catch {
-    // Nothing to forget if the store is unavailable.
-  }
-  inFlight = null;
-}

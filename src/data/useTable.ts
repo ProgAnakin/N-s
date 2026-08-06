@@ -130,6 +130,39 @@ export function clearTableCache(): void {
   }
 }
 
+/**
+ * Requests currently in the air, so two components asking the same question
+ * ask it once.
+ *
+ * Home reads seven tables directly and mounts three components that read
+ * five more, and two of those overlap — `remember_facts` and `letters` were
+ * each being fetched twice on one page, identically, milliseconds apart.
+ * That is not a component doing anything wrong; it is the cost of building
+ * self-contained sections, and the right place to fix it is here rather
+ * than by making every section take its data as props and pushing the
+ * plumbing back up into the screens.
+ *
+ * Keyed by the whole query, so a section asking for four columns never
+ * receives the answer to somebody else's ten-column question. Entries clear
+ * the moment they settle: this deduplicates concurrent work, it is not a
+ * response cache, and a later mount still gets fresh data.
+ */
+const inFlight = new Map<string, Promise<{ data: unknown; error: { message: string } | null }>>();
+
+function share<R extends { data: unknown; error: { message: string } | null }>(
+  key: string,
+  run: () => Promise<R>,
+): Promise<R> {
+  const existing = inFlight.get(key);
+  if (existing) return existing as Promise<R>;
+
+  const promise = run().finally(() => {
+    inFlight.delete(key);
+  });
+  inFlight.set(key, promise);
+  return promise;
+}
+
 export function useTable<T extends TableName>(table: T, options: UseTableOptions): Table<T> {
   const {
     column,
@@ -149,6 +182,14 @@ export function useTable<T extends TableName>(table: T, options: UseTableOptions
   const key = useMemo(
     () => cacheKey(table, column, value ?? '', orderBy),
     [table, column, value, orderBy],
+  );
+
+  // Distinct from the cache key: two sections may read the same rows in the
+  // same order and want different columns, and sharing a request between
+  // them would hand one of them a row with fields missing.
+  const requestKey = useMemo(
+    () => `${key}|${columns}|${ascending}|${thenBy ?? ''}|${thenAscending}|${limit ?? ''}`,
+    [key, columns, ascending, thenBy, thenAscending, limit],
   );
 
   const [rows, setRows] = useState<RowOf<T>[]>([]);
@@ -179,7 +220,7 @@ export function useTable<T extends TableName>(table: T, options: UseTableOptions
       : filtered.order(orderBy, { ascending });
     const bounded = limit === undefined ? ordered : ordered.limit(limit);
 
-    const { data, error: queryError } = await bounded;
+    const { data, error: queryError } = await share(requestKey, async () => await bounded);
     if (token !== requestId.current) return;
 
     if (queryError) {
@@ -196,7 +237,21 @@ export function useTable<T extends TableName>(table: T, options: UseTableOptions
     if (cacheable) writeCache(key, nextRows);
     setLoading(false);
     setStale(false);
-  }, [active, ascending, column, columns, key, limit, orderBy, table, thenAscending, thenBy, value]);
+  }, [
+    active,
+    ascending,
+    cacheable,
+    column,
+    columns,
+    key,
+    limit,
+    orderBy,
+    requestKey,
+    table,
+    thenAscending,
+    thenBy,
+    value,
+  ]);
 
   useEffect(() => {
     if (!active) {

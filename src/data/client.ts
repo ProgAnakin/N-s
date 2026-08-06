@@ -138,7 +138,7 @@ export function errorCode(error: unknown): string | null {
   return null;
 }
 
-export function errorMessage(error: unknown): string {
+function errorMessage(error: unknown): string {
   if (typeof error === 'object' && error !== null && 'message' in error) {
     const message = (error as MaybePostgrestError).message;
     if (typeof message === 'string') return message;

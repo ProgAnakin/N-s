@@ -34,11 +34,9 @@ export const MIN_OBSERVATIONS = 3;
  * enough to cover genuinely irregular cycles and narrow enough to catch a
  * missed record.
  */
-export const MIN_PLAUSIBLE_GAP = 18;
+const MIN_PLAUSIBLE_GAP = 18;
 export const MAX_PLAUSIBLE_GAP = 45;
 
-/** What the app assumes when it has nothing better. Never shown as fact. */
-export const TYPICAL_CYCLE_DAYS = 28;
 
 export interface CycleSummary {
   /** The most recent observed start, or null. */
