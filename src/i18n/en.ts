@@ -125,6 +125,14 @@ export const en = {
     anniversaryHint: 'The day you count from. Used for your day counter and monthiversaries.',
     currency: 'Which currency do you mostly spend in?',
     currencyHint: 'You can log spending in the others too — they’re kept separate, never converted.',
+    /* Asked of each person on their own form. Narrow on purpose, and it
+       says what it is for — a country field with no stated use reads as
+       demographic collection. */
+    homeCountry: 'Where are you from?',
+    homeCountryHint:
+      'So the app can watch for the days your country keeps, and the days theirs does. Nothing else.',
+    homeCountrySkip: 'Rather not say',
+
     createSpace: 'Create our space',
     inviteCode: 'Invite code',
     joinSpace: 'Join',
@@ -248,6 +256,8 @@ export const en = {
       repeat: 'Again?',
     },
     youAsked: (question: string) => `You asked: ${question}`,
+    keep: 'Keep this as a gift idea',
+    kept: 'Kept',
     repeatLead: (title: string) => `${title} went well. It’s been a while.`,
     /* The app quotes and stops. Saying so out loud is the difference
        between a suggestion that flatters the reader and one that takes
@@ -741,6 +751,17 @@ export const en = {
     nextMonth: 'Next month',
     backToToday: 'Back to today',
     nothingOn: (date: string) => `Nothing on ${date} yet.`,
+    /* Asked only after the day has passed, and never nagged about. A thumb
+       rather than five stars: rating a night out with your partner out of
+       five is a strange thing to be asked, and "again" or "not again" is
+       the whole signal anyway. */
+    reflectionPrompt: 'How was it?',
+    reflectionAsked: 'You said:',
+    wentWellYes: 'Again',
+    wentWellNo: 'Not again',
+    reflectionNote: 'Anything worth remembering?',
+    reflectionPlaceholder: 'e.g. Ask for the table by the window next time.',
+
     addPlan: 'Add a plan',
     /* The day panel and the "what's coming" empty state both offer to add a
        plan, and they target different days — the selected one and today.
@@ -806,6 +827,34 @@ export const en = {
     placesEmpty: 'No places saved. The button still works without them.',
     detectedAt: (place: string) => `Looks like you’re at ${place}.`,
     detectedSend: 'Let them know',
+  },
+
+  cycle: {
+    title: 'Cycle',
+    /* Two switches, not one. Wanting to know your own cycle and wanting
+       somebody else to know it are different decisions, and an app that
+       bundles them has quietly made the second one for you. */
+    track: 'Track my cycle',
+    trackHint:
+      'Only the days you record are stored. Everything else is worked out when you look, so nothing goes stale.',
+    recordToday: 'Started today',
+    recordedToday: 'Recorded for today',
+    dayOfCycle: (day: number) => (day === 0 ? 'Day 1' : `Day ${day + 1}`),
+    nextExpected: (date: string, countdown: string) => `Next expected ${date} — ${countdown}.`,
+    basedOn: (length: number, observations: number) =>
+      `Averaging ${length} days over ${observations} cycles.`,
+    notEnoughYet: (needed: number) =>
+      `Not enough recorded to estimate yet — it needs ${needed}. It would rather say nothing than guess.`,
+
+    share: 'Let my partner see the estimate',
+    shareHint:
+      'They see a date and nothing else — no notes, no history, and nothing the app has decided about how you might feel. You can turn this off at any time and it stops immediately.',
+
+    partnerNext: (name: string, date: string) => `${name}’s next is expected around ${date}.`,
+    partnerNoEstimate: (name: string) => `${name} is tracking, but there isn’t an estimate yet.`,
+    /* The only thing the app has to say about it. Anything more turns a
+       person's body into a weather report to be managed around. */
+    partnerNote: 'That’s all the app will tell you. The rest is a conversation.',
   },
 
   together: {

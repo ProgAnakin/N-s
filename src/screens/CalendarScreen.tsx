@@ -12,6 +12,7 @@ import type { PlanKindColumn, PlanRow } from '@/data/database.types';
 import { compareDates, parseISODate, toISODate, type CalendarDate } from '@/lib/calendar';
 import { formatDate, formatMonthYear, monthGrid, occurrenceFor } from '@/lib/dates';
 import { SuggestionList } from '@/components/SuggestionList';
+import { PlanReflection } from '@/components/PlanReflection';
 import { useI18n, useStrings } from '@/i18n';
 import { RecordActions, useCoupleTable, useToday } from './shared';
 import { cn } from '@/utils/cn';
@@ -338,6 +339,14 @@ export function CalendarScreen() {
                     {plan.note && (
                       <p className="mt-1.5 text-sm leading-relaxed text-ink-soft">{plan.note}</p>
                     )}
+
+                    {/* The column every "shall we do that again?" suggestion
+                        is built on, and until now nothing wrote to it. */}
+                    <PlanReflection
+                      plan={plan}
+                      isPast={compareDates(selected, today) < 0}
+                      onChange={(values) => void plans.update(plan.id, values)}
+                    />
                   </div>
                   <RecordActions
                     onEdit={() => startEdit(plan)}

@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { CalendarHeart, Gift, RotateCcw, ShieldAlert } from 'lucide-react';
+import { BookmarkPlus, CalendarHeart, Check, Gift, RotateCcw, ShieldAlert } from 'lucide-react';
 import { Sheet } from '@/components/ui/Surface';
 import { Tag } from '@/components/ui/Bits';
 import { useCouple } from '@/data/session';
@@ -129,6 +129,32 @@ export function SuggestionList({
     [suggestions, kinds, limit],
   );
 
+  // Private in every direction, so keeping one is not a thing the partner
+  // can ever see — which is the only reason this button can exist here.
+  const gifts = useCoupleTable('gift_ideas', {
+    coupleId: couple.id,
+    orderBy: 'created_at',
+    columns: 'id,idea,from_fact_id,used',
+    enabled: kinds.includes('gift'),
+  });
+
+  const keptFactIds = useMemo(
+    () => new Set(gifts.rows.map((row) => row.from_fact_id).filter(Boolean) as string[]),
+    [gifts.rows],
+  );
+
+  async function keep(suggestion: Suggestion) {
+    await gifts.create({
+      couple_id: couple.id,
+      author_id: profile.id,
+      idea: suggestion.quote,
+      // The link back. "You saved this because they mentioned it in March"
+      // is the whole difference between a shopping list and paying attention.
+      from_fact_id: suggestion.sourceId,
+      occasion: suggestion.occasion?.label ?? null,
+    });
+  }
+
   if (shown.length === 0) return null;
 
   return (
@@ -143,6 +169,10 @@ export function SuggestionList({
               suggestion={suggestion}
               countdown={countdown}
               intlLocale={intlLocale}
+              kept={keptFactIds.has(suggestion.sourceId)}
+              onKeep={
+                suggestion.kind === 'gift' ? () => void keep(suggestion) : undefined
+              }
             />
           </li>
         ))}
@@ -164,10 +194,15 @@ const ICONS: Record<SuggestionKind, typeof Gift> = {
 function SuggestionCard({
   suggestion,
   countdown,
+  kept,
+  onKeep,
 }: {
   suggestion: Suggestion;
   countdown: (days: number) => string;
   intlLocale: string;
+  kept: boolean;
+  /** Only gift suggestions can be kept; everything else is a thought. */
+  onKeep?: () => void;
 }) {
   const s = useStrings();
   const Icon = ICONS[suggestion.kind];
@@ -200,6 +235,18 @@ function SuggestionCard({
           <p className="mt-1 text-xs leading-relaxed text-ink-faint">
             {s.suggestions.youAsked(suggestion.prompt)}
           </p>
+        )}
+
+        {onKeep && (
+          <button
+            type="button"
+            onClick={onKeep}
+            disabled={kept}
+            className="mt-2 inline-flex items-center gap-1.5 rounded-sm text-xs text-cinnabar underline-offset-4 hover:underline disabled:text-ink-faint disabled:no-underline"
+          >
+            {kept ? <Check className="h-3 w-3" /> : <BookmarkPlus className="h-3 w-3" />}
+            {kept ? s.suggestions.kept : s.suggestions.keep}
+          </button>
         )}
       </div>
     </Sheet>

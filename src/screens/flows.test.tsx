@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { COUPLE_ID, HIM_ID, lastWriteTo, mountSignedIn } from '@/test/harness';
+import { COUPLE_ID, HIM_ID, lastWriteTo, mountSignedIn, mountUnpaired } from '@/test/harness';
 import { resetWriteFailure } from '@/data/write-status';
 
 vi.mock('@/data/client', async (importOriginal) => {
@@ -21,6 +21,7 @@ const { VaultScreen } = await import('./VaultScreen');
 const { SpendingScreen } = await import('./SpendingScreen');
 const { CalendarScreen } = await import('./CalendarScreen');
 const { GiftsScreen } = await import('./GiftsScreen');
+const { OnboardingScreen } = await import('./OnboardingScreen');
 
 /**
  * The processes with the most riding on them, driven end to end.
@@ -485,5 +486,131 @@ describe('an answer given in March coming back in June', () => {
     );
 
     expect(await screen.findByText(/Their birthday/)).toBeInTheDocument();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The ways in
+//
+// Every one of these covers a feature that was fully built and completely
+// unreachable — schema and logic done, no path for a person to use it. That
+// is the same failure as the vault being write-only, and it is worth a test
+// each so it cannot happen quietly again.
+// ---------------------------------------------------------------------------
+
+describe('saying how an evening went', () => {
+  function planRow(day: string, over: Record<string, unknown> = {}) {
+    return {
+      id: 'plan-1',
+      couple_id: COUPLE_ID,
+      title: 'That ramen place',
+      day,
+      time_of_day: null,
+      location: null,
+      note: null,
+      kind: 'date',
+      done: false,
+      went_well: null,
+      reflection: null,
+      tags: [],
+      memory_id: null,
+      created_by: HIM_ID,
+      created_at: '2026-01-01T00:00:00.000Z',
+      updated_at: '2026-01-01T00:00:00.000Z',
+      ...over,
+    };
+  }
+
+  /** Clicks the grid cell for a day relative to today. */
+  async function selectDay(user: ReturnType<typeof userEvent.setup>, offset: number) {
+    const day = new Date();
+    day.setDate(day.getDate() + offset);
+    const label = day.toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
+    await user.click(await screen.findByRole('button', { name: label }));
+  }
+
+  function isoDaysFromNow(days: number) {
+    const date = new Date();
+    date.setDate(date.getDate() + days);
+    return date.toISOString().slice(0, 10);
+  }
+
+  function mountCalendarWith(plans: Record<string, unknown>[]) {
+    return mountSignedIn(<CalendarScreen />, {
+      seed: (db) => {
+        db.seed('plans', plans);
+        db.seed('important_dates', []);
+        db.seed('trips', []);
+        db.seed('intimacy_entries', []);
+        db.seed('remember_facts', []);
+      },
+    });
+  }
+
+  it('does not ask about an evening that has not happened yet', async () => {
+    mountCalendarWith([planRow(isoDaysFromNow(3))]);
+    await screen.findByRole('heading', { name: 'Calendar' });
+    expect(screen.queryByRole('button', { name: 'Again' })).not.toBeInTheDocument();
+  });
+
+  it('writes the answer to the column every "again?" suggestion is built on', async () => {
+    const user = userEvent.setup();
+    const yesterday = isoDaysFromNow(-1);
+    const { db } = mountCalendarWith([planRow(yesterday)]);
+
+    // Every day cell carries its full date as an accessible name, which is
+    // the only stable way to reach one.
+    await selectDay(user, -1);
+    await user.click(await screen.findByRole('button', { name: 'Again' }));
+
+    await waitFor(() => {
+      expect(lastWriteTo(db, 'plans')?.values).toEqual({ went_well: true });
+    });
+  });
+
+  it('lets somebody take back an answer they gave by accident', async () => {
+    const user = userEvent.setup();
+    const yesterday = isoDaysFromNow(-1);
+    const { db } = mountCalendarWith([planRow(yesterday, { went_well: true })]);
+
+    await selectDay(user, -1);
+    await user.click(await screen.findByRole('button', { name: 'Again' }));
+
+    await waitFor(() => {
+      expect(lastWriteTo(db, 'plans')?.values).toEqual({ went_well: null });
+    });
+  });
+});
+
+describe('being asked where you are from', () => {
+  it('offers the question on the way in, not buried in settings', async () => {
+    const user = userEvent.setup();
+    mountUnpaired(<OnboardingScreen />);
+
+    await user.click(await screen.findByRole('button', { name: /Next/i }));
+    await user.click(await screen.findByRole('button', { name: /Next/i }));
+    await user.click(await screen.findByRole('button', { name: /Next/i }));
+    await user.click(await screen.findByRole('button', { name: /Start a new space/i }));
+
+    // Without this the cultural half of the app starts empty and stays
+    // empty: nobody goes hunting in settings for a feature they have never
+    // seen work.
+    expect(await screen.findByLabelText(/Where are you from/i)).toBeInTheDocument();
+  });
+
+  it('says what it is for, so it does not read as demographic collection', async () => {
+    const user = userEvent.setup();
+    mountUnpaired(<OnboardingScreen />);
+    for (let i = 0; i < 3; i += 1) {
+      await user.click(await screen.findByRole('button', { name: /Next/i }));
+    }
+    await user.click(await screen.findByRole('button', { name: /Join your partner/i }));
+
+    expect(await screen.findByText(/watch for the days your country keeps/i)).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: /Rather not say/i })).toBeInTheDocument();
   });
 });

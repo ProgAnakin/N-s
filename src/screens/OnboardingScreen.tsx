@@ -9,6 +9,7 @@ import { PairingError, useSession } from '@/data/session';
 import type { CurrencyColumn } from '@/data/database.types';
 import { CURRENCIES, CURRENCY_SYMBOLS } from '@/lib/money';
 import { isCompleteInviteCode, normaliseInviteCode } from '@/lib/invite';
+import { SUPPORTED_COUNTRIES } from '@/lib/holidays';
 import { useStrings } from '@/i18n';
 
 type Step = 'welcome' | 'privacy' | 'money' | 'choose' | 'create' | 'join' | 'invite';
@@ -23,7 +24,7 @@ type Step = 'welcome' | 'privacy' | 'money' | 'choose' | 'create' | 'join' | 'in
  */
 export function OnboardingScreen() {
   const s = useStrings();
-  const { createCouple, joinCouple, reload, signOut } = useSession();
+  const { createCouple, joinCouple, reload, signOut, updateProfile } = useSession();
 
   const [step, setStep] = useState<Step>('welcome');
   const [busy, setBusy] = useState(false);
@@ -35,6 +36,11 @@ export function OnboardingScreen() {
   const [anniversary, setAnniversary] = useState('');
   const [currency, setCurrency] = useState<CurrencyColumn>('EUR');
   const [joinCode, setJoinCode] = useState('');
+  // Asked of each person separately, on whichever form they arrived through.
+  // Without it the cultural half of the app starts empty and stays empty,
+  // because nobody goes hunting in Settings for a feature they have never
+  // seen work.
+  const [homeCountry, setHomeCountry] = useState('');
 
   async function onCreate(event: FormEvent) {
     event.preventDefault();
@@ -46,6 +52,9 @@ export function OnboardingScreen() {
         anniversary: anniversary || null,
         currency,
       });
+      // After the couple exists, because a profile with no couple is not
+      // one this write can reach.
+      if (homeCountry) await updateProfile({ home_country: homeCountry });
       setInviteCode(couple.invite_code);
       setStep('invite');
     } catch (caught) {
@@ -65,6 +74,7 @@ export function OnboardingScreen() {
     setError(null);
     try {
       await joinCouple(joinCode);
+      if (homeCountry) await updateProfile({ home_country: homeCountry });
     } catch (caught) {
       if (caught instanceof PairingError) {
         setError(
@@ -212,6 +222,20 @@ export function OnboardingScreen() {
             ))}
           </SelectField>
 
+          <SelectField
+            label={s.onboarding.homeCountry}
+            hint={s.onboarding.homeCountryHint}
+            value={homeCountry}
+            onChange={(event) => setHomeCountry(event.target.value)}
+          >
+            <option value="">{s.onboarding.homeCountrySkip}</option>
+            {SUPPORTED_COUNTRIES.map((code) => (
+              <option key={code} value={code}>
+                {s.holidays.countries[code] ?? code}
+              </option>
+            ))}
+          </SelectField>
+
           {error && <ErrorNote>{error}</ErrorNote>}
 
           <div className="flex gap-2">
@@ -245,6 +269,20 @@ export function OnboardingScreen() {
             className="[&_input]:text-center [&_input]:font-mono [&_input]:text-xl [&_input]:tracking-[0.3em]"
             required
           />
+
+          <SelectField
+            label={s.onboarding.homeCountry}
+            hint={s.onboarding.homeCountryHint}
+            value={homeCountry}
+            onChange={(event) => setHomeCountry(event.target.value)}
+          >
+            <option value="">{s.onboarding.homeCountrySkip}</option>
+            {SUPPORTED_COUNTRIES.map((code) => (
+              <option key={code} value={code}>
+                {s.holidays.countries[code] ?? code}
+              </option>
+            ))}
+          </SelectField>
 
           {error && <ErrorNote>{error}</ErrorNote>}
 

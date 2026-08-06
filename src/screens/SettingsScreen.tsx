@@ -10,6 +10,7 @@ import { ClockSection } from '@/components/ClockSection';
 import { YoursSection } from '@/components/YoursSection';
 import { OriginSection } from '@/components/OriginSection';
 import { EndingSection } from '@/components/EndingSection';
+import { CycleSection } from '@/components/CycleSection';
 import { Seal } from '@/components/ui/Seal';
 import { useSession } from '@/data/session';
 import { clearTableCache } from '@/data/useTable';
@@ -309,6 +310,9 @@ export function SettingsScreen() {
             </SelectField>
           </Sheet>
         </section>
+
+        {/* --- The cycle, for whoever wants it ---------------------------------- */}
+        <CycleSection />
 
         {/* --- Privacy ---------------------------------------------------------- */}
         <section>
