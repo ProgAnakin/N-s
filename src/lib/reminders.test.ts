@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { CalendarDate } from './calendar';
 import type { ImportantDateLike } from './dates';
-import { buildReminders, giftsForOccasion, type ReminderContext, actionFor, POSTING_HORIZON_DAYS, LAST_MINUTE_DAYS } from './reminders';
+import { buildReminders, giftsForOccasion, type ReminderContext, actionFor, POSTING_HORIZON_DAYS, LAST_MINUTE_DAYS, type Reminder } from './reminders';
 
 const d = (year: number, month: number, day: number): CalendarDate => ({ year, month, day });
 const TODAY = d(2026, 3, 14);

@@ -71,6 +71,8 @@ Requires Node 18+.
    | `0008_personalise.sql` | Week start, accent, seal text, pinned bar, nudges |
    | `0009_exchange_rates.sql` | The rate snapshot frozen onto each expense |
    | `0010_memory_books.sql` | Photographs get their own table; a memory becomes a page |
+   | `0011_relational_core.sql` | Cultural profile, the question↔answer link, plan outcomes, cycles, endings |
+   | `0012_closed_space.sql` | A closed space refuses writes, in the database |
 
    Or, with the Supabase CLI linked to your project: `supabase db push`. Or,
    if you've connected this repo through Supabase's GitHub integration, it
@@ -412,6 +414,94 @@ without closing anything, with the story beside the picture changing as you
 cross. They stop at both ends rather than looping: you cannot tell whether
 you have seen everything in a loop, and the first and last photograph are
 meaningful positions in a shared story.
+
+## The discovery loop
+
+The vault used to be write-only: a question was asked, an answer was written
+down, and nothing ever read it again. That made it a diary rather than a
+memory, and made the app's central claim something it could not act on.
+
+Every question in the bank declares what shape of answer it produces, so
+nothing downstream ever reads a sentence and guesses. "What food tastes like
+home to you" and "what should I know before I meet your family" are both
+culture questions, and only one can become a restaurant.
+
+**The app never paraphrases.** It quotes. Turning "my mother's hotpot, the
+way she does it at new year" into "book a hotpot restaurant" is the app
+putting words in somebody's mouth and taking credit for the idea — and when
+it gets that slightly wrong, which it will, the result is a partner handed
+something they did not ask for by somebody who thought they were listening.
+A suggestion is the sentence they actually said, next to the occasion that
+makes it timely. The thinking stays with the person doing the loving.
+
+**Boundaries outrank everything.** An answer to "what would you never want
+as a gift" is the most valuable thing in the vault, precisely because it
+stops an idea. It is phrased as a caution and never as a suggestion.
+
+Where each kind appears is a privacy decision, not a layout one. Gift ideas
+and cautions go on the gift page, which is `author_id = auth.uid()` in every
+direction; date ideas go on the calendar, which both of them read.
+
+## Couple metrics
+
+Three rules, all enforced by tests.
+
+1. **About the pair, never one of them relative to the other.** The module
+   takes no per-person input at all, so it structurally cannot compare them.
+   The app refuses to say who owes whom about money; doing it with affection
+   would be worse, because money at least has an objective quantity.
+2. **No score out of a hundred, and no target.** A number with a maximum
+   invites "why is it not full", and for a relationship the honest answer is
+   that the number was never the point. The question bank is framed as
+   *still to ask*: fifty questions you have not asked is an invitation,
+   "12% complete" is homework.
+3. **A metric that can only get worse is a punishment.** "Days since your
+   last date" climbing forever is a machine for making somebody feel bad on
+   a quiet month, so every rhythm is a count over the last season, which
+   recovers the moment somebody does something.
+
+A metric at zero does not appear. Eight zeroes teaches a new couple nothing
+except that they are behind.
+
+## Ending it
+
+An app that only knows how to begin is dishonest about what it is for.
+
+The screen shows what is in the space, says once and plainly why it is
+showing it, lists exactly what will happen, and asks the person to type a
+word — not friction for its own sake, but the difference between a thumb
+landing somewhere and a decision.
+
+It states outright that **none of this is an argument for staying**.
+Somebody leaving a relationship that was hurting them should not have to
+argue with a piece of software on the way out.
+
+Nothing is destroyed on the first press. Ending is a state with a date on
+it, reopenable for thirty days by *either* of them — making one person the
+gatekeeper of the other's memories is its own small cruelty. `0012` makes
+"neither of you can add to it" true in the database rather than in the
+interface; reads and deletes stay open, because closing a space is not
+confiscating it. The app does not tell the partner: if they should hear it,
+they should hear it from you.
+
+## Cycle tracking
+
+Off unless somebody turns it on, and shaped entirely by restraint. It stores
+only observed period starts and computes everything on read — a predicted
+date written to the database goes stale the moment the next period is late,
+and then the app is confidently telling somebody something untrue about
+their own body.
+
+It refuses below three observations rather than offering a number with a
+shrug attached, and discards implausible gaps before averaging, because a
+forgotten entry produces a 62-day "cycle" that would make every future
+prediction wrong.
+
+It **never interprets**. No mood forecasts, no advice about how to behave.
+That framing turns a partner's body into a weather report to be managed
+around, which is degrading in a way that is easy to miss when it is phrased
+helpfully. Tracking and sharing are separate switches, and the row policy
+checks the sharing flag per row so revoking it actually revokes.
 
 ## Architecture
 
