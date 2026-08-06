@@ -5,6 +5,7 @@ import { CalendarDays, ChevronRight, Copy, Gift, Images, NotebookPen, Scale } fr
 import { ArrivalCard } from '@/components/ArrivalCard';
 import { TwoClocks } from '@/components/TwoClocks';
 import { LettersCard } from '@/components/LettersCard';
+import { MetricsSection } from '@/components/MetricsSection';
 import { BalanceBar } from '@/components/BalanceBar';
 import { ButtonLink } from '@/components/ui/Button';
 import { LoadingBlock } from '@/components/ui/Bits';
@@ -246,6 +247,9 @@ export function HomeScreen() {
             )}
           </section>
 
+          {/* --- The almanac ------------------------------------------------- */}
+          <MetricsSection />
+
           {/* --- Reminders --------------------------------------------------- */}
           {reminders.length > 0 && (
             <section aria-labelledby="reminders">
@@ -300,7 +304,7 @@ export function HomeScreen() {
  * A reminder card.
  *
  * Each kind gets its own sentence rather than a generic template, because the
- * difference between "her birthday is in nine days" and "you noted her exam
+ * difference between "their birthday is in nine days" and "you noted their exam
  * was this week — ask how it went" is the entire value of the feature.
  */
 function ReminderCard({ reminder, index }: { reminder: Reminder; index: number }) {

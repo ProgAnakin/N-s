@@ -129,7 +129,7 @@ describe('a note about your partner', () => {
     await user.click(screen.getByRole('button', { name: /Edit/ }));
 
     const dialog = await screen.findByRole('dialog');
-    await user.type(within(dialog).getByLabelText(/What she said/), ' Or hungry.');
+    await user.type(within(dialog).getByLabelText(/What they said/), ' Or hungry.');
     await user.click(within(dialog).getByRole('button', { name: /^Save$/ }));
 
     await waitFor(() => {
@@ -472,7 +472,7 @@ describe('an answer given in March coming back in June', () => {
         {
           id: 'd1',
           couple_id: COUPLE_ID,
-          label: 'Her birthday',
+          label: 'Their birthday',
           date: iso,
           type: 'birthday',
           recurring: true,
@@ -484,6 +484,6 @@ describe('an answer given in March coming back in June', () => {
       ],
     );
 
-    expect(await screen.findByText(/Her birthday/)).toBeInTheDocument();
+    expect(await screen.findByText(/Their birthday/)).toBeInTheDocument();
   });
 });

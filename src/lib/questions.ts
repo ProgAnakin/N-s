@@ -7,7 +7,7 @@
  * saved note.
  *
  * Written to be asked out loud, slowly, over months. Nothing here should read
- * like an intake form, and nothing here asks her to justify herself.
+ * like an intake form, and nothing here asks anybody to justify themselves.
  */
 
 import type { FactCategory } from './vault';
@@ -58,7 +58,7 @@ export const QUESTION_BANK: readonly BankQuestion[] = [
   { id: 'q08', category: 'communication', question: "Is there anything that's hard to say in English but easy in your own language?", yields: 'insight' },
   { id: 'q09', category: 'communication', question: 'How do you want me to check in when you seem far away?', yields: 'insight' },
 
-  // --- What love looks like to her ------------------------------------
+  // --- What love looks like to them -----------------------------------
   { id: 'q10', category: 'love_language', question: 'What makes you feel most loved — words, time, touch, gifts, or help?', yields: 'insight' },
   { id: 'q11', category: 'love_language', question: "What's the smallest thing someone has done for you that you still remember?", yields: 'insight' },
   { id: 'q12', category: 'love_language', question: 'How do you like affection shown when other people are around?', yields: 'insight' },
@@ -67,7 +67,7 @@ export const QUESTION_BANK: readonly BankQuestion[] = [
   { id: 'q15', category: 'love_language', question: 'What do you need most from me on a hard day?', yields: 'insight' },
   { id: 'q16', category: 'love_language', question: 'How do you like to celebrate when something goes well for you?', yields: 'activity' },
 
-  // --- Where she's from ------------------------------------------------
+  // --- Where they're from -----------------------------------------------
   { id: 'q17', category: 'culture', question: 'What tradition from home do you miss the most?', yields: 'date' },
   { id: 'q18', category: 'culture', question: "Which holiday would you want us to keep, wherever we're living?", yields: 'date' },
   { id: 'q19', category: 'culture', question: 'What should I know before I meet your family?', yields: 'insight' },
@@ -78,7 +78,7 @@ export const QUESTION_BANK: readonly BankQuestion[] = [
   { id: 'q24', category: 'culture', question: 'What do you wish people understood about where you grew up?', yields: 'insight' },
   { id: 'q25', category: 'culture', question: 'What was a normal weekend like in your family?', yields: 'insight' },
 
-  // --- What she likes ---------------------------------------------------
+  // --- What they like ---------------------------------------------------
   { id: 'q26', category: 'preferences', question: "What's your ideal way to spend a free Saturday?", yields: 'activity' },
   { id: 'q27', category: 'preferences', question: 'Coffee, tea, or something else — and how exactly?', yields: 'taste' },
   { id: 'q28', category: 'preferences', question: 'On a trip, do you prefer slow and quiet or full and busy?', yields: 'insight' },
@@ -89,7 +89,7 @@ export const QUESTION_BANK: readonly BankQuestion[] = [
   { id: 'q33', category: 'preferences', question: 'How much time alone do you need in a week to feel like yourself?', yields: 'insight' },
   { id: 'q34', category: 'preferences', question: 'What kind of plans do you enjoy being surprised by, and which ones do you want to know about first?', yields: 'insight' },
 
-  // --- Her lines --------------------------------------------------------
+  // --- Their lines ------------------------------------------------------
   { id: 'q35', category: 'boundaries', question: "Is there a topic you'd rather not talk about yet?", yields: 'boundary' },
   { id: 'q36', category: 'boundaries', question: "What's off-limits to joke about?", yields: 'boundary' },
   { id: 'q37', category: 'boundaries', question: 'How do you feel about photos of us being posted publicly?', yields: 'boundary' },

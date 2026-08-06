@@ -20,7 +20,7 @@ import { cn } from '@/utils/cn';
  * What time it is for each of you, and when you are both up.
  *
  * The daily question in a relationship spread across a hemisphere is not
- * "how far away is she" — it is "can I call right now". This answers it in
+ * "how far away are they" — it is "can I call right now". This answers it
  * one glance, and it answers the follow-up too, because a window stated in
  * one person's clock is useless to the other.
  *

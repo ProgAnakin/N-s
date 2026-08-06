@@ -28,7 +28,7 @@ interface Draft {
  * The family map.
  *
  * Laid out as two small trees rather than one flat list, because "whose
- * family" is the first thing you need to know and because seeing her side
+ * family" is the first thing you need to know and because seeing their side
  * with its own root makes the relationships legible at a glance. The
  * "handle with care" flag is deliberately quiet — a marker, not a warning
  * label on a person.

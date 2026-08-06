@@ -163,8 +163,8 @@ export function VaultScreen() {
     <div>
       <PageHeader
         kicker={s.nav.vault}
-        // Her actual name, rather than "her": the app should not assume the
-        // shape of the couple using it.
+        // Their actual name, rather than a pronoun: the app should not
+        // assume the shape of the couple using it.
         title={names.hasPartner ? s.nav.vaultOf(names.partnerName) : s.vault.title}
         subtitle={s.vault.intro}
         actions={

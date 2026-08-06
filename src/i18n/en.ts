@@ -7,7 +7,13 @@
  *
  * Plurals and interpolation are functions. That keeps grammar with the
  * language rather than in the components — which matters most for the
- * languages this couple actually speaks.
+ * languages a given couple actually speaks.
+ *
+ * Nothing here assumes a gender. The app was first written for one couple
+ * and the copy said "her" throughout, which quietly told every other couple
+ * it was not for them. Where a partner's actual name is available the
+ * strings take it; everywhere else it is they/them, which is also simply
+ * correct for the couples where "her" would have been wrong.
  */
 
 export const en = {
@@ -45,7 +51,7 @@ export const en = {
 
   nav: {
     home: 'Home',
-    vault: 'About her',
+    vault: 'About them',
     vaultOf: (name: string) => `About ${name}`,
     dates: 'Dates',
     memories: 'Memories',
@@ -63,7 +69,7 @@ export const en = {
     more: 'More',
     sections: {
       now: 'Now',
-      her: 'Her',
+      them: 'Them',
       us: 'Us',
       practical: 'Practical',
     },
@@ -151,6 +157,47 @@ export const en = {
     quickAddGift: 'A gift idea',
   },
 
+  metrics: {
+    title: 'What the two of you have built',
+    ids: {
+      daysTogether: {
+        label: 'Days together',
+        note: 'The one figure that only goes up, and should.',
+      },
+      discovered: {
+        label: 'Things written down',
+        note: 'Answers kept in the vault, so you don’t have to guess.',
+      },
+      actionable: {
+        label: 'Can come back later',
+        note: 'Answers the app can bring up again when they’re useful.',
+      },
+      stillToAsk: {
+        label: 'Still to ask',
+        note: 'Not a backlog. Questions left is a good thing to have.',
+      },
+      timeTogether: {
+        label: 'In the last season',
+        note: 'Plans and memories from the last three months.',
+      },
+      worthRepeating: {
+        label: 'You’d do again',
+        note: 'Of the evenings you judged, the ones worth repeating.',
+      },
+      wordsKept: {
+        label: 'Letters this season',
+        note: 'From either of you. The app doesn’t count who.',
+      },
+      languageCrossed: {
+        label: 'Phrases learned',
+        note: 'In each other’s languages.',
+      },
+    } as Record<string, { label: string; note: string }>,
+    /* Said plainly, because the absence of a score is the feature. */
+    footnote:
+      'None of this is a score, and none of it is a comparison between the two of you. They’re just counts of things you did.',
+  },
+
   reminders: {
     upcomingDate: (label: string, countdown: string) => `${label} is ${countdown}`,
     upcomingDateOrdinal: (label: string, ordinal: string, countdown: string) =>
@@ -168,7 +215,7 @@ export const en = {
         : `${count} things still open for ${destination}`,
     monthiversaryTitle: (months: number) =>
       months === 1 ? 'Your first month' : `Your ${months}-month mark`,
-    monthiversaryHint: 'Small, but she’ll notice that you did.',
+    monthiversaryHint: 'Small, but they’ll notice that you did.',
     dayMilestone: (days: number) => `${days} days together`,
     reunion: 'You see each other again',
   },
@@ -191,7 +238,7 @@ export const en = {
   },
 
   vault: {
-    title: 'About her',
+    title: 'About them',
     subtitle: 'What you’ve learned, so you don’t have to guess.',
     intro:
       'The point of this page is to stop you spinning. When you find yourself wondering what the silence means, look here first — you probably already asked.',
@@ -223,8 +270,8 @@ export const en = {
     editFact: 'Edit note',
     question: 'What you asked',
     questionPlaceholder: 'e.g. When you go quiet, what does it usually mean?',
-    answer: 'What she said',
-    answerPlaceholder: 'In her words, as close as you can remember.',
+    answer: 'What they said',
+    answerPlaceholder: 'In their words, as close as you can remember.',
     category: 'Category',
     visibility: 'Who can see this',
     remindOn: 'Remind me around',
@@ -232,11 +279,11 @@ export const en = {
     searchPlaceholder: 'Search everything you’ve written',
     emptyTitle: 'Nothing written down yet',
     emptyBody:
-      'Start with one thing she told you this week. The small ones matter most — they’re the ones you forget.',
+      'Start with one thing they told you this week. The small ones matter most — they’re the ones you forget.',
     emptyFiltered: 'Nothing here in this category yet.',
     promptsTitle: 'Things worth asking',
     promptsBody: 'Not a checklist. One at a time, when it fits.',
-    promptsAnswer: 'Write what she said',
+    promptsAnswer: 'Write what they said',
     promptsDismiss: 'Skip this one',
     countShared: (n: number) => `${n} shared`,
     countPrivate: (n: number) => `${n} private`,
@@ -249,7 +296,7 @@ export const en = {
     add: 'Add a date',
     edit: 'Edit date',
     label: 'What is it?',
-    labelPlaceholder: 'e.g. Her birthday',
+    labelPlaceholder: 'e.g. Their birthday',
     date: 'When',
     type: 'Kind',
     recurring: 'Comes around again',
@@ -258,7 +305,7 @@ export const en = {
     past: 'Already happened',
     emptyTitle: 'No dates yet',
     emptyBody:
-      'Her birthday is the one to start with. Then the day you met, and the day you count from.',
+      'Their birthday is the one to start with. Then the day you met, and the day you count from.',
     ordinal: (n: number) => {
       const suffix =
         n % 100 >= 11 && n % 100 <= 13
@@ -284,7 +331,7 @@ export const en = {
     memoryTitle: 'What happened',
     titlePlaceholder: 'e.g. The night it rained in Porto',
     note: 'Tell it',
-    notePlaceholder: 'Write it the way you’d tell it to her in a year.',
+    notePlaceholder: 'Write it the way you’d tell it back to them in a year.',
     date: 'When',
     photo: 'Photos',
     photoAdd: 'Add photos',
@@ -306,7 +353,7 @@ export const en = {
     noPhotos: 'No photos yet',
     openBook: (title: string) => `Open ${title}`,
     emptyTitle: 'The first page is blank',
-    emptyBody: 'Start anywhere. The first thing you remember about her is a good place.',
+    emptyBody: 'Start anywhere. The first thing you remember about them is a good place.',
     uploading: 'Uploading…',
   },
 
@@ -314,43 +361,43 @@ export const en = {
     title: 'Family',
     subtitle: 'Names, ages, and what to be careful with.',
     intro:
-      'In a lot of families — hers especially — remembering who is who is not trivia. It’s respect.',
+      'In a lot of families — theirs quite possibly — remembering who is who is not trivia. It’s respect.',
     add: 'Add someone',
     edit: 'Edit person',
     name: 'Name',
     namePlaceholder: 'e.g. Mei',
     relation: 'Relation',
-    relationPlaceholder: 'e.g. Mother, older brother, grandmother on her father’s side',
+    relationPlaceholder: 'e.g. Mother, older brother, grandmother on their father’s side',
     age: 'Age',
     birthday: 'Birthday',
     belongsTo: 'Whose family',
     notes: 'What to know',
-    notesPlaceholder: 'e.g. Very close to her, calls every Sunday. Don’t bring up the move.',
+    notesPlaceholder: 'e.g. Very close to them, calls every Sunday. Don’t bring up the move.',
     sensitive: 'Handle with care',
     sensitiveHint: 'Marks this person as one to be thoughtful about.',
     emptyTitle: 'No one added yet',
     emptyBody:
-      'Start with her mother and father, and anyone she talks about every week. Names first — the rest can come later.',
+      'Start with their mother and father, and anyone they talk about every week. Names first — the rest can come later.',
   },
 
   phrasebook: {
     title: 'Phrasebook',
-    subtitle: 'Her language, one phrase at a time.',
+    subtitle: 'Their language, one phrase at a time.',
     intro:
       'Learning even a little of someone’s first language is one of the kindest things you can do with an hour.',
     add: 'Add a phrase',
     edit: 'Edit phrase',
-    original: 'In her language',
+    original: 'In their language',
     originalPlaceholder: '你今天怎么样？',
     reading: 'How to say it',
     readingPlaceholder: 'nǐ jīntiān zěnmeyàng?',
     translation: 'What it means',
     translationPlaceholder: 'How was your day?',
     note: 'A note',
-    notePlaceholder: 'When to use it, or what she said about it.',
+    notePlaceholder: 'When to use it, or what they said about it.',
     audio: 'Recording',
     audioAdd: 'Add a recording',
-    audioHint: 'Ask her to say it once — it’s worth more than any app.',
+    audioHint: 'Ask them to say it once — it’s worth more than any app.',
     audioRemove: 'Remove recording',
     learned: 'Learned',
     notLearned: 'Still learning',
@@ -365,7 +412,7 @@ export const en = {
     progress: (done: number, total: number) => `${done} of ${total} learned`,
     emptyTitle: 'No phrases yet',
     emptyBody:
-      'Add the first thing she taught you to say. Even if you say it badly — especially if you say it badly.',
+      'Add the first thing they taught you to say. Even if you say it badly — especially if you say it badly.',
   },
 
   culture: {
@@ -382,7 +429,7 @@ export const en = {
     category: 'Kind',
     emptyTitle: 'Nothing written down yet',
     emptyBody:
-      'Start with something she’s already told you — a food she can’t stand, a number that matters, a thing her family always does.',
+      'Start with something they’ve already told you — a food they can’t stand, a number that matters, a thing their family always does.',
   },
 
   trips: {
@@ -492,20 +539,20 @@ export const en = {
 
   gifts: {
     title: 'Gift radar',
-    subtitle: 'Things she mentioned, saved quietly.',
+    subtitle: 'Things they mentioned, saved quietly.',
     privateNotice: 'Only you can see this page. Your partner cannot, ever.',
     intro:
-      'The best gift is something she said out loud months ago and forgot she said. Write it down the moment you hear it.',
+      'The best gift is something they said out loud months ago and forgot they said. Write it down the moment you hear it.',
     add: 'Save an idea',
     edit: 'Edit idea',
     idea: 'The idea',
-    ideaPlaceholder: 'e.g. The ceramics class she keeps mentioning',
+    ideaPlaceholder: 'e.g. The ceramics class they keep mentioning',
     occasion: 'For when',
-    occasionPlaceholder: 'e.g. Her birthday',
+    occasionPlaceholder: 'e.g. Their birthday',
     occasionHint: 'Match this to a date and the home screen will remind you in time.',
     noticedOn: 'You noticed',
     note: 'Details',
-    notePlaceholder: 'Size, colour, the shop she pointed at.',
+    notePlaceholder: 'Size, colour, the shop they pointed at.',
     used: 'Already given',
     markUsed: 'Mark as given',
     markUnused: 'Move back to ideas',
@@ -513,7 +560,7 @@ export const en = {
     usedTitle: 'Already given',
     emptyTitle: 'Nothing saved yet',
     emptyBody:
-      'Next time she says “oh, I love those” — put it here. That’s the whole trick.',
+      'Next time they say “oh, I love those” — put it here. That’s the whole trick.',
   },
 
   distance: {
@@ -683,7 +730,7 @@ export const en = {
     addPlanFirst: 'Plan your first thing',
     editPlan: 'Edit plan',
     planTitle: 'What are you doing?',
-    planTitlePlaceholder: 'e.g. That Japanese place she mentioned',
+    planTitlePlaceholder: 'e.g. That Japanese place they mentioned',
     planDay: 'Which day',
     planTime: 'Time',
     planLocation: 'Where',
@@ -901,9 +948,9 @@ export const en = {
   holidays: {
     title: 'Coming up where you’re from',
     tabulatedNote: 'Lunisolar dates come from a checked table and stop after 2030.',
-    /* Which country a date belongs to. Shown beside it, because "it's her
-       country's day, not yours" is the single most useful thing the app can
-       tell somebody here. */
+    /* Which country a date belongs to. Shown beside it, because "it's
+       their country's day, not yours" is the single most useful thing the
+       app can tell somebody here. */
     countries: {
       BR: 'Brazil',
       CN: 'China',
@@ -1005,9 +1052,9 @@ export const en = {
   factCategories: {
     communication: 'How we talk',
     love_language: 'What love looks like',
-    culture: 'Where she’s from',
-    preferences: 'What she likes',
-    boundaries: 'Her lines',
+    culture: 'Where they’re from',
+    preferences: 'What they like',
+    boundaries: 'Their lines',
     past: 'What came before',
     other: 'Everything else',
   },

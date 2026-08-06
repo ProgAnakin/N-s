@@ -34,7 +34,7 @@ export interface FeatureFlags {
 }
 
 export interface NavGroup {
-  id: 'now' | 'her' | 'us' | 'practical';
+  id: 'now' | 'them' | 'us' | 'practical';
   label: (s: Strings) => string;
   items: NavItem[];
 }
@@ -46,8 +46,8 @@ const NAV_GROUPS: NavGroup[] = [
     items: [{ to: '/', icon: Home, label: (s) => s.nav.home, primary: true }],
   },
   {
-    id: 'her',
-    label: (s) => s.nav.sections.her,
+    id: 'them',
+    label: (s) => s.nav.sections.them,
     items: [
       { to: '/vault', icon: NotebookPen, label: (s) => s.nav.vault, primary: true },
       { to: '/family', icon: Users, label: (s) => s.nav.family },
@@ -99,7 +99,7 @@ export function allItems(flags: FeatureFlags): NavItem[] {
  *
  * `pinned` is per person and holds route paths in the order they were
  * chosen. Which four matter is not the same for two people in one couple,
- * let alone across couples: he opens Spending, she opens the Calendar.
+ * let alone across couples: one opens Spending, the other the Calendar.
  *
  * An empty list means "never chose", which is a different thing from
  * "chose nothing" and falls back to the defaults. Anything pinned that has

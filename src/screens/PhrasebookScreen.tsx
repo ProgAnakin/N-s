@@ -31,7 +31,7 @@ type Filter = 'all' | 'learning' | 'learned';
 /**
  * The phrasebook.
  *
- * Her script gets the serif face and the largest size on the card — it is the
+ * Their script gets the serif face and the largest size on the card — it is the
  * thing being learned, so it leads. Practice mode shows the meaning first and
  * asks you to produce the phrase, which is the direction that actually
  * teaches; recognising characters you have already seen teaches very little.

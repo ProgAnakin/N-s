@@ -15,7 +15,7 @@ import { cn } from '@/utils/cn';
  *
  * Phone first: a bottom bar with the four places you actually go, and
  * everything else behind "More". From `lg` up it becomes a left rail with the
- * sections named — Now, Her, Us, Practical — which is how the app is
+ * sections named — Now, Them, Us, Practical — which is how the app is
  * organised in the head anyway.
  */
 export function AppShell() {

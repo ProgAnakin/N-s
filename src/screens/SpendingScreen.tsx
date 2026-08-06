@@ -58,7 +58,7 @@ interface Draft {
  *   - Currencies fold into one, using the rate each expense was written down
  *     at. They used to be shown side by side, which was honest and useless:
  *     a euro rent and a yuan dinner are the same shared life, and two bars
- *     reading "100% him" and "100% her" answer no question anybody asked.
+ *     reading "100% one of you" and "100% the other" answer no question.
  *     What is never done is recomputing an old expense at today's rate —
  *     see fx.ts. Anything with no rate stays out of the total and is named.
  *   - Every figure comes from a tested function in /src/lib/money.ts. This
