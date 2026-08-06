@@ -615,6 +615,58 @@ export const en = {
       'Nothing is deleted; you simply stop being part of it, and you can create or join another. Rejoining needs the invite code again.',
   },
 
+  ending: {
+    /* The wording here was written slowly. Two things it must not do:
+       guilt somebody into staying — a person leaving a bad relationship
+       deserves to leave cleanly — and pretend this is a settings change.
+       It asks once, shows what is there, and then gets out of the way. */
+    open: 'End this',
+    title: 'Before you close this',
+    lead: 'You’re about to close the space the two of you have been keeping.',
+    ledgerLead: 'What’s in here right now:',
+    days: (n: number) => (n === 1 ? '1 day together' : `${n} days together`),
+    memories: (n: number) => (n === 1 ? '1 memory' : `${n} memories`),
+    photos: (n: number) => (n === 1 ? '1 photograph' : `${n} photographs`),
+    letters: (n: number) => (n === 1 ? '1 letter' : `${n} letters`),
+    plans: (n: number) => (n === 1 ? '1 plan' : `${n} plans you made`),
+    places: (n: number) => (n === 1 ? '1 place' : `${n} places`),
+
+    reflect:
+      'None of this is an argument for staying. If you’ve decided, you’ve decided, and you shouldn’t have to justify it to a piece of software. It’s here because a decision made late at night after one bad evening is a different decision from the same one made in daylight — and this is the only chance the app gets to be sure you’re looking at all of it and not just at this week.',
+
+    whatHappens: 'What happens if you go ahead',
+    whatHappens1: 'The space closes. Neither of you can add to it.',
+    whatHappens2: (days: number) =>
+      `Nothing is deleted. For ${days} days either of you can reopen it — either of you, not just whoever pressed this.`,
+    whatHappens3:
+      'Your partner is not notified by the app. If they should hear it, they should hear it from you.',
+    whatHappens4:
+      'After that it stays as an archive you can still read. Deleting for good is a separate thing you do to your own account, and neither of you can do it to the other’s.',
+
+    confirmPrompt: 'If you’re sure, type the word below.',
+    confirmWord: 'END',
+    confirmLabel: 'Type END to confirm',
+    goAhead: 'Close the space',
+    notNow: 'Not now',
+    ending: 'Closing…',
+
+    /* After it has ended. */
+    endedTitle: 'This space is closed',
+    endedOn: (date: string) => `Closed on ${date}.`,
+    reopenWindow: (days: number) =>
+      days === 1
+        ? 'You can reopen it today. After that it becomes an archive.'
+        : `You can reopen it for ${days} more days. After that it becomes an archive.`,
+    reopen: 'Reopen it',
+    reopening: 'Reopening…',
+    reopenNote:
+      'Either of you can. Nothing was deleted, and everything is where you left it.',
+    archivedNote:
+      'The reopening window has passed. Everything is still here to read; nothing new can be added.',
+    stillYours:
+      'Your memories, letters and photographs are still yours. Take what you want before you delete anything.',
+  },
+
   calendar: {
     title: 'Calendar',
     subtitle: 'What’s coming, and what already happened.',

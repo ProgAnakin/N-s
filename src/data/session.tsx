@@ -56,6 +56,14 @@ interface SessionValue {
    * has to go through the database function that opts in explicitly.
    */
   leaveCouple: () => Promise<void>;
+  /**
+   * Closes the space. Reversible for a grace period — see lib/ending.ts.
+   *
+   * Deliberately not a delete: the data belongs to two people, and one of
+   * them pressing a button must not silently destroy the other's copy.
+   */
+  endCouple: () => Promise<void>;
+  reopenCouple: () => Promise<void>;
   rotateInviteCode: () => Promise<string>;
   updateProfile: (
     values: Partial<
@@ -308,6 +316,26 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     await reload();
   }, [reload]);
 
+  const endCouple = useCallback(async () => {
+    const client = requireClient();
+    const { error } = await client.rpc('end_couple');
+    if (error) {
+      reportWriteFailure(error);
+      return;
+    }
+    await reload();
+  }, [reload]);
+
+  const reopenCouple = useCallback(async () => {
+    const client = requireClient();
+    const { error } = await client.rpc('reopen_couple');
+    if (error) {
+      reportWriteFailure(error);
+      return;
+    }
+    await reload();
+  }, [reload]);
+
   const rotateInviteCode = useCallback(async () => {
     const client = requireClient();
     const { data, error } = await client.rpc('rotate_invite_code');
@@ -381,6 +409,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       createCouple,
       joinCouple,
       leaveCouple,
+      endCouple,
+      reopenCouple,
       rotateInviteCode,
       updateProfile,
       updateCouple,
@@ -398,6 +428,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       createCouple,
       joinCouple,
       leaveCouple,
+      endCouple,
+      reopenCouple,
       rotateInviteCode,
       updateProfile,
       updateCouple,

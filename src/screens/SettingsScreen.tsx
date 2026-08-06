@@ -9,6 +9,7 @@ import { PlacesSection } from '@/components/PlacesSection';
 import { ClockSection } from '@/components/ClockSection';
 import { YoursSection } from '@/components/YoursSection';
 import { OriginSection } from '@/components/OriginSection';
+import { EndingSection } from '@/components/EndingSection';
 import { Seal } from '@/components/ui/Seal';
 import { useSession } from '@/data/session';
 import { clearTableCache } from '@/data/useTable';
@@ -336,6 +337,9 @@ export function SettingsScreen() {
             </p>
           </div>
         </section>
+
+        {/* --- Ending it -------------------------------------------------------- */}
+        <EndingSection />
       </div>
 
       <ConfirmDialog
