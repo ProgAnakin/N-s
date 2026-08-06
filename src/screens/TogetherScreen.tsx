@@ -14,6 +14,9 @@ import { INTIMACY_KINDS, summarise, type IntimacyEntry } from '@/lib/intimacy';
 import { useI18n, useStrings } from '@/i18n';
 import { RecordActions, useCoupleTable, useToday } from './shared';
 
+/** Height of the tallest bar, in pixels. */
+const BAR_TRACK_PX = 96;
+
 interface Draft {
   id: string | null;
   date: string;
@@ -159,12 +162,17 @@ export function TogetherScreen() {
             <section>
               <h2 className="label-kicker mb-3">{s.together.byMonth}</h2>
               <Sheet className="p-4">
-                <div className="flex h-28 items-end gap-1.5">
+                <div className="flex items-end gap-1.5" style={{ height: BAR_TRACK_PX + 22 }}>
                   {summary.byMonth.slice(-12).map((month) => (
                     <div key={month.key} className="flex min-w-0 flex-1 flex-col items-center gap-1.5">
                       <div
                         className="w-full rounded-sm bg-stamp/80"
-                        style={{ height: `${Math.max(4, (month.count / busiestMonth) * 100)}%` }}
+                        // Pixels, not a percentage: a percentage height inside
+                        // an auto-height flex item resolves against nothing and
+                        // the whole chart renders empty.
+                        style={{
+                          height: Math.max(4, (month.count / busiestMonth) * BAR_TRACK_PX),
+                        }}
                         title={`${month.count}`}
                       />
                       <span className="truncate text-[10px] text-ink-faint">
@@ -233,8 +241,8 @@ export function TogetherScreen() {
                   >
                     <span
                       aria-hidden="true"
-                      className="mt-1.5 h-2 w-2 shrink-0 rounded-[2px] bg-stamp"
-                      style={{ transform: 'rotate(-10deg)' }}
+                      className="mt-1.5 h-2 w-2 shrink-0 rounded-[1px] bg-stamp"
+                      style={{ transform: 'rotate(45deg)' }}
                     />
                     <div className="min-w-0 flex-1">
                       <p className="flex flex-wrap items-baseline gap-x-2 text-base text-ink">

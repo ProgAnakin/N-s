@@ -209,6 +209,7 @@ export function CalendarScreen() {
                 aria-label={formatDate(cell.date, 'long', intlLocale)}
                 className={cn(
                   'relative flex aspect-square flex-col items-center justify-center rounded-sm text-sm transition-colors',
+                  'sm:aspect-auto sm:h-14',
                   cell.inMonth ? 'text-ink' : 'text-ink-faint/50',
                   isSelected && 'bg-cinnabar/12 ring-1 ring-cinnabar',
                   !isSelected && 'hover:bg-sunk',
@@ -227,11 +228,13 @@ export function CalendarScreen() {
                   {mark?.dates ? (
                     <span className="h-1 w-1 rounded-full bg-jade" aria-hidden="true" />
                   ) : null}
+                  {/* A rotated square, big enough for the shape to actually
+                      read as a seal rather than as one more dot. */}
                   {mark?.together ? (
                     <span
                       aria-hidden="true"
-                      className="h-[5px] w-[5px] rounded-[1.5px] bg-stamp"
-                      style={{ transform: 'rotate(-10deg)' }}
+                      className="h-[7px] w-[7px] rounded-[1px] bg-stamp"
+                      style={{ transform: 'rotate(45deg)' }}
                     />
                   ) : null}
                 </span>
