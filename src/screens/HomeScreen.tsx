@@ -29,6 +29,16 @@ import { cn } from '@/utils/cn';
  * is: how long you have been together, what is next, one or two things worth
  * knowing, and how the spending sits.
  */
+/**
+ * How many expenses the front page reads.
+ *
+ * The balance bar is a picture of how things have been going lately, not an
+ * audit — and 400 rows is well over a year for most couples. The spending
+ * page itself still reads the lot, because that is where the whole history
+ * is the point.
+ */
+const HOME_EXPENSE_LIMIT = 400;
+
 export function HomeScreen() {
   const s = useStrings();
   const { intlLocale } = useI18n();
@@ -38,12 +48,42 @@ export function HomeScreen() {
   const today = useToday();
   const countdownText = useCountdown();
 
-  const dates = useCoupleTable('important_dates', { coupleId: couple.id, orderBy: 'date' });
-  const facts = useCoupleTable('remember_facts', { coupleId: couple.id, orderBy: 'remind_on' });
-  const gifts = useCoupleTable('gift_ideas', { coupleId: couple.id, orderBy: 'created_at' });
-  const trips = useCoupleTable('trips', { coupleId: couple.id, orderBy: 'start_date' });
-  const tripItems = useCoupleTable('trip_items', { coupleId: couple.id, orderBy: 'sort_order' });
-  const expenses = useCoupleTable('expenses', { coupleId: couple.id, orderBy: 'date' });
+  // Home reads seven tables to draw a countdown, a few reminders and a
+  // balance. Each one therefore asks for the columns that answer those
+  // questions and nothing else, and the two that grow without bound are
+  // capped: nobody's front page needs eight years of expenses to show how
+  // the last while has gone.
+  const dates = useCoupleTable('important_dates', {
+    coupleId: couple.id,
+    orderBy: 'date',
+    columns: 'id,label,date,type,recurring',
+  });
+  const facts = useCoupleTable('remember_facts', {
+    coupleId: couple.id,
+    orderBy: 'remind_on',
+    columns: 'id,question,answer,category,remind_on,visibility',
+  });
+  const gifts = useCoupleTable('gift_ideas', {
+    coupleId: couple.id,
+    orderBy: 'created_at',
+    columns: 'id,idea,occasion,used',
+  });
+  const trips = useCoupleTable('trips', {
+    coupleId: couple.id,
+    orderBy: 'start_date',
+    columns: 'id,destination,start_date',
+  });
+  const tripItems = useCoupleTable('trip_items', {
+    coupleId: couple.id,
+    orderBy: 'sort_order',
+    columns: 'id,trip_id,done',
+  });
+  const expenses = useCoupleTable('expenses', {
+    coupleId: couple.id,
+    orderBy: 'date',
+    columns: 'id,label,amount_cents,currency,paid_by,split_rule,partner_a_percent,category,date,fx',
+    limit: HOME_EXPENSE_LIMIT,
+  });
 
   const anniversary = parseISODate(couple.anniversary_date);
 

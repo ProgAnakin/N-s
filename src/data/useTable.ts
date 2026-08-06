@@ -26,6 +26,23 @@ export interface UseTableOptions {
   thenBy?: string;
   thenAscending?: boolean;
   enabled?: boolean;
+  /**
+   * Which columns to fetch. Defaults to all of them.
+   *
+   * Worth setting on anything that grows without bound. Home reads seven
+   * tables to draw a countdown and a balance, and `select('*')` on expenses
+   * drags every note and every foreign key across the wire to add up two
+   * numbers.
+   */
+  columns?: string;
+  /**
+   * Stop after this many rows.
+   *
+   * There is no pagination anywhere in this app, and for a keepsake that is
+   * mostly right — you want the whole album. But the front page does not:
+   * it needs the next date and the recent expenses, not eight years of them.
+   */
+  limit?: number;
 }
 
 export interface Table<T extends TableName> {
@@ -51,6 +68,30 @@ export interface Table<T extends TableName> {
 
 const CACHE_PREFIX = 'nos.cache.';
 const CACHE_VERSION = 'v1';
+
+/**
+ * Tables whose rows never touch localStorage.
+ *
+ * The read cache exists so opening the app on a train shows something
+ * instead of a spinner, and for a memory or an expense that trade is
+ * obviously worth it. For these four it is not.
+ *
+ * `remember_facts` holds private notes the author's own partner cannot read
+ * — the app's central promise. `gift_ideas` is a surprise. `letters` may be
+ * sealed until a date the recipient has not reached. `intimacy_entries` is
+ * the most private thing here by some distance. Caching any of them writes
+ * plaintext to a device that two people share, survives locking the screen,
+ * and is one DevTools tab away from undoing the whole privacy model.
+ *
+ * The cost is a spinner on those four pages when offline. That is the right
+ * side of the trade.
+ */
+const UNCACHED_TABLES: ReadonlySet<string> = new Set([
+  'remember_facts',
+  'gift_ideas',
+  'letters',
+  'intimacy_entries',
+]);
 
 function cacheKey(table: string, column: string, value: string, orderBy: string): string {
   return `${CACHE_PREFIX}${CACHE_VERSION}.${table}.${column}.${value}.${orderBy}`;
@@ -98,7 +139,11 @@ export function useTable<T extends TableName>(table: T, options: UseTableOptions
     thenBy,
     thenAscending = true,
     enabled = true,
+    columns = '*',
+    limit,
   } = options;
+
+  const cacheable = !UNCACHED_TABLES.has(table);
 
   const active = enabled && Boolean(value);
   const key = useMemo(
@@ -127,13 +172,14 @@ export function useTable<T extends TableName>(table: T, options: UseTableOptions
     // The generic table name defeats supabase-js's per-table column
     // inference, so the filter and order arguments are handed over as plain
     // strings. Everything coming back out is still typed as RowOf<T>.
-    const query = client.from(table).select('*');
+    const query = client.from(table).select(columns);
     const filtered = query.eq(column as never, value as never);
     const ordered = thenBy
       ? filtered.order(orderBy, { ascending }).order(thenBy, { ascending: thenAscending })
       : filtered.order(orderBy, { ascending });
+    const bounded = limit === undefined ? ordered : ordered.limit(limit);
 
-    const { data, error: queryError } = await ordered;
+    const { data, error: queryError } = await bounded;
     if (token !== requestId.current) return;
 
     if (queryError) {
@@ -147,10 +193,10 @@ export function useTable<T extends TableName>(table: T, options: UseTableOptions
 
     const nextRows = (data ?? []) as unknown as RowOf<T>[];
     setRows(nextRows);
-    writeCache(key, nextRows);
+    if (cacheable) writeCache(key, nextRows);
     setLoading(false);
     setStale(false);
-  }, [active, ascending, column, key, orderBy, table, thenAscending, thenBy, value]);
+  }, [active, ascending, column, columns, key, limit, orderBy, table, thenAscending, thenBy, value]);
 
   useEffect(() => {
     if (!active) {
@@ -158,7 +204,7 @@ export function useTable<T extends TableName>(table: T, options: UseTableOptions
       setLoading(false);
       return;
     }
-    const cached = readCache<RowOf<T>>(key);
+    const cached = cacheable ? readCache<RowOf<T>>(key) : null;
     if (cached) {
       setRows(cached);
       setLoading(false);
@@ -167,7 +213,7 @@ export function useTable<T extends TableName>(table: T, options: UseTableOptions
       setLoading(true);
     }
     void refresh();
-  }, [active, key, refresh]);
+  }, [active, cacheable, key, refresh]);
 
   const create = useCallback<Table<T>['create']>(
     async (values) => {
@@ -184,7 +230,7 @@ export function useTable<T extends TableName>(table: T, options: UseTableOptions
       const row = data as unknown as RowOf<T>;
       setRows((current) => {
         const next = [row, ...current];
-        writeCache(key, next);
+        if (cacheable) writeCache(key, next);
         return next;
       });
       // Re-fetch so the new row lands in the server's sort order rather than
@@ -192,7 +238,7 @@ export function useTable<T extends TableName>(table: T, options: UseTableOptions
       void refresh();
       return row;
     },
-    [key, refresh, table],
+    [cacheable, key, refresh, table],
   );
 
   const update = useCallback<Table<T>['update']>(
@@ -213,12 +259,12 @@ export function useTable<T extends TableName>(table: T, options: UseTableOptions
         const next = current.map((existing) =>
           (existing as { id: string }).id === id ? row : existing,
         );
-        writeCache(key, next);
+        if (cacheable) writeCache(key, next);
         return next;
       });
       return row;
     },
-    [key, table],
+    [cacheable, key, table],
   );
 
   const remove = useCallback<Table<T>['remove']>(
@@ -234,12 +280,12 @@ export function useTable<T extends TableName>(table: T, options: UseTableOptions
       }
       setRows((current) => {
         const next = current.filter((existing) => (existing as { id: string }).id !== id);
-        writeCache(key, next);
+        if (cacheable) writeCache(key, next);
         return next;
       });
       return true;
     },
-    [key, table],
+    [cacheable, key, table],
   );
 
   return { rows, loading, error, stale, refresh, create, update, remove };

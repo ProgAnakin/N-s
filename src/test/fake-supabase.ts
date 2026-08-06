@@ -40,6 +40,8 @@ export class FakeSupabase {
   tables = new Map<string, Row[]>();
   /** Every write attempted, in order — the record a test asserts against. */
   writes: RecordedWrite[] = [];
+  /** Every read, so a test can assert what was asked for and how much. */
+  selects: { table: string; columns: string; limit?: number }[] = [];
   /** Errors to return instead of performing a write, keyed `table:op`. */
   private refusals = new Map<string, FakeError>();
   /** RPC handlers, keyed by function name. */
@@ -132,13 +134,21 @@ class FakeQuery implements PromiseLike<{ data: unknown; error: FakeError | null 
   private payload: Row | null = null;
   private wantsSingle = false;
   private orders: { column: string; ascending: boolean }[] = [];
+  private columns = '*';
+  private rowLimit: number | undefined;
 
   constructor(
     private readonly db: FakeSupabase,
     private readonly table: string,
   ) {}
 
-  select(_columns?: string): this {
+  select(columns = '*'): this {
+    this.columns = columns;
+    return this;
+  }
+
+  limit(count: number): this {
+    this.rowLimit = count;
     return this;
   }
 
@@ -234,6 +244,11 @@ class FakeQuery implements PromiseLike<{ data: unknown; error: FakeError | null 
         return { data: null, error: null };
       }
       default: {
+        this.db.selects.push({
+          table: this.table,
+          columns: this.columns,
+          limit: this.rowLimit,
+        });
         let found = rows.filter((row) => this.matches(row));
         for (const { column, ascending } of [...this.orders].reverse()) {
           found = [...found].sort((a, b) => {
@@ -242,6 +257,7 @@ class FakeQuery implements PromiseLike<{ data: unknown; error: FakeError | null 
             return ascending ? left.localeCompare(right) : right.localeCompare(left);
           });
         }
+        if (this.rowLimit !== undefined) found = found.slice(0, this.rowLimit);
         return { data: this.wantsSingle ? (found[0] ?? null) : found, error: null };
       }
     }
