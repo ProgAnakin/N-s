@@ -546,6 +546,11 @@ export const en = {
     backToToday: 'Back to today',
     nothingOn: (date: string) => `Nothing on ${date} yet.`,
     addPlan: 'Add a plan',
+    /* The day panel and the "what's coming" empty state both offer to add a
+       plan, and they target different days — the selected one and today.
+       Two buttons with one name that do two things is a maze for anyone
+       navigating by name, so the empty state's says which. */
+    addPlanFirst: 'Plan your first thing',
     editPlan: 'Edit plan',
     planTitle: 'What are you doing?',
     planTitlePlaceholder: 'e.g. That Japanese place she mentioned',

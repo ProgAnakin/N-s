@@ -140,6 +140,44 @@ function WhenReady({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
+/**
+ * Signed in, but not yet part of a couple — where onboarding happens.
+ *
+ * The profile row exists (auth created it) and carries no `couple_id`, which
+ * is exactly the state the gate routes to the onboarding screen.
+ */
+export function mountUnpaired(ui: ReactNode): Scene {
+  const profile = makeProfile({ couple_id: null, role: null });
+
+  const db = new FakeSupabase();
+  db.seed('profiles', [profile]);
+  db.seed('couples', []);
+  setFakeClient(db);
+  db.signedInUser = { id: profile.id, email: 'leo@example.com' };
+
+  const view = render(
+    <ThemeProvider>
+      <LazyMotion features={domAnimation} strict>
+        <I18nProvider locale="en">
+          <MemoryRouter>
+            <SessionProvider>
+              <WhenStatus is="no_couple">{ui}</WhenStatus>
+            </SessionProvider>
+          </MemoryRouter>
+        </I18nProvider>
+      </LazyMotion>
+    </ThemeProvider>,
+  );
+
+  return { db, view };
+}
+
+function WhenStatus({ is, children }: { is: string; children: ReactNode }) {
+  const { status } = useSession();
+  if (status !== is) return null;
+  return <>{children}</>;
+}
+
 /** The write a test is asking about, or undefined — for a clear failure message. */
 export function lastWriteTo(db: FakeSupabase, table: string) {
   return [...db.writes].reverse().find((write) => write.table === table);

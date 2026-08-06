@@ -46,11 +46,19 @@ export function Modal({
 
     // Land on the first real control rather than the close button, so opening
     // a form and typing works without a detour.
+    //
+    // The delay is for the entrance animation, and it used to fire come what
+    // may — which meant a fast typist who started before it elapsed had the
+    // caret pulled out from under them mid-word, the first characters in one
+    // field and the rest in another. Autofocus is a courtesy; it does not get
+    // to interrupt somebody who is already typing.
     const timer = window.setTimeout(() => {
-      const focusable = panelRef.current?.querySelector<HTMLElement>(
+      const panel = panelRef.current;
+      if (!panel || panel.contains(document.activeElement)) return;
+      const focusable = panel.querySelector<HTMLElement>(
         'input, textarea, select, [data-autofocus]',
       );
-      (focusable ?? panelRef.current)?.focus();
+      (focusable ?? panel).focus();
     }, 60);
 
     return () => {

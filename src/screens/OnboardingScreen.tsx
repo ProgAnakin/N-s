@@ -8,6 +8,7 @@ import { SelectField, TextField } from '@/components/ui/Field';
 import { PairingError, useSession } from '@/data/session';
 import type { CurrencyColumn } from '@/data/database.types';
 import { CURRENCIES, CURRENCY_SYMBOLS } from '@/lib/money';
+import { isCompleteInviteCode, normaliseInviteCode } from '@/lib/invite';
 import { useStrings } from '@/i18n';
 
 type Step = 'welcome' | 'privacy' | 'money' | 'choose' | 'create' | 'join' | 'invite';
@@ -232,11 +233,14 @@ export function OnboardingScreen() {
           <TextField
             label={s.onboarding.inviteCode}
             value={joinCode}
-            onChange={(event) => setJoinCode(event.target.value.toUpperCase())}
+            // Cleaned rather than merely capped: `maxLength` counts the
+            // whitespace a paste brings with it, so "  JOIN42  " used to keep
+            // "  JOIN" — a full-looking field, an enabled button, and a code
+            // that could never match.
+            onChange={(event) => setJoinCode(normaliseInviteCode(event.target.value))}
             autoCapitalize="characters"
             autoCorrect="off"
             spellCheck={false}
-            maxLength={6}
             placeholder="ABC123"
             className="[&_input]:text-center [&_input]:font-mono [&_input]:text-xl [&_input]:tracking-[0.3em]"
             required
@@ -246,7 +250,12 @@ export function OnboardingScreen() {
 
           <div className="flex gap-2">
             <Button onClick={() => setStep('choose')}>{s.common.back}</Button>
-            <Button type="submit" variant="primary" block disabled={busy || joinCode.length < 6}>
+            <Button
+              type="submit"
+              variant="primary"
+              block
+              disabled={busy || !isCompleteInviteCode(joinCode)}
+            >
               {busy ? s.common.saving : s.onboarding.joinSpace}
             </Button>
           </div>

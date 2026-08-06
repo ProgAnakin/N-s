@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Plus, Scale } from 'lucide-react';
 import { BalanceBar, RebalanceNote, TreatsNote } from '@/components/BalanceBar';
 import { Button } from '@/components/ui/Button';
-import { ErrorNote, Tag } from '@/components/ui/Bits';
+import { Tag } from '@/components/ui/Bits';
 import { ChoiceField, SelectField, TextAreaField, TextField } from '@/components/ui/Field';
 import { Modal } from '@/components/ui/Modal';
 import { EmptyState, PageHeader, Rule, SectionHeading, Sheet } from '@/components/ui/Surface';
@@ -455,7 +455,10 @@ export function SpendingScreen() {
               optional
             />
 
-            {amountError && <ErrorNote>{amountError}</ErrorNote>}
+            {/* The amount field shows this error itself, right under the
+                offending input. Repeating it at the foot of the form drew it
+                twice and announced it twice, and the copy at the bottom is
+                the one further from the thing that needs fixing. */}
           </form>
         )}
       </Modal>

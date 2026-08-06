@@ -359,7 +359,7 @@ export function CalendarScreen() {
             body={s.calendar.emptyBody}
             action={
               <Button variant="primary" onClick={() => startNew(today)}>
-                {s.calendar.addPlan}
+                {s.calendar.addPlanFirst}
               </Button>
             }
           />
