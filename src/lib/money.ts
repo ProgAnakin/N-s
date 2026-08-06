@@ -20,6 +20,7 @@
  */
 
 import type { CalendarDate } from './calendar';
+import { convertAll, type RateSnapshot } from './fx';
 
 export type CurrencyCode = 'EUR' | 'BRL' | 'CNY' | 'USD';
 
@@ -86,6 +87,14 @@ export interface Expense {
   /** Integer minor units, always positive. */
   amountCents: number;
   currency: CurrencyCode;
+  /**
+   * What one unit of `currency` was worth in each currency, frozen the day
+   * this was written down. Null when rates were unreachable then.
+   *
+   * See fx.ts for why it is frozen rather than looked up: recomputing an old
+   * expense at today's rate silently rewrites what somebody carried.
+   */
+  fx?: RateSnapshot | null;
   paidBy: PartnerRole;
   splitRule: SplitRule;
   category: ExpenseCategory;
@@ -230,9 +239,11 @@ function currenciesUsed(expenses: readonly Expense[]): CurrencyCode[] {
 }
 
 /**
- * Balances grouped by currency. We never convert between currencies: made-up
- * exchange rates would turn an honest number into a guess, and a couple who
- * travels genuinely does spend in two currencies at once.
+ * Balances grouped by currency, each kept strictly separate.
+ *
+ * This is the honest view when there are no rates to work with: nothing is
+ * converted, so nothing is guessed. It is what the app falls back to for
+ * expenses whose rate snapshot is missing.
  */
 export function computeBalancesByCurrency(
   expenses: readonly Expense[],
@@ -242,6 +253,49 @@ export function computeBalancesByCurrency(
   if (!codes.includes(primary)) codes.unshift(primary);
   const ordered = [primary, ...codes.filter((code) => code !== primary)];
   return ordered.map((code) => computeBalance(expenses, code));
+}
+
+export interface ConvertedBalance {
+  /** The single balance, with everything expressed in `currency`. */
+  balance: Balance;
+  /**
+   * Expenses that could not be expressed in it, because they were written
+   * down with no rates available and are in a different currency.
+   *
+   * They are handed back rather than dropped: a money page that quietly
+   * omits rows is worse than one that admits it is incomplete.
+   */
+  unconvertible: Expense[];
+}
+
+/**
+ * One balance, with every currency folded into `currency`.
+ *
+ * Each expense converts through its own frozen snapshot, so a year-old
+ * dinner keeps the rate it had a year ago. Two people living one life across
+ * two currencies get one answer to "how has this been going", which is the
+ * question they were actually asking; the per-currency view above stays for
+ * the expenses that cannot join in.
+ */
+export function computeConvertedBalance(
+  expenses: readonly Expense[],
+  currency: CurrencyCode,
+): ConvertedBalance {
+  const { converted, unconvertible } = convertAll(
+    expenses.map((expense) => ({ ...expense, fx: expense.fx ?? null })),
+    currency,
+  );
+
+  const restated: Expense[] = converted.map(({ expense, cents }) => ({
+    ...(expense as Expense),
+    amountCents: cents,
+    currency,
+  }));
+
+  return {
+    balance: computeBalance(restated, currency),
+    unconvertible: unconvertible as Expense[],
+  };
 }
 
 /* ------------------------------------------------------------------ *

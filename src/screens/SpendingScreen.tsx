@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Plus, Scale } from 'lucide-react';
 import { BalanceBar, RebalanceNote, TreatsNote } from '@/components/BalanceBar';
 import { Button } from '@/components/ui/Button';
@@ -22,12 +22,16 @@ import {
   CURRENCY_SYMBOLS,
   EXPENSE_CATEGORIES,
   centsToInputValue,
-  computeBalancesByCurrency,
+  computeConvertedBalance,
   parseAmountToCents,
   totalsByCategory,
+  type Expense,
 } from '@/lib/money';
+import { convertAll } from '@/lib/fx';
+import { captureRates } from '@/data/rates';
 import { useI18n, useStrings } from '@/i18n';
 import { RecordActions, useCoupleTable, useMoney, usePartnerNames, useToday } from './shared';
+import { cn } from '@/utils/cn';
 
 interface Draft {
   id: string | null;
@@ -51,12 +55,52 @@ interface Draft {
  *   - No debt language anywhere. Nobody owes anybody. The strongest statement
  *     the page will make is a suggestion about who might pay next.
  *   - Treats are visible but excluded from the balance. A gift is a gift.
- *   - Currencies are never converted. A trip paid for in yuan and a rent
- *     paid in euros are two separate balances, because an invented exchange
- *     rate would turn an honest number into a guess.
+ *   - Currencies fold into one, using the rate each expense was written down
+ *     at. They used to be shown side by side, which was honest and useless:
+ *     a euro rent and a yuan dinner are the same shared life, and two bars
+ *     reading "100% him" and "100% her" answer no question anybody asked.
+ *     What is never done is recomputing an old expense at today's rate —
+ *     see fx.ts. Anything with no rate stays out of the total and is named.
  *   - Every figure comes from a tested function in /src/lib/money.ts. This
  *     file does no arithmetic of its own.
  */
+const VIEW_CURRENCY_KEY = 'nos.spending.currency';
+
+function readViewCurrency(): CurrencyColumn | null {
+  try {
+    const stored = window.localStorage.getItem(VIEW_CURRENCY_KEY);
+    return CURRENCIES.includes(stored as CurrencyColumn) ? (stored as CurrencyColumn) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeViewCurrency(currency: CurrencyColumn): void {
+  try {
+    window.localStorage.setItem(VIEW_CURRENCY_KEY, currency);
+  } catch {
+    // Falling back to the couple's currency next time is no great loss.
+  }
+}
+
+/**
+ * Expenses restated in one currency, for the category breakdown.
+ *
+ * `totalsByCategory` filters by currency the way the rest of the old model
+ * did, so it needs everything already speaking the same one. Anything with
+ * no rate simply is not in the list — the balance above says how many.
+ */
+function convertedForCategories(expenses: readonly Expense[], to: CurrencyColumn): Expense[] {
+  return convertAll(
+    expenses.map((expense) => ({ ...expense, fx: expense.fx ?? null })),
+    to,
+  ).converted.map(({ expense, cents }) => ({
+    ...(expense as Expense),
+    amountCents: cents,
+    currency: to,
+  }));
+}
+
 export function SpendingScreen() {
   const s = useStrings();
   const { intlLocale } = useI18n();
@@ -77,14 +121,26 @@ export function SpendingScreen() {
   const [amountError, setAmountError] = useState<string | null>(null);
   const [showPhilosophy, setShowPhilosophy] = useState(false);
 
+  // Which currency the reader is thinking in. Theirs alone, and remembered:
+  // it is a way of looking at the page, not a fact about the couple, and the
+  // two of them may well think in different ones.
+  const [viewCurrency, setViewCurrency] = useState<CurrencyColumn>(
+    () => readViewCurrency() ?? couple.currency,
+  );
+  useEffect(() => {
+    writeViewCurrency(viewCurrency);
+  }, [viewCurrency]);
+
+  const [backfilling, setBackfilling] = useState(false);
+
   const domain = useMemo(() => toExpenses(expenses.rows), [expenses.rows]);
-  const balances = useMemo(
-    () => computeBalancesByCurrency(domain, couple.currency),
-    [domain, couple.currency],
+  const { balance, unconvertible } = useMemo(
+    () => computeConvertedBalance(domain, viewCurrency),
+    [domain, viewCurrency],
   );
   const categories = useMemo(
-    () => totalsByCategory(domain, couple.currency),
-    [domain, couple.currency],
+    () => totalsByCategory(convertedForCategories(domain, viewCurrency), viewCurrency),
+    [domain, viewCurrency],
   );
   const categoryTotal = categories.reduce((sum, entry) => sum + entry.totalCents, 0);
 
@@ -145,10 +201,39 @@ export function SpendingScreen() {
       trip_id: draft.tripId || null,
       note: draft.note.trim() || null,
     };
-    if (draft.id) await expenses.update(draft.id, values);
-    else await expenses.create({ ...values, couple_id: couple.id });
+    // Frozen here, once, and never revisited. Null when the network is not
+    // there, which is an ordinary state rather than a failure to report: the
+    // expense saves either way, and the balance says what it could not fold in.
+    const captured = await captureRates(draft.currency);
+    const withRates = captured
+      ? { ...values, fx: captured.fx, fx_on: captured.on }
+      : values;
+
+    if (draft.id) await expenses.update(draft.id, withRates);
+    else await expenses.create({ ...withRates, couple_id: couple.id });
     setSaving(false);
     setDraft(null);
+  }
+
+  /**
+   * Fills in rates for expenses written down offline.
+   *
+   * Today's rate, not the rate of the day it happened — which is why it is a
+   * button the reader presses rather than something that happens quietly.
+   * `fx_on` records which day was actually used, so the approximation is
+   * visible rather than pretending to be the real thing.
+   */
+  async function backfillRates() {
+    setBackfilling(true);
+    try {
+      for (const expense of unconvertible) {
+        const captured = await captureRates(expense.currency);
+        if (!captured) break;
+        await expenses.update(expense.id, { fx: captured.fx, fx_on: captured.on });
+      }
+    } finally {
+      setBackfilling(false);
+    }
   }
 
   return (
@@ -179,25 +264,58 @@ export function SpendingScreen() {
         </p>
       )}
 
-      {/* --- Balance, one card per currency in play ------------------------- */}
+      {/* --- One balance, in whichever currency you think in ---------------- */}
       <div className="flex flex-col gap-4">
-        {balances.map((balance) => (
-          <Sheet key={balance.currency} className="p-5">
-            <div className="mb-4 flex items-baseline justify-between gap-3">
-              <h2 className="label-kicker">{s.spending.balanceTitle}</h2>
-              {balances.length > 1 && <Tag>{balance.currency}</Tag>}
+        <Sheet className="p-5">
+          <div className="mb-4 flex items-baseline justify-between gap-3">
+            <h2 className="label-kicker">{s.spending.balanceTitle}</h2>
+            {/* Not a Tag any more: it used to be a label saying which
+                currency this card happened to be, and it is now the control
+                that decides. */}
+            <div className="flex items-center gap-1">
+              {CURRENCIES.map((code) => (
+                <button
+                  key={code}
+                  type="button"
+                  aria-pressed={viewCurrency === code}
+                  onClick={() => setViewCurrency(code)}
+                  className={cn(
+                    'rounded-sm px-2 py-1 text-xs font-medium transition-colors',
+                    viewCurrency === code
+                      ? 'bg-stamp text-on-stamp'
+                      : 'text-ink-faint hover:bg-sunk hover:text-ink',
+                  )}
+                >
+                  {code}
+                </button>
+              ))}
             </div>
-            <BalanceBar balance={balance} names={names} />
-            <Rule className="my-5" />
-            <RebalanceNote balance={balance} names={names} />
-            {(balance.treatedCents.partner_a > 0 || balance.treatedCents.partner_b > 0) && (
-              <>
-                <Rule className="my-5" />
-                <TreatsNote balance={balance} names={names} />
-              </>
-            )}
-          </Sheet>
-        ))}
+          </div>
+          <BalanceBar balance={balance} names={names} />
+
+          {unconvertible.length > 0 && (
+            <p className="mt-3 text-xs leading-relaxed text-ink-faint">
+              {s.spending.notConverted(unconvertible.length)}{' '}
+              <button
+                type="button"
+                onClick={() => void backfillRates()}
+                disabled={backfilling}
+                className="rounded-sm text-cinnabar underline-offset-4 hover:underline disabled:opacity-60"
+              >
+                {backfilling ? s.common.saving : s.spending.convertNow}
+              </button>
+            </p>
+          )}
+
+          <Rule className="my-5" />
+          <RebalanceNote balance={balance} names={names} />
+          {(balance.treatedCents.partner_a > 0 || balance.treatedCents.partner_b > 0) && (
+            <>
+              <Rule className="my-5" />
+              <TreatsNote balance={balance} names={names} />
+            </>
+          )}
+        </Sheet>
       </div>
 
       {/* --- Where it goes --------------------------------------------------- */}

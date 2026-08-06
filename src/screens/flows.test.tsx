@@ -289,3 +289,102 @@ describe('the calendar grid', () => {
     });
   });
 });
+
+// ---------------------------------------------------------------------------
+// One balance across currencies
+// ---------------------------------------------------------------------------
+
+describe('the spending page across currencies', () => {
+  const eurFx = { EUR: 1, BRL: 6.2, CNY: 7.9, USD: 1.08 };
+  const cnyFx = { EUR: 1 / 7.9, BRL: 6.2 / 7.9, CNY: 1, USD: 1.08 / 7.9 };
+
+  function expenseRow(over: Record<string, unknown>) {
+    return {
+      id: `e-${Math.random().toString(36).slice(2)}`,
+      couple_id: COUPLE_ID,
+      paid_by: 'partner_a',
+      label: 'thing',
+      amount_cents: 10_000,
+      currency: 'EUR',
+      date: '2026-03-01',
+      category: 'food',
+      split_rule: '50_50',
+      partner_a_percent: null,
+      trip_id: null,
+      note: null,
+      fx: eurFx,
+      fx_on: '2026-03-01',
+      created_by: HIM_ID,
+      created_at: '2026-03-01T00:00:00.000Z',
+      updated_at: '2026-03-01T00:00:00.000Z',
+      ...over,
+    };
+  }
+
+  function mountSpendingWith(rows: Record<string, unknown>[]) {
+    return mountSignedIn(<SpendingScreen />, {
+      seed: (db) => {
+        db.seed('expenses', rows);
+        db.seed('trips', []);
+      },
+    });
+  }
+
+  it('shows one balance rather than one card per currency', async () => {
+    mountSpendingWith([
+      expenseRow({ paid_by: 'partner_a', currency: 'EUR', amount_cents: 10_000, fx: eurFx }),
+      expenseRow({ paid_by: 'partner_b', currency: 'CNY', amount_cents: 79_000, fx: cnyFx }),
+    ]);
+
+    // €100 and ¥790 are the same €100: level, not two bars each reading 100%.
+    expect(await screen.findByText(/€200(\.00)? shared so far/)).toBeInTheDocument();
+  });
+
+  it('restates the whole total when another currency is picked', async () => {
+    const user = userEvent.setup();
+    mountSpendingWith([
+      expenseRow({ currency: 'EUR', amount_cents: 10_000, fx: eurFx }),
+    ]);
+
+    await screen.findByText(/€100(\.00)? shared so far/);
+    await user.click(screen.getByRole('button', { name: 'BRL' }));
+
+    expect(await screen.findByText(/R\$\s?620(\.00)? shared so far/)).toBeInTheDocument();
+  });
+
+  it('uses the rate the expense was written down at, not a newer one', async () => {
+    // Same €100, recorded on a day the real was at 5.0 rather than 6.2.
+    mountSpendingWith([
+      expenseRow({
+        currency: 'EUR',
+        amount_cents: 10_000,
+        fx: { EUR: 1, BRL: 5.0, CNY: 7.9, USD: 1.08 },
+      }),
+    ]);
+
+    const user = userEvent.setup();
+    await screen.findByText(/€100(\.00)? shared so far/);
+    await user.click(screen.getByRole('button', { name: 'BRL' }));
+
+    expect(await screen.findByText(/R\$\s?500(\.00)? shared so far/)).toBeInTheDocument();
+  });
+
+  it('keeps an expense with no rate out of the total, and says how many', async () => {
+    mountSpendingWith([
+      expenseRow({ currency: 'EUR', amount_cents: 10_000, fx: eurFx }),
+      expenseRow({ currency: 'CNY', amount_cents: 79_000, fx: null }),
+    ]);
+
+    expect(await screen.findByText(/€100(\.00)? shared so far/)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/1 expense was recorded offline/),
+    ).toBeInTheDocument();
+  });
+
+  it('needs no rate at all when everything is already in the chosen currency', async () => {
+    mountSpendingWith([expenseRow({ currency: 'EUR', amount_cents: 10_000, fx: null })]);
+
+    expect(await screen.findByText(/€100(\.00)? shared so far/)).toBeInTheDocument();
+    expect(screen.queryByText(/recorded offline/)).not.toBeInTheDocument();
+  });
+});

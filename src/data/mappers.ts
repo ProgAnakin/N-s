@@ -9,6 +9,7 @@
 
 import { parseISODate, type CalendarDate } from '@/lib/calendar';
 import type { Expense, SplitRule } from '@/lib/money';
+import { isRateSnapshot } from '@/lib/fx';
 import type { ImportantDateLike } from '@/lib/dates';
 import type { Fact } from '@/lib/vault';
 import type { FactLike, GiftLike } from '@/lib/reminders';
@@ -47,6 +48,9 @@ function toExpense(row: ExpenseRow): Expense | null {
     category: row.category,
     date,
     tripId: row.trip_id,
+    // Validated rather than trusted: the column is jsonb, and a half-filled
+    // table would convert three currencies and drop the fourth.
+    fx: isRateSnapshot(row.fx) ? row.fx : null,
   };
 }
 

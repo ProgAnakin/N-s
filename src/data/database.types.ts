@@ -222,6 +222,12 @@ export type ExpenseRow = {
   partner_a_percent: number | null;
   trip_id: string | null;
   note: string | null;
+  /**
+   * What one unit of `currency` was worth in each currency, on the day this
+   * was written down. Null when rates were unreachable then.
+   */
+  fx: Record<string, number> | null;
+  fx_on: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;

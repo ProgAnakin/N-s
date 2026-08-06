@@ -4,6 +4,7 @@ import {
   centsToInputValue,
   computeBalance,
   computeBalancesByCurrency,
+  computeConvertedBalance,
   formatMoney,
   formatPercent,
   isLevel,
@@ -357,5 +358,126 @@ describe('otherPartner', () => {
   it('is its own inverse', () => {
     expect(otherPartner('partner_a')).toBe('partner_b');
     expect(otherPartner(otherPartner('partner_a'))).toBe('partner_a');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// One balance across currencies
+// ---------------------------------------------------------------------------
+
+describe('computeConvertedBalance', () => {
+  const eurRates = { EUR: 1, BRL: 6.2, CNY: 7.9, USD: 1.08 };
+  const brlRates = { EUR: 1 / 6.2, BRL: 1, CNY: 7.9 / 6.2, USD: 1.08 / 6.2 };
+
+  function withFx(
+    amountCents: number,
+    currency: 'EUR' | 'BRL' | 'CNY',
+    paidBy: PartnerRole,
+    fx: Record<string, number> | null,
+  ): Expense {
+    return {
+      id: `x${amountCents}${currency}${paidBy}`,
+      label: 'thing',
+      amountCents,
+      currency,
+      paidBy,
+      splitRule: { kind: '50_50' },
+      category: 'food',
+      date: { year: 2026, month: 3, day: 14 },
+      fx: fx as never,
+    };
+  }
+
+  it('folds two currencies into one honest total', () => {
+    // €100 from him, R$620 from her — the same €100 — is level, not lopsided.
+    const { balance, unconvertible } = computeConvertedBalance(
+      [
+        withFx(10_000, 'EUR', 'partner_a', eurRates),
+        withFx(62_000, 'BRL', 'partner_b', brlRates),
+      ],
+      'EUR',
+    );
+
+    expect(unconvertible).toEqual([]);
+    expect(balance.totalCents).toBe(20_000);
+    expect(balance.contributed.partner_a).toBe(10_000);
+    expect(balance.contributed.partner_b).toBe(10_000);
+    expect(balance.differenceCents).toBe(0);
+    expect(balance.aheadPartner).toBeNull();
+  });
+
+  it('is the fix for the two-bars-both-saying-100% problem', () => {
+    // Separately these render as "100% him" in EUR and "100% her" in CNY,
+    // which tells the couple nothing. Together they are 56/44.
+    const separate = computeBalancesByCurrency(
+      [
+        withFx(10_000, 'EUR', 'partner_a', eurRates),
+        withFx(79_000, 'CNY', 'partner_b', null),
+      ],
+      'EUR',
+    );
+    expect(separate).toHaveLength(2);
+
+    const { balance } = computeConvertedBalance(
+      [
+        withFx(10_000, 'EUR', 'partner_a', eurRates),
+        withFx(
+          79_000,
+          'CNY',
+          'partner_b',
+          { EUR: 1 / 7.9, BRL: 6.2 / 7.9, CNY: 1, USD: 1.08 / 7.9 },
+        ),
+      ],
+      'EUR',
+    );
+    expect(balance.totalCents).toBe(20_000);
+    expect(balance.contributionPercent.partner_a).toBe(50);
+  });
+
+  it('keeps an expense written down offline out of the total, and says so', () => {
+    const { balance, unconvertible } = computeConvertedBalance(
+      [
+        withFx(10_000, 'EUR', 'partner_a', eurRates),
+        withFx(5_000, 'CNY', 'partner_b', null),
+      ],
+      'EUR',
+    );
+
+    expect(balance.totalCents).toBe(10_000);
+    expect(unconvertible).toHaveLength(1);
+    expect(unconvertible[0]?.currency).toBe('CNY');
+  });
+
+  it('needs no rate for an expense already in the display currency', () => {
+    const { balance, unconvertible } = computeConvertedBalance(
+      [withFx(10_000, 'EUR', 'partner_a', null)],
+      'EUR',
+    );
+    expect(unconvertible).toEqual([]);
+    expect(balance.totalCents).toBe(10_000);
+  });
+
+  it('still leaves treats out of the maths after converting', () => {
+    const treat: Expense = {
+      ...withFx(62_000, 'BRL', 'partner_b', brlRates),
+      splitRule: { kind: 'treat' },
+    };
+    const { balance } = computeConvertedBalance(
+      [withFx(10_000, 'EUR', 'partner_a', eurRates), treat],
+      'EUR',
+    );
+
+    expect(balance.totalCents).toBe(10_000);
+    expect(balance.treatedCents.partner_b).toBe(10_000);
+    expect(balance.treatCount).toBe(1);
+  });
+
+  it('reports the balance in the currency asked for', () => {
+    const { balance } = computeConvertedBalance(
+      [withFx(10_000, 'EUR', 'partner_a', eurRates)],
+      'BRL',
+    );
+    expect(balance.currency).toBe('BRL');
+    expect(balance.totalCents).toBe(62_000);
   });
 });

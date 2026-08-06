@@ -416,6 +416,14 @@ export const en = {
     byCategory: 'Where it goes',
     treatBadge: 'Treat',
     splitBadge: (pct: number) => `${pct}%`,
+    /* Shown when an expense was written down with no network, so it has no
+       frozen rate and cannot join the total. Naming the count matters: a
+       money page that quietly omits rows is worse than one that admits it. */
+    notConverted: (n: number) =>
+      n === 1
+        ? '1 expense was recorded offline and has no exchange rate, so it isn’t in this total.'
+        : `${n} expenses were recorded offline and have no exchange rate, so they aren’t in this total.`,
+    convertNow: 'Use today’s rate for those',
   },
 
   splitRules: {
