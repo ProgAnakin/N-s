@@ -20,6 +20,7 @@ vi.mock('@/data/client', async (importOriginal) => {
 const { VaultScreen } = await import('./VaultScreen');
 const { SpendingScreen } = await import('./SpendingScreen');
 const { CalendarScreen } = await import('./CalendarScreen');
+const { GiftsScreen } = await import('./GiftsScreen');
 
 /**
  * The processes with the most riding on them, driven end to end.
@@ -386,5 +387,103 @@ describe('the spending page across currencies', () => {
 
     expect(await screen.findByText(/€100(\.00)? shared so far/)).toBeInTheDocument();
     expect(screen.queryByText(/recorded offline/)).not.toBeInTheDocument();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The discovery loop, end to end
+// ---------------------------------------------------------------------------
+
+describe('an answer given in March coming back in June', () => {
+  function factRow(over: Record<string, unknown>) {
+    return {
+      id: `f-${Math.random().toString(36).slice(2)}`,
+      couple_id: COUPLE_ID,
+      author_id: HIM_ID,
+      category: 'preferences',
+      question: 'What flowers do you actually like?',
+      answer: 'Peonies, the big pale ones.',
+      visibility: 'shared',
+      remind_on: null,
+      question_id: 'q29',
+      answer_kind: 'taste',
+      created_at: '2026-03-01T00:00:00.000Z',
+      updated_at: '2026-03-01T00:00:00.000Z',
+      ...over,
+    };
+  }
+
+  function mountGifts(facts: Record<string, unknown>[], dates: Record<string, unknown>[] = []) {
+    return mountSignedIn(<GiftsScreen />, {
+      seed: (db) => {
+        db.seed('remember_facts', facts);
+        db.seed('important_dates', dates);
+        db.seed('plans', []);
+        db.seed('gift_ideas', []);
+      },
+    });
+  }
+
+  it('brings a saved answer back as a gift idea, in their own words', async () => {
+    mountGifts([factRow({})]);
+
+    // Verbatim. Not "buy peonies" — the app has no opinion to add.
+    expect(await screen.findByText(/Peonies, the big pale ones\./)).toBeInTheDocument();
+    expect(
+      screen.getByText(/You asked: What flowers do you actually like\?/),
+    ).toBeInTheDocument();
+  });
+
+  it('says nothing about an answer that is just worth knowing', async () => {
+    mountGifts([
+      factRow({ answer_kind: 'insight', answer: 'She goes quiet when overwhelmed.' }),
+    ]);
+
+    await screen.findByRole('heading', { name: /Gift radar/i });
+    expect(screen.queryByText(/She goes quiet when overwhelmed\./)).not.toBeInTheDocument();
+  });
+
+  it('shows a line they drew above an idea, so the mistake is prevented first', async () => {
+    mountGifts([
+      factRow({ answer_kind: 'taste', answer: 'Peonies.' }),
+      factRow({
+        answer_kind: 'boundary',
+        answer: 'Never perfume — I react to it.',
+        question: 'What would you never want as a gift?',
+      }),
+    ]);
+
+    const cards = await screen.findAllByRole('listitem');
+    const text = cards.map((card) => card.textContent ?? '');
+    const caution = text.findIndex((entry) => entry.includes('Never perfume'));
+    const idea = text.findIndex((entry) => entry.includes('Peonies'));
+    expect(caution).toBeGreaterThanOrEqual(0);
+    expect(caution).toBeLessThan(idea);
+  });
+
+  it('ties the idea to the occasion that makes it timely', async () => {
+    const soon = new Date();
+    soon.setDate(soon.getDate() + 6);
+    const iso = soon.toISOString().slice(0, 10);
+
+    mountGifts(
+      [factRow({})],
+      [
+        {
+          id: 'd1',
+          couple_id: COUPLE_ID,
+          label: 'Her birthday',
+          date: iso,
+          type: 'birthday',
+          recurring: true,
+          icon: null,
+          created_by: HIM_ID,
+          created_at: '2026-01-01T00:00:00.000Z',
+          updated_at: '2026-01-01T00:00:00.000Z',
+        },
+      ],
+    );
+
+    expect(await screen.findByText(/Her birthday/)).toBeInTheDocument();
   });
 });

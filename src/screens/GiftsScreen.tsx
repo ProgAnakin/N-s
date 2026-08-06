@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/Button';
 import { TextAreaField, TextField } from '@/components/ui/Field';
 import { Modal } from '@/components/ui/Modal';
 import { EmptyState, PageHeader, SectionHeading, Sheet } from '@/components/ui/Surface';
+import { SuggestionList } from '@/components/SuggestionList';
 import { useCouple } from '@/data/session';
 import { useTable } from '@/data/useTable';
 import type { GiftIdeaRow } from '@/data/database.types';
@@ -86,6 +87,11 @@ export function GiftsScreen() {
         actions={
           <Button variant="primary" onClick={startNew}>
             <Plus className="h-4 w-4" />
+
+      {/* Gift ideas and cautions live here rather than on Home: this page
+          is `author_id = auth.uid()` in every direction, so a surprise
+          cannot be spoiled by somebody glancing at the front page. */}
+      <SuggestionList kinds={['caution', 'gift']} className="mb-8" />
             {s.common.add}
           </Button>
         }

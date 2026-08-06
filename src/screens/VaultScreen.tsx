@@ -8,7 +8,12 @@ import { EmptyState, PageHeader, Sheet } from '@/components/ui/Surface';
 import { useCouple } from '@/data/session';
 import { useTable } from '@/data/useTable';
 import { toFact } from '@/data/mappers';
-import type { FactCategoryColumn, RememberFactRow, VisibilityColumn } from '@/data/database.types';
+import type {
+  AnswerKindColumn,
+  FactCategoryColumn,
+  RememberFactRow,
+  VisibilityColumn,
+} from '@/data/database.types';
 import { toEpochDay } from '@/lib/calendar';
 import { openQuestions, suggestQuestions } from '@/lib/questions';
 import { FACT_CATEGORIES, filterFacts, type FactCategory } from '@/lib/vault';
@@ -22,7 +27,28 @@ interface Draft {
   answer: string;
   visibility: VisibilityColumn;
   remindOn: string;
+  /** Which question from the bank this came from, when it came from one. */
+  questionId: string | null;
+  /**
+   * What kind of thing the answer is.
+   *
+   * This is the field that decides whether an answer can ever come back as
+   * something useful. A prompt from the bank fills it in already — the bank
+   * knows that "what food tastes like home" produces a taste — so in the
+   * common path nobody is asked anything extra.
+   */
+  answerKind: AnswerKindColumn;
 }
+
+/** Mirrors the CHECK on `remember_facts.answer_kind` in 0011. */
+const ANSWER_KINDS: readonly AnswerKindColumn[] = [
+  'insight',
+  'taste',
+  'place',
+  'activity',
+  'boundary',
+  'date',
+];
 
 function emptyDraft(question = ''): Draft {
   return {
@@ -34,6 +60,8 @@ function emptyDraft(question = ''): Draft {
     // deliberate act, not something that happens because you did not look.
     visibility: 'private',
     remindOn: '',
+    questionId: null,
+    answerKind: 'insight',
   };
 }
 
@@ -87,6 +115,8 @@ export function VaultScreen() {
       id: row.id,
       category: row.category,
       question: row.question,
+      questionId: row.question_id ?? null,
+      answerKind: row.answer_kind ?? 'insight',
       answer: row.answer,
       visibility: row.visibility,
       remindOn: row.remind_on ?? '',
@@ -106,6 +136,8 @@ export function VaultScreen() {
       answer: draft.answer.trim(),
       visibility: draft.visibility,
       remind_on: draft.remindOn || null,
+      question_id: draft.questionId,
+      answer_kind: draft.answerKind,
     };
 
     if (draft.id) {
@@ -172,7 +204,15 @@ export function VaultScreen() {
                       size="sm"
                       variant="primary"
                       onClick={() =>
-                        setDraft({ ...emptyDraft(prompt.question), category: prompt.category })
+                        setDraft({
+                          ...emptyDraft(prompt.question),
+                          category: prompt.category,
+                          // The bank already knows what shape of answer this
+                          // question produces, so the reader is asked nothing
+                          // extra in the common path.
+                          questionId: prompt.id,
+                          answerKind: prompt.yields,
+                        })
                       }
                     >
                       {s.vault.promptsAnswer}
@@ -328,6 +368,24 @@ export function VaultScreen() {
               {FACT_CATEGORIES.map((value) => (
                 <option key={value} value={value}>
                   {s.factCategories[value]}
+                </option>
+              ))}
+            </SelectField>
+
+            {/* Placed above visibility rather than below: what a note *is*
+                comes before who may read it, and a prompt from the bank has
+                already answered this one. */}
+            <SelectField
+              label={s.vault.answerKind}
+              value={draft.answerKind}
+              onChange={(event) =>
+                setDraft({ ...draft, answerKind: event.target.value as AnswerKindColumn })
+              }
+              hint={s.vault.answerKindHints[draft.answerKind] ?? s.vault.answerKindHint}
+            >
+              {ANSWER_KINDS.map((kind) => (
+                <option key={kind} value={kind}>
+                  {s.vault.answerKinds[kind]}
                 </option>
               ))}
             </SelectField>

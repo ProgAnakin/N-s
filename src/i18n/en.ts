@@ -173,11 +173,52 @@ export const en = {
     reunion: 'You see each other again',
   },
 
+  suggestions: {
+    title: 'Because you asked',
+    kinds: {
+      gift: 'They mentioned',
+      date: 'Something to do',
+      caution: 'Worth remembering',
+      repeat: 'Again?',
+    },
+    youAsked: (question: string) => `You asked: ${question}`,
+    repeatLead: (title: string) => `${title} went well. It’s been a while.`,
+    /* The app quotes and stops. Saying so out loud is the difference
+       between a suggestion that flatters the reader and one that takes
+       credit for their partner's words. */
+    footnote:
+      'These are their own words, brought back when they’re useful. The app doesn’t interpret them — that part is yours.',
+  },
+
   vault: {
     title: 'About her',
     subtitle: 'What you’ve learned, so you don’t have to guess.',
     intro:
       'The point of this page is to stop you spinning. When you find yourself wondering what the silence means, look here first — you probably already asked.',
+    /* The field that decides whether an answer can ever come back as
+       something useful. Worded as "what kind of thing is this" rather than
+       "answer type", because nobody thinks of their partner's favourite
+       flower as a data category. */
+    answerKind: 'What kind of thing is this?',
+    answerKindHint:
+      'Decides whether this can come back later as an idea. Something they like can; something about how they work is just worth knowing.',
+    answerKinds: {
+      insight: 'How they work',
+      taste: 'Something they like',
+      place: 'Somewhere',
+      activity: 'Something to do',
+      boundary: 'A line',
+      date: 'A date',
+    },
+    answerKindHints: {
+      insight: 'Shapes how you talk to them. Never becomes a suggestion.',
+      taste: 'A food, a flower, a song. Can come back as a gift idea.',
+      place: 'Somewhere they like or want to go.',
+      activity: 'Can come back as something to plan.',
+      boundary: 'Used to stop an idea, never to make one.',
+      date: 'Something with a day attached.',
+    },
+
     addFact: 'Add something',
     editFact: 'Edit note',
     question: 'What you asked',

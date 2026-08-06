@@ -11,6 +11,7 @@ import { toImportantDates } from '@/data/mappers';
 import type { PlanKindColumn, PlanRow } from '@/data/database.types';
 import { compareDates, parseISODate, toISODate, type CalendarDate } from '@/lib/calendar';
 import { formatDate, formatMonthYear, monthGrid, occurrenceFor } from '@/lib/dates';
+import { SuggestionList } from '@/components/SuggestionList';
 import { useI18n, useStrings } from '@/i18n';
 import { RecordActions, useCoupleTable, useToday } from './shared';
 import { cn } from '@/utils/cn';
@@ -348,6 +349,11 @@ export function CalendarScreen() {
           </ul>
         )}
       </section>
+
+      {/* Date ideas are drawn from shared answers only — a private note
+          never reaches the other person's browser — so they are safe on a
+          page the two of them read together. */}
+      <SuggestionList kinds={['date', 'repeat']} className="mt-9" />
 
       {/* --- What's coming --------------------------------------------------- */}
       <section className="mt-9">
