@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Check, Copy, Lock, LogOut, Monitor, Moon, RefreshCw, Sun } from 'lucide-react';
+import { Check, Copy, Lock, LogOut, Monitor, Moon, RefreshCw, Sun, Unlink } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { ErrorNote } from '@/components/ui/Bits';
 import { SelectField, TextField, Toggle } from '@/components/ui/Field';
 import { ConfirmDialog } from '@/components/ui/Modal';
 import { PageHeader, Sheet } from '@/components/ui/Surface';
 import { PlacesSection } from '@/components/PlacesSection';
+import { ClockSection } from '@/components/ClockSection';
 import { Seal } from '@/components/ui/Seal';
 import { useSession } from '@/data/session';
 import { clearTableCache } from '@/data/useTable';
@@ -18,8 +19,16 @@ import { cn } from '@/utils/cn';
 
 export function SettingsScreen() {
   const s = useStrings();
-  const { couple, profile, partner, updateCouple, updateProfile, rotateInviteCode, signOut } =
-    useSession();
+  const {
+    couple,
+    profile,
+    partner,
+    updateCouple,
+    updateProfile,
+    rotateInviteCode,
+    leaveCouple,
+    signOut,
+  } = useSession();
   const names = usePartnerNames();
   const { preference, setPreference } = useTheme();
 
@@ -31,6 +40,7 @@ export function SettingsScreen() {
   const [copied, setCopied] = useState(false);
   const [rotating, setRotating] = useState(false);
   const [confirmRotate, setConfirmRotate] = useState(false);
+  const [confirmLeave, setConfirmLeave] = useState(false);
 
   if (!couple || !profile) return null;
 
@@ -74,6 +84,18 @@ export function SettingsScreen() {
       setError(s.errors.generic);
     } finally {
       setRotating(false);
+    }
+  }
+
+  async function onLeave() {
+    setConfirmLeave(false);
+    // The cache is keyed by table, not by couple — leaving with it warm would
+    // show the old space's rows to whatever space is joined next.
+    clearTableCache();
+    try {
+      await leaveCouple();
+    } catch {
+      setError(s.errors.generic);
     }
   }
 
@@ -207,6 +229,9 @@ export function SettingsScreen() {
           </Sheet>
         </section>
 
+        {/* --- Your clock ------------------------------------------------------ */}
+        <ClockSection />
+
         {/* --- Places and arrivals -------------------------------------------- */}
         <PlacesSection />
 
@@ -288,11 +313,20 @@ export function SettingsScreen() {
         </section>
 
         {/* --- Out --------------------------------------------------------------- */}
-        <section className="pb-4">
+        <section className="flex flex-col items-start gap-4 pb-4">
           <Button variant="danger" onClick={() => void onSignOut()}>
             <LogOut className="h-4 w-4" />
             {s.settings.signOut}
           </Button>
+          <div>
+            <Button variant="quiet" size="sm" onClick={() => setConfirmLeave(true)}>
+              <Unlink className="h-3.5 w-3.5" />
+              {s.settings.leaveCouple}
+            </Button>
+            <p className="mt-2 max-w-prose text-xs leading-relaxed text-ink-faint">
+              {s.settings.leaveCoupleHint}
+            </p>
+          </div>
         </section>
       </div>
 
@@ -303,6 +337,15 @@ export function SettingsScreen() {
         confirmLabel={s.settings.rotateCode}
         onCancel={() => setConfirmRotate(false)}
         onConfirm={() => void onRotate()}
+      />
+
+      <ConfirmDialog
+        open={confirmLeave}
+        title={s.settings.leaveConfirm}
+        body={s.settings.leaveConfirmBody}
+        confirmLabel={s.settings.leaveCouple}
+        onCancel={() => setConfirmLeave(false)}
+        onConfirm={() => void onLeave()}
       />
     </div>
   );

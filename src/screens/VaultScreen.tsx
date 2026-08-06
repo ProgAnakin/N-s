@@ -13,7 +13,7 @@ import { toEpochDay } from '@/lib/calendar';
 import { openQuestions, suggestQuestions } from '@/lib/questions';
 import { FACT_CATEGORIES, filterFacts, type FactCategory } from '@/lib/vault';
 import { useStrings } from '@/i18n';
-import { FilterBar, RecordActions, useCoupleTable, useToday } from './shared';
+import { FilterBar, RecordActions, useCoupleTable, usePartnerNames, useToday } from './shared';
 
 interface Draft {
   id: string | null;
@@ -48,6 +48,7 @@ function emptyDraft(question = ''): Draft {
 export function VaultScreen() {
   const s = useStrings();
   const { couple, profile } = useCouple();
+  const names = usePartnerNames();
   const today = useToday();
 
   const facts = useCoupleTable('remember_facts', { coupleId: couple.id, orderBy: 'updated_at' });
@@ -130,7 +131,9 @@ export function VaultScreen() {
     <div>
       <PageHeader
         kicker={s.nav.vault}
-        title={s.vault.title}
+        // Her actual name, rather than "her": the app should not assume the
+        // shape of the couple using it.
+        title={names.hasPartner ? s.nav.vaultOf(names.partnerName) : s.vault.title}
         subtitle={s.vault.intro}
         actions={
           <Button variant="primary" onClick={() => setDraft(emptyDraft())}>

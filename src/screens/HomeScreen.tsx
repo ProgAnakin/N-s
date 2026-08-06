@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { CalendarDays, ChevronRight, Copy, Gift, Images, NotebookPen, Scale } from 'lucide-react';
 import { ArrivalCard } from '@/components/ArrivalCard';
+import { TwoClocks } from '@/components/TwoClocks';
 import { BalanceBar } from '@/components/BalanceBar';
 import { ButtonLink } from '@/components/ui/Button';
 import { LoadingBlock } from '@/components/ui/Bits';
@@ -14,6 +15,7 @@ import { parseISODate } from '@/lib/calendar';
 import { computeBalance } from '@/lib/money';
 import { daysTogether, formatDate, formatMonthShort, occurrenceFor } from '@/lib/dates';
 import { buildReminders, type Reminder } from '@/lib/reminders';
+import { upcomingHolidays } from '@/lib/holidays';
 import { useI18n, useStrings } from '@/i18n';
 import { useCoupleTable, useCountdown, usePartnerNames, useToday } from './shared';
 import { cn } from '@/utils/cn';
@@ -139,8 +141,12 @@ export function HomeScreen() {
         <LoadingBlock />
       ) : (
         <div className="mt-9 flex flex-col gap-9">
-          {/* --- Home safe --------------------------------------------------- */}
+          {/* --- Two clocks, and getting in safe ----------------------------- */}
+          <TwoClocks />
           <ArrivalCard />
+
+          {/* --- The dates each of them grew up with ------------------------- */}
+          <HolidaysSection today={today} />
 
           {/* --- Next up ---------------------------------------------------- */}
           <section aria-labelledby="next-up">
@@ -229,7 +235,7 @@ export function HomeScreen() {
             </h2>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               <QuickLink to="/memories" icon={<Images />} label={s.home.quickAddMemory} />
-              <QuickLink to="/vault" icon={<NotebookPen />} label={s.home.quickAddFact} />
+              <QuickLink to="/vault" icon={<NotebookPen />} label={s.home.quickAddFact(names.partnerName)} />
               <QuickLink to="/spending" icon={<Scale />} label={s.home.quickAddExpense} />
               <QuickLink to="/gifts" icon={<Gift />} label={s.home.quickAddGift} />
             </div>
@@ -331,6 +337,62 @@ function ReminderCard({ reminder, index }: { reminder: Reminder; index: number }
         <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-ink-faint transition-transform group-hover:translate-x-0.5" />
       </Link>
     </motion.li>
+  );
+}
+
+/**
+ * The holidays of both cultures.
+ *
+ * The specific failure this prevents: a holiday that carries real weight for
+ * one person is invisible to the other, because it was never on their
+ * calendar. Missing 春节 is not like missing a bank holiday.
+ */
+function HolidaysSection({ today }: { today: ReturnType<typeof useToday> }) {
+  const s = useStrings();
+  const { intlLocale } = useI18n();
+  const countdown = useCountdown();
+  const holidays = useMemo(() => upcomingHolidays(today, 45, 3), [today]);
+
+  if (holidays.length === 0) return null;
+
+  return (
+    <section aria-labelledby="holidays">
+      <h2 id="holidays" className="label-kicker mb-3">
+        {s.holidays.title}
+      </h2>
+      <ul className="flex flex-col gap-2">
+        {holidays.map((holiday) => {
+          const copy = s.holidays.ids[holiday.id as keyof typeof s.holidays.ids];
+          if (!copy) return null;
+          return (
+            <li key={holiday.id}>
+              <Sheet className="flex items-start gap-3">
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    'mt-1.5 h-2 w-2 shrink-0 rounded-full',
+                    holiday.culture === 'chinese' && 'bg-cinnabar',
+                    holiday.culture === 'brazilian' && 'bg-jade',
+                    holiday.culture === 'shared' && 'bg-ink-faint',
+                  )}
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="text-pretty font-display text-base font-medium leading-snug text-ink">
+                    {copy.name}
+                  </p>
+                  <p className="mt-0.5 text-xs text-ink-faint">
+                    {formatDate(holiday.date, 'long', intlLocale)} · {countdown(holiday.daysUntil)}
+                  </p>
+                  {copy.note && (
+                    <p className="mt-1 text-sm leading-relaxed text-ink-soft">{copy.note}</p>
+                  )}
+                </div>
+              </Sheet>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
   );
 }
 

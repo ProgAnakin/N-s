@@ -77,6 +77,9 @@ export type ProfileRow = {
   avatar_path: string | null;
   locale: string;
   auto_checkin: boolean;
+  time_zone: string | null;
+  awake_start: number;
+  awake_end: number;
   created_at: string;
   updated_at: string;
 }
@@ -345,6 +348,10 @@ export type Database = {
       join_couple: {
         Args: { p_invite_code: string };
         Returns: CoupleRow;
+      };
+      leave_couple: {
+        Args: Record<PropertyKey, never>;
+        Returns: void;
       };
       rotate_invite_code: {
         Args: Record<PropertyKey, never>;

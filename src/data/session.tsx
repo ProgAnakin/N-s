@@ -50,9 +50,20 @@ interface SessionValue {
     currency: CurrencyColumn;
   }) => Promise<CoupleRow>;
   joinCouple: (inviteCode: string) => Promise<void>;
+  /**
+   * Undoes a pairing. Membership is frozen against direct updates, so this
+   * has to go through the database function that opts in explicitly.
+   */
+  leaveCouple: () => Promise<void>;
   rotateInviteCode: () => Promise<string>;
   updateProfile: (
-    values: Partial<Pick<ProfileRow, 'display_name' | 'avatar_path' | 'locale' | 'auto_checkin'>>,
+    values: Partial<Pick<ProfileRow, | 'display_name'
+      | 'avatar_path'
+      | 'locale'
+      | 'auto_checkin'
+      | 'time_zone'
+      | 'awake_start'
+      | 'awake_end'>>,
   ) => Promise<void>;
   updateCouple: (
     values: Partial<
@@ -223,6 +234,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     [reload],
   );
 
+  const leaveCouple = useCallback(async () => {
+    const client = requireClient();
+    const { error } = await client.rpc('leave_couple');
+    if (error) throw error;
+    await reload();
+  }, [reload]);
+
   const rotateInviteCode = useCallback(async () => {
     const client = requireClient();
     const { data, error } = await client.rpc('rotate_invite_code');
@@ -267,6 +285,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       signOut,
       createCouple,
       joinCouple,
+      leaveCouple,
       rotateInviteCode,
       updateProfile,
       updateCouple,
@@ -283,6 +302,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       signOut,
       createCouple,
       joinCouple,
+      leaveCouple,
       rotateInviteCode,
       updateProfile,
       updateCouple,

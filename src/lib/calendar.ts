@@ -165,7 +165,7 @@ export function yearsBetween(from: CalendarDate, to: CalendarDate): number {
   return years;
 }
 
-const WEEKDAY_NAMES = [
+export const WEEKDAY_NAMES = [
   'sunday',
   'monday',
   'tuesday',

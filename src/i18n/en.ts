@@ -46,6 +46,7 @@ export const en = {
   nav: {
     home: 'Home',
     vault: 'About her',
+    vaultOf: (name: string) => `About ${name}`,
     dates: 'Dates',
     memories: 'Memories',
     family: 'Family',
@@ -144,7 +145,7 @@ export const en = {
     balanceTitle: 'Spending',
     quickAdd: 'Quick add',
     quickAddMemory: 'A memory',
-    quickAddFact: 'Something she said',
+    quickAddFact: (name: string) => `Something ${name} said`,
     quickAddExpense: 'An expense',
     quickAddGift: 'A gift idea',
   },
@@ -502,6 +503,12 @@ export const en = {
     roleA: 'Partner A',
     roleB: 'Partner B',
     roleHint: 'Only used to label who paid for what.',
+    leaveCouple: 'Leave this space',
+    leaveCoupleHint:
+      'Pairs the wrong way round, or a code typed by a stranger — this is the way out.',
+    leaveConfirm: 'Leave this space?',
+    leaveConfirmBody:
+      'Nothing is deleted; you simply stop being part of it, and you can create or join another. Rejoining needs the invite code again.',
   },
 
   calendar: {
@@ -647,6 +654,41 @@ export const en = {
         meaning:
           'Beauty that doesn’t last, which is why it matters. A reminder to notice the day you’re in.',
       },
+    },
+  },
+
+  clocks: {
+    title: 'Two clocks',
+    you: 'You',
+    hoursApart: (hours: number) => (hours === 1 ? '1 hour apart' : `${hours} hours apart`),
+    tomorrow: '· tomorrow',
+    yesterday: '· yesterday',
+    window: (yours: string, theirs: string, name: string) =>
+      `${yours} for you — ${theirs} for ${name}`,
+    totalOverlap: (hours: number) =>
+      hours === 1 ? '1 hour a day you’re both up' : `${hours} hours a day you’re both up`,
+    noOverlap:
+      'Your waking hours don’t currently overlap at all. Widening one of them in Settings might be the kindest fix.',
+    timeZone: 'Your time zone',
+    timeZoneHint: 'Used to work out when you’re both awake. Nobody sees your location — only the zone.',
+    awake: 'You’re usually up between',
+    awakeHint: 'Rough is fine. It only decides when the app suggests calling.',
+    useDevice: 'Use my device’s zone',
+  },
+
+  holidays: {
+    title: 'Coming up where you’re from',
+    tabulatedNote: 'Lunisolar dates are from a checked table and stop after 2030.',
+    ids: {
+      chinese_new_year: { name: 'Chinese New Year 春节', note: 'The family holiday. Being wished well on it lands.' },
+      mid_autumn: { name: 'Mid-Autumn 中秋节', note: 'Family, mooncakes, the full moon.' },
+      national_day_cn: { name: 'National Day 国庆节', note: 'Golden Week — she may be travelling to family.' },
+      carnival: { name: 'Carnaval', note: 'Moves with Easter every year.' },
+      dia_dos_namorados: { name: 'Dia dos Namorados', note: 'Brazil’s lovers’ day is 12 June, not 14 February.' },
+      sao_joao: { name: 'São João', note: 'Festa junina — quadrilha, canjica, bonfires.' },
+      independencia: { name: 'Independência', note: '' },
+      new_year: { name: 'New Year', note: '' },
+      christmas: { name: 'Christmas', note: '' },
     },
   },
 
