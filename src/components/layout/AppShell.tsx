@@ -5,6 +5,7 @@ import { MoreHorizontal, X, type LucideIcon } from 'lucide-react';
 import { primaryItems, visibleGroups, type FeatureFlags } from './nav-items';
 import { FlowerCounter, FlowerOffer } from '@/components/Flowers';
 import { Seal } from '@/components/ui/Seal';
+import { WriteFailureBanner } from '@/components/WriteFailureBanner';
 import { useSession } from '@/data/session';
 import { useStrings } from '@/i18n';
 import { cn } from '@/utils/cn';
@@ -136,6 +137,7 @@ export function AppShell() {
 
       <MoreSheet open={moreOpen} onClose={() => setMoreOpen(false)} />
       <FlowerOffer />
+      <WriteFailureBanner />
     </div>
   );
 }

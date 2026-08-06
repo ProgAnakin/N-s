@@ -138,3 +138,63 @@ export function errorCode(error: unknown): string | null {
   return null;
 }
 
+export function errorMessage(error: unknown): string {
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    const message = (error as MaybePostgrestError).message;
+    if (typeof message === 'string') return message;
+  }
+  return '';
+}
+
+/**
+ * What kind of failure a write hit, in terms the interface can act on.
+ *
+ * This exists because of one very expensive afternoon. Migrations here are
+ * run by hand, so the app is regularly ahead of the schema — and when it is,
+ * every control on a settings page renders perfectly and then does nothing
+ * at all when you touch it. No error, no console, no clue: the write goes
+ * out, Postgres says the column does not exist, the promise is discarded,
+ * and the toggle snaps back. From the outside it is indistinguishable from a
+ * broken button.
+ *
+ * `missing_schema` is the whole point. The others are here so the same
+ * banner can say something true rather than "something went wrong".
+ */
+export type WriteFailure =
+  /** The column or table this write needs does not exist yet — run the migrations. */
+  | 'missing_schema'
+  /** Row Level Security refused it. Usually correct, occasionally a bug. */
+  | 'not_allowed'
+  /** A CHECK or unique constraint said no. */
+  | 'rejected'
+  /** Nothing reached the server. */
+  | 'offline'
+  | 'unknown';
+
+export function classifyWriteError(error: unknown): WriteFailure {
+  const code = errorCode(error);
+  const message = errorMessage(error).toLowerCase();
+
+  // 42703 undefined_column and 42P01 undefined_table come from Postgres;
+  // PGRST204 is PostgREST's own "column not found in the schema cache",
+  // which is what a browser client actually sees most of the time.
+  if (code === '42703' || code === '42P01' || code === 'PGRST204') return 'missing_schema';
+  if (message.includes('does not exist') || message.includes('schema cache')) {
+    return 'missing_schema';
+  }
+
+  if (code === '42501' || code === 'PGRST301') return 'not_allowed';
+  // An RLS refusal on INSERT arrives as a policy violation rather than a code.
+  if (message.includes('row-level security') || message.includes('violates row-level')) {
+    return 'not_allowed';
+  }
+
+  if (code === '23514' || code === '23505' || code === '23503') return 'rejected';
+
+  if (code === '' || code === null) {
+    if (message.includes('fetch') || message.includes('network')) return 'offline';
+  }
+
+  return 'unknown';
+}
+

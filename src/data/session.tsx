@@ -10,6 +10,7 @@ import {
 } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { errorCode, isConfigured, PG_ERRORS, requireClient, supabase } from './client';
+import { reportWriteFailure } from './write-status';
 import type { CoupleRow, CurrencyColumn, ProfileRow } from './database.types';
 import type { PartnerRole } from '@/lib/money';
 
@@ -71,7 +72,7 @@ interface SessionValue {
         | 'nudges'
       >
     >,
-  ) => Promise<void>;
+  ) => Promise<boolean>;
   updateCouple: (
     values: Partial<
       Pick<
@@ -88,7 +89,7 @@ interface SessionValue {
         | 'seal_text'
       >
     >,
-  ) => Promise<void>;
+  ) => Promise<boolean>;
   reload: () => Promise<void>;
 }
 
@@ -301,13 +302,33 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     return data ?? '';
   }, [reload]);
 
+  /**
+   * Writes are applied before the server confirms them, and rolled back if it
+   * refuses.
+   *
+   * A settings toggle that waits for a round trip feels broken on a slow
+   * connection — you tap it, nothing moves, you tap it again. Applying first
+   * makes it feel instant; rolling back on failure, together with the banner
+   * the failure raises, is what keeps that from being a lie.
+   *
+   * Neither of these throws. They are called as `void updateProfile(…)` from
+   * a dozen places, and a rejected promise from those is an unhandled
+   * rejection nobody sees. The boolean is for the few callers that care.
+   */
   const updateProfile = useCallback<SessionValue['updateProfile']>(
     async (values) => {
       const client = requireClient();
-      if (!profile) return;
-      const { error } = await client.from('profiles').update(values).eq('id', profile.id);
-      if (error) throw error;
+      if (!profile) return false;
+      const previous = profile;
       setProfile(normaliseProfile({ ...profile, ...values }));
+
+      const { error } = await client.from('profiles').update(values).eq('id', profile.id);
+      if (error) {
+        setProfile(previous);
+        reportWriteFailure(error);
+        return false;
+      }
+      return true;
     },
     [profile],
   );
@@ -315,13 +336,21 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const updateCouple = useCallback<SessionValue['updateCouple']>(
     async (values) => {
       const client = requireClient();
-      if (!couple) return;
-      const { error } = await client.from('couples').update(values).eq('id', couple.id);
-      if (error) throw error;
+      if (!couple) return false;
+      const previous = couple;
       setCouple(normaliseCouple({ ...couple, ...values }));
+
+      const { error } = await client.from('couples').update(values).eq('id', couple.id);
+      if (error) {
+        setCouple(previous);
+        reportWriteFailure(error);
+        return false;
+      }
+      return true;
     },
     [couple],
   );
+
 
   const value = useMemo<SessionValue>(
     () => ({

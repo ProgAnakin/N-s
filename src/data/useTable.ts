@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { requireClient } from './client';
+import { reportWriteFailure } from './write-status';
 import type { InsertOf, RowOf, TableName, UpdateOf } from './database.types';
 
 /**
@@ -30,6 +31,15 @@ export interface UseTableOptions {
 export interface Table<T extends TableName> {
   rows: RowOf<T>[];
   loading: boolean;
+  /**
+   * A failed *read*, for the screen to show in place of its list.
+   *
+   * Failed writes deliberately do not land here. They go to the app-wide
+   * banner instead (see write-status.ts), because a write is fired from a
+   * modal that has already closed by the time it fails — there is nothing
+   * left on screen to attach the message to. Keeping the two apart also
+   * stops one failure raising two alerts.
+   */
   error: string | null;
   /** True while showing cached rows that have not been confirmed yet. */
   stale: boolean;
@@ -168,7 +178,7 @@ export function useTable<T extends TableName>(table: T, options: UseTableOptions
         .select('*')
         .single();
       if (insertError) {
-        setError(insertError.message);
+        reportWriteFailure(insertError);
         return null;
       }
       const row = data as unknown as RowOf<T>;
@@ -195,7 +205,7 @@ export function useTable<T extends TableName>(table: T, options: UseTableOptions
         .select('*')
         .single();
       if (updateError) {
-        setError(updateError.message);
+        reportWriteFailure(updateError);
         return null;
       }
       const row = data as unknown as RowOf<T>;
@@ -219,7 +229,7 @@ export function useTable<T extends TableName>(table: T, options: UseTableOptions
         .delete()
         .eq('id' as never, id as never);
       if (deleteError) {
-        setError(deleteError.message);
+        reportWriteFailure(deleteError);
         return false;
       }
       setRows((current) => {

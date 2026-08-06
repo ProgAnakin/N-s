@@ -15,6 +15,8 @@ interface FieldShellProps {
   hint?: ReactNode;
   error?: string | null;
   optional?: boolean;
+  /** Names the control for assistive tech without showing the name. */
+  labelHidden?: boolean;
   children: (props: { id: string; describedBy: string | undefined; invalid: boolean }) => ReactNode;
   className?: string;
 }
@@ -24,6 +26,7 @@ export function Field({
   hint,
   error,
   optional = false,
+  labelHidden = false,
   children,
   className,
 }: FieldShellProps) {
@@ -34,7 +37,16 @@ export function Field({
 
   return (
     <div className={cn('flex flex-col gap-1.5', className)}>
-      <label htmlFor={id} className="flex items-baseline gap-2 text-sm font-medium text-ink">
+      {/* Hidden, never absent. A pair of controls under one shared heading —
+          "usually up between" [from] [to] — reads fine with eyes and as two
+          unnamed selects with a screen reader, so each still gets a name. */}
+      <label
+        htmlFor={id}
+        className={cn(
+          'flex items-baseline gap-2 text-sm font-medium text-ink',
+          labelHidden && 'sr-only',
+        )}
+      >
         {label}
         {optional && (
           <span className="text-xs font-normal text-ink-faint">{s.common.optional}</span>
@@ -117,6 +129,7 @@ export function SelectField({
   hint,
   error,
   optional,
+  labelHidden,
   className,
   children,
   ...props
@@ -125,9 +138,17 @@ export function SelectField({
   hint?: ReactNode;
   error?: string | null;
   optional?: boolean;
+  labelHidden?: boolean;
 }) {
   return (
-    <Field label={label} hint={hint} error={error} optional={optional} className={className}>
+    <Field
+      label={label}
+      hint={hint}
+      error={error}
+      optional={optional}
+      labelHidden={labelHidden}
+      className={className}
+    >
       {({ id, describedBy, invalid }) => (
         <select
           id={id}

@@ -62,7 +62,8 @@ export function ClockSection() {
           <legend className="mb-2 text-sm font-medium text-ink">{s.clocks.awake}</legend>
           <div className="flex items-center gap-2">
             <SelectField
-              label=""
+              label={s.clocks.awakeFrom}
+              labelHidden
               value={String(profile.awake_start)}
               onChange={(event) => void updateProfile({ awake_start: Number(event.target.value) })}
               className="flex-1"
@@ -75,7 +76,8 @@ export function ClockSection() {
             </SelectField>
             <span className="pt-1 text-sm text-ink-faint">—</span>
             <SelectField
-              label=""
+              label={s.clocks.awakeUntil}
+              labelHidden
               value={String(profile.awake_end)}
               onChange={(event) => void updateProfile({ awake_end: Number(event.target.value) })}
               className="flex-1"

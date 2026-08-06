@@ -689,6 +689,10 @@ export const en = {
     empty:
       'Nothing on the shelf yet. The first one is the awkward one; after that it stops being a gesture and starts being a habit.',
     write: 'Write one',
+    /* Distinct from `write` on purpose: both appear on an empty shelf, and
+       two buttons with the same accessible name in one view is a small mess
+       for anyone navigating by name. */
+    writeFirst: 'Write the first one',
     editing: 'Edit letter',
     to: (name: string) => `To ${name}`,
     from: (name: string) => `From ${name}`,
@@ -750,6 +754,11 @@ export const en = {
     timeZone: 'Your time zone',
     timeZoneHint: 'Used to work out when you’re both awake. Nobody sees your location — only the zone.',
     awake: 'You’re usually up between',
+    /* The two selects sit under one visible heading. Sighted readers get the
+       pairing from the layout; anyone using a screen reader was getting two
+       unnamed dropdowns, so each carries a hidden name of its own. */
+    awakeFrom: 'Usually up from',
+    awakeUntil: 'Usually up until',
     awakeHint: 'Rough is fine. It only decides when the app suggests calling.',
     useDevice: 'Use my device’s zone',
   },
@@ -862,6 +871,19 @@ export const en = {
     uploadTooLarge: 'That file is too big — 10 MB is the limit.',
     uploadFailed: 'The upload didn’t finish.',
     notFound: 'That isn’t here anymore.',
+
+    /* What a failed write says. The missing-schema one exists because a
+       settings page whose controls all silently do nothing is genuinely
+       hard to tell apart from a broken app. */
+    writeTitle: 'That change didn’t save',
+    writeMissingSchema:
+      'The database is missing something this needs. Run the migrations in supabase/migrations/ that you haven’t run yet, in order, in the Supabase SQL editor — then try again.',
+    writeNotAllowed:
+      'The database refused it. If this is something you should be able to change, it’s a bug worth reporting.',
+    writeRejected: 'The database wouldn’t accept that value.',
+    writeOffline: 'Couldn’t reach the server. It’ll need another go once you’re back online.',
+    writeUnknown: 'Something went wrong on the way to the server.',
+    writeDismiss: 'Dismiss',
   },
 } as const;
 

@@ -102,7 +102,7 @@ export function LettersScreen() {
             partner ? (
               <Button variant="primary" onClick={() => setComposing(true)}>
                 <Feather className="h-4 w-4" />
-                {s.letters.write}
+                {s.letters.writeFirst}
               </Button>
             ) : undefined
           }
