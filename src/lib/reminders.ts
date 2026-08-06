@@ -55,6 +55,58 @@ export interface ReminderContext {
   reunionDate: CalendarDate | null;
 }
 
+/**
+ * The next small step, named specifically.
+ *
+ * A reminder that only says "this is in seven days" hands the work straight
+ * back to the person who already knew. What turns a notification into an
+ * assistant is naming what to do about it — and naming it *specifically*,
+ * because "plan something" is not advice, it is a shrug with a button on it.
+ *
+ * Which step depends almost entirely on how much time is left, which is why
+ * this is computed here from `daysUntil` rather than written into each
+ * string. Three weeks before a birthday the useful sentence is about
+ * booking; three days before, it is about not panicking.
+ */
+export type ReminderAction =
+  | 'book'
+  | 'gift_ship'
+  | 'gift_look'
+  | 'gift_soon'
+  | 'ask'
+  | 'trip_pack'
+  | 'say_it'
+  | null;
+
+/** Past this, a present that has to arrive by post is still comfortable. */
+export const POSTING_HORIZON_DAYS = 10;
+/** Inside this, the useful advice stops being "look" and starts being "small". */
+export const LAST_MINUTE_DAYS = 3;
+
+export function actionFor(reminder: Reminder): ReminderAction {
+  switch (reminder.kind) {
+    case 'upcoming_date': {
+      if (!reminder.giftWorthy) return reminder.daysUntil <= 7 ? 'say_it' : null;
+      if (reminder.daysUntil <= LAST_MINUTE_DAYS) return 'gift_soon';
+      if (reminder.daysUntil <= POSTING_HORIZON_DAYS) return 'gift_ship';
+      return 'gift_look';
+    }
+    case 'fact_followup':
+      // Only once it has happened. Before it, the note itself is the point.
+      return reminder.daysUntil < 0 ? 'ask' : null;
+    case 'trip_open_items':
+      return 'trip_pack';
+    case 'monthiversary':
+      // Deliberately not a gift. A monthiversary that costs money every
+      // month becomes an obligation, which is the opposite of what it is.
+      return 'say_it';
+    case 'reunion':
+      return reminder.daysUntil <= 21 ? 'book' : null;
+    case 'day_milestone':
+      return 'say_it';
+  }
+}
+
 export type Reminder =
   | {
       id: string;

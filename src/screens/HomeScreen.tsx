@@ -16,7 +16,7 @@ import { toExpenses, toFactLike, toGiftLike, toImportantDates } from '@/data/map
 import { parseISODate } from '@/lib/calendar';
 import { computeBalance } from '@/lib/money';
 import { daysTogether, formatDate, formatMonthShort, occurrenceFor } from '@/lib/dates';
-import { buildReminders, type Reminder } from '@/lib/reminders';
+import { actionFor, buildReminders, type Reminder } from '@/lib/reminders';
 import { coupleCountries, upcomingHolidays } from '@/lib/holidays';
 import { useI18n, useStrings } from '@/i18n';
 import { useCoupleTable, useCountdown, usePartnerNames, useToday } from './shared';
@@ -301,6 +301,25 @@ export function HomeScreen() {
 }
 
 /**
+ * The sentence for each step.
+ *
+ * A lookup rather than a switch inside the component, so adding a step is
+ * one line in two places and never a new branch in the markup.
+ */
+const ACTION_STRINGS: Record<
+  NonNullable<ReturnType<typeof actionFor>>,
+  (s: ReturnType<typeof useStrings>) => string
+> = {
+  book: (s) => s.reminders.actionBook,
+  gift_ship: (s) => s.reminders.actionGiftShip,
+  gift_look: (s) => s.reminders.actionGiftLook,
+  gift_soon: (s) => s.reminders.actionGiftSoon,
+  ask: (s) => s.reminders.actionAsk,
+  trip_pack: (s) => s.reminders.actionTripPack,
+  say_it: (s) => s.reminders.actionSayIt,
+};
+
+/**
  * A reminder card.
  *
  * Each kind gets its own sentence rather than a generic template, because the
@@ -314,6 +333,9 @@ function ReminderCard({ reminder, index }: { reminder: Reminder; index: number }
   let title: string;
   let body: string | null = null;
   let href = '/';
+  // The step, not the fact. See actionFor() in lib/reminders.ts for why this
+  // depends on how much time is left rather than on the kind alone.
+  const action = actionFor(reminder);
 
   switch (reminder.kind) {
     case 'upcoming_date':
@@ -368,6 +390,8 @@ function ReminderCard({ reminder, index }: { reminder: Reminder; index: number }
       break;
   }
 
+  const actionText = action ? ACTION_STRINGS[action](s) : null;
+
   return (
     <m.li
       initial={{ opacity: 0, y: 8 }}
@@ -387,6 +411,11 @@ function ReminderCard({ reminder, index }: { reminder: Reminder; index: number }
             {title}
           </span>
           {body && <span className="mt-1 block text-sm leading-relaxed text-ink-soft">{body}</span>}
+          {actionText && (
+            <span className="mt-1.5 block text-sm leading-relaxed text-cinnabar">
+              {actionText}
+            </span>
+          )}
         </span>
         <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-ink-faint transition-transform group-hover:translate-x-0.5" />
       </Link>

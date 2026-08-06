@@ -218,6 +218,25 @@ export const en = {
     monthiversaryHint: 'Small, but they’ll notice that you did.',
     dayMilestone: (days: number) => `${days} days together`,
     reunion: 'You see each other again',
+
+    /* The action half of the assistant.
+     *
+     * A reminder that only says "this is in seven days" hands the work back
+     * to the person who already knew. The value is in naming the next small
+     * step — and naming it *specifically*, because "plan something" is not
+     * advice, it is a shrug with a button on it.
+     *
+     * Every one of these is a suggestion of a step, never a claim that the
+     * app has done anything. It has not booked the restaurant. */
+    actionBook: 'Enough notice to book somewhere, if you want to.',
+    actionGiftShip: 'If anything needs posting, this is about the last week for it.',
+    actionGiftLook: 'Time to have a look, not to panic.',
+    actionGiftSoon: 'It’s close. Something small and thought about beats something expensive.',
+    actionAsk: 'Ask how it went — today, while it still counts as remembering.',
+    actionTripPack: 'The open items are the ones that ruin a morning at the airport.',
+    actionSayIt: 'Nothing needs buying. Saying you noticed is the whole thing.',
+    actionHoliday: (country: string) =>
+      `It’s ${country}’s day, not yours. A message on the day lands more than anything bought.`,
   },
 
   suggestions: {

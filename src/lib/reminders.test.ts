@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { CalendarDate } from './calendar';
 import type { ImportantDateLike } from './dates';
-import { buildReminders, giftsForOccasion, type ReminderContext } from './reminders';
+import { buildReminders, giftsForOccasion, type ReminderContext, actionFor, POSTING_HORIZON_DAYS, LAST_MINUTE_DAYS } from './reminders';
 
 const d = (year: number, month: number, day: number): CalendarDate => ({ year, month, day });
 const TODAY = d(2026, 3, 14);
@@ -212,5 +212,71 @@ describe('giftsForOccasion', () => {
 
   it('skips ideas with no occasion set', () => {
     expect(giftsForOccasion(gifts, 'Her birthday', 'birthday').some((g) => g.id === '4')).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The step, not just the fact
+// ---------------------------------------------------------------------------
+
+describe('actionFor', () => {
+  function birthday(daysUntil: number, giftWorthy = true): Reminder {
+    return {
+      id: 'r1',
+      kind: 'upcoming_date',
+      daysUntil,
+      label: 'Their birthday',
+      dateType: 'birthday',
+      ordinal: 30,
+      giftWorthy,
+      giftIdeaCount: 0,
+    };
+  }
+
+  it('says look, then post, then keep it small, as the day approaches', () => {
+    // Which step depends almost entirely on how much time is left. Three
+    // weeks out the useful sentence is about booking; three days out it is
+    // about not panicking.
+    expect(actionFor(birthday(21))).toBe('gift_look');
+    expect(actionFor(birthday(POSTING_HORIZON_DAYS))).toBe('gift_ship');
+    expect(actionFor(birthday(LAST_MINUTE_DAYS))).toBe('gift_soon');
+  });
+
+  it('never suggests buying anything for a date where a present is not the point', () => {
+    expect(actionFor(birthday(21, false))).toBeNull();
+    expect(actionFor(birthday(3, false))).toBe('say_it');
+  });
+
+  it('asks how it went only once it has happened', () => {
+    const before: Reminder = { id: 'r', kind: 'fact_followup', daysUntil: 2, question: 'exam' };
+    const after: Reminder = { id: 'r', kind: 'fact_followup', daysUntil: -1, question: 'exam' };
+    expect(actionFor(before)).toBeNull();
+    expect(actionFor(after)).toBe('ask');
+  });
+
+  it('never turns a monthiversary into a shopping trip', () => {
+    // A monthiversary that costs money every month becomes an obligation,
+    // which is the opposite of what it is.
+    const monthly: Reminder = { id: 'r', kind: 'monthiversary', daysUntil: 2, months: 18 };
+    expect(actionFor(monthly)).toBe('say_it');
+  });
+
+  it('stays quiet about a reunion that is still months away', () => {
+    const far: Reminder = { id: 'r', kind: 'reunion', daysUntil: 90 };
+    const near: Reminder = { id: 'r', kind: 'reunion', daysUntil: 14 };
+    expect(actionFor(far)).toBeNull();
+    expect(actionFor(near)).toBe('book');
+  });
+
+  it('has a step for every kind it claims to handle', () => {
+    const kinds: Reminder[] = [
+      birthday(5),
+      { id: 'r', kind: 'fact_followup', daysUntil: -1, question: 'x' },
+      { id: 'r', kind: 'trip_open_items', daysUntil: 5, destination: 'Porto', openItems: 2 },
+      { id: 'r', kind: 'monthiversary', daysUntil: 1, months: 6 },
+      { id: 'r', kind: 'day_milestone', daysUntil: 1, days: 1000 },
+      { id: 'r', kind: 'reunion', daysUntil: 5 },
+    ];
+    expect(kinds.every((reminder) => actionFor(reminder) !== undefined)).toBe(true);
   });
 });
