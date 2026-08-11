@@ -5,6 +5,7 @@ import { TextAreaField, TextField } from '@/components/ui/Field';
 import { Modal } from '@/components/ui/Modal';
 import { EmptyState, PageHeader, SectionHeading, Sheet } from '@/components/ui/Surface';
 import { SuggestionList } from '@/components/SuggestionList';
+import { PartnerWishesSection } from '@/components/WishesSection';
 import { useCouple } from '@/data/session';
 import { useTable } from '@/data/useTable';
 import type { GiftIdeaRow } from '@/data/database.types';
@@ -96,6 +97,13 @@ export function GiftsScreen() {
         <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" />
         {s.gifts.privateNotice}
       </p>
+
+      {/* What they asked for, before what you noticed.
+          The two are deliberately separate lists: a wish is what they said
+          out loud, a gift idea is what you spotted. Merging them would
+          make every surprise auditable, since wishes are readable by both
+          of you and gift ideas by neither. */}
+      <PartnerWishesSection />
 
       {/* Gift ideas and cautions live here rather than on Home: this page
           is `author_id = auth.uid()` in every direction, so a surprise

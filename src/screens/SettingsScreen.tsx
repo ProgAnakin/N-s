@@ -8,6 +8,7 @@ import { PageHeader, Sheet } from '@/components/ui/Surface';
 import { PlacesSection } from '@/components/PlacesSection';
 import { ClockSection } from '@/components/ClockSection';
 import { YoursSection } from '@/components/YoursSection';
+import { MyWishesSection } from '@/components/WishesSection';
 import { OriginSection } from '@/components/OriginSection';
 import { EndingSection } from '@/components/EndingSection';
 import { CycleSection } from '@/components/CycleSection';
@@ -242,6 +243,11 @@ export function SettingsScreen() {
             </div>
           </Sheet>
         </section>
+
+        {/* --- Three things you'd love ---------------------------------------- */}
+        {/* Yours, on your own page, because writing what you want is a
+            private act with a public result: they read it in Gifts. */}
+        <MyWishesSection />
 
         {/* --- Where each of you is from --------------------------------------- */}
         <OriginSection />

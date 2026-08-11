@@ -14,7 +14,7 @@ const MEDIA_BUCKET = 'media';
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 const SIGNED_URL_TTL_SECONDS = 60 * 60;
 
-export type MediaFolder = 'memories' | 'trips' | 'phrases' | 'avatars';
+export type MediaFolder = 'memories' | 'trips' | 'phrases' | 'avatars' | 'wishes';
 
 export class UploadError extends Error {
   constructor(public readonly reason: 'too_large' | 'failed') {

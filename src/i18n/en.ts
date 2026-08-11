@@ -732,6 +732,73 @@ export const en = {
       n < 60 ? `${n} min` : n % 60 === 0 ? `${n / 60}h` : `${Math.floor(n / 60)}h${n % 60}`,
   },
 
+  wishes: {
+    /* Yours, in Settings. */
+    title: 'Three things you’d love',
+    subtitle:
+      'Three, no more. The limit is the point — a list of forty is a shop, and a shop can’t be a gift.',
+    /* Said out loud on your own page, because the whole feature depends on
+       knowing this and it is not guessable from anything on screen. */
+    visibleNotice: (name: string) =>
+      `${name} can see these. That’s what they’re for — it’s the answer when they don’t know what to get you.`,
+    visibleNoticeAlone: 'Your partner will see these once they’ve joined.',
+
+    add: 'Add a wish',
+    edit: 'Edit this wish',
+    empty: 'Nothing here yet.',
+    emptyBody:
+      'The hardest part is admitting you want something. Write one badly — you can change it whenever you like.',
+    full: 'All three taken. Change one, or wait for one to be granted.',
+    left: (n: number) =>
+      n === 1 ? '1 space left' : n === 0 ? 'No spaces left' : `${n} spaces left`,
+
+    wishTitle: 'What is it',
+    titlePlaceholder: 'e.g. The green coat with the wooden buttons',
+    note: 'Anything that would help',
+    notePlaceholder:
+      'Size M. The one from the shop on the corner, not the one online — that one runs small.',
+    noteHint: 'The detail that makes it findable. Not an essay.',
+    link: 'A link',
+    linkPlaceholder: 'https://…',
+    photo: 'A photo',
+    photoAdd: 'Add a photo',
+    photoReplace: 'Change the photo',
+    photoRemove: 'Remove the photo',
+    photoAlt: (title: string) => `Photo of ${title}`,
+
+    remove: 'Take this wish back',
+    removeConfirm: 'Take this wish back?',
+    removeConfirmBody: 'It disappears from their list too. You can always write another.',
+
+    /* Theirs, in Gifts. */
+    partnerTitle: (name: string) => `What ${name} would love`,
+    partnerSubtitle: 'In their own words, so you don’t have to guess.',
+    partnerEmpty: (name: string) => `${name} hasn’t written anything here yet.`,
+    partnerEmptyBody:
+      'Nothing to read into. Plenty of people find it hard to ask for things — the gift radar below is yours either way.',
+    partnerNudge: (name: string) => `Ask ${name} to fill in their three`,
+
+    grant: 'I got this',
+    grantTitle: 'Mark this as granted',
+    grantBody: (name: string) =>
+      `It moves off ${name}’s list and onto the shelf of things that happened, which frees a space for something new.`,
+    grantNote: 'Anything to remember about it',
+    grantNotePlaceholder: 'For her birthday, the year we finally went to Porto.',
+    granted: 'Granted',
+    grantedOn: (date: string) => `Granted ${date}`,
+    grantedByYou: 'You did this one',
+    ungrant: 'Put it back',
+    ungrantFull: 'Their three are full, so there is nowhere to put it back.',
+
+    /* The history, on your own page. */
+    historyTitle: 'Things that happened',
+    historyBody:
+      'Wishes that were granted. Not a score and not a total — just a shelf of times somebody was paying attention.',
+    historyCount: (n: number) =>
+      n === 1 ? '1 so far' : `${n} so far`,
+    historyEmpty: 'Nothing yet. The first one always takes a while.',
+  },
+
   gifts: {
     title: 'Gift radar',
     subtitle: 'Things they mentioned, saved quietly.',
