@@ -175,10 +175,26 @@ export function classifyWriteError(error: unknown): WriteFailure {
   const code = errorCode(error);
   const message = errorMessage(error).toLowerCase();
 
-  // 42703 undefined_column and 42P01 undefined_table come from Postgres;
-  // PGRST204 is PostgREST's own "column not found in the schema cache",
-  // which is what a browser client actually sees most of the time.
-  if (code === '42703' || code === '42P01' || code === 'PGRST204') return 'missing_schema';
+  // 42703 undefined_column, 42P01 undefined_table and 42883
+  // undefined_function come from Postgres; PGRST204 ("column not found in
+  // the schema cache") and PGRST202 ("function not found in the schema
+  // cache") are PostgREST's own, and are what a browser client actually
+  // sees most of the time.
+  //
+  // The function codes are here because a migration that half-ran is the
+  // normal state of this database, and the three riskiest actions in the
+  // app — leaving, ending, reopening — are RPCs added by 0005 and 0011.
+  // Without these the button for ending a relationship reported a generic
+  // failure, which is the worst possible screen to be vague on.
+  if (
+    code === '42703' ||
+    code === '42P01' ||
+    code === '42883' ||
+    code === 'PGRST204' ||
+    code === 'PGRST202'
+  ) {
+    return 'missing_schema';
+  }
   if (message.includes('does not exist') || message.includes('schema cache')) {
     return 'missing_schema';
   }

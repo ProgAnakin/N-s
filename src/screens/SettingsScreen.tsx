@@ -14,6 +14,7 @@ import { CycleSection } from '@/components/CycleSection';
 import { Seal } from '@/components/ui/Seal';
 import { useSession } from '@/data/session';
 import { clearTableCache } from '@/data/useTable';
+import { reportWriteFailure } from '@/data/write-status';
 import type { CurrencyColumn } from '@/data/database.types';
 import { CURRENCIES, CURRENCY_SYMBOLS } from '@/lib/money';
 import { AVAILABLE_LOCALES, LOCALE_NAMES, useStrings, type LocaleCode } from '@/i18n';
@@ -79,13 +80,22 @@ export function SettingsScreen() {
     }
   }
 
+  /**
+   * These two go through the banner rather than the inline note.
+   *
+   * Both are RPCs, and both live in migrations that are run by hand — so
+   * "the function does not exist yet" is a real state this screen sits in,
+   * and it is the one state where a generic message costs the most: you
+   * press *Leave this space*, it says something went wrong, and there is
+   * nothing anywhere to suggest the fix is a SQL file. The banner names it.
+   */
   async function onRotate() {
     setConfirmRotate(false);
     setRotating(true);
     try {
       await rotateInviteCode();
-    } catch {
-      setError(s.errors.generic);
+    } catch (err) {
+      reportWriteFailure(err);
     } finally {
       setRotating(false);
     }
@@ -98,8 +108,8 @@ export function SettingsScreen() {
     clearTableCache();
     try {
       await leaveCouple();
-    } catch {
-      setError(s.errors.generic);
+    } catch (err) {
+      reportWriteFailure(err);
     }
   }
 

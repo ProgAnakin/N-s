@@ -54,11 +54,24 @@ $$;
 -- it. `couples` and `profiles` are deliberately absent — the couple row
 -- itself has to stay writable or `reopen_couple()` could never undo this,
 -- and a person's own profile is theirs whatever has happened.
+--
+-- A missing table is a failure, not something to step over. This file
+-- once skipped anything that did not exist yet, on the reasoning that it
+-- should be safe to run against a database a version behind — and the
+-- result was a run that reported success while leaving six of these
+-- nineteen tables writable in a space the app had told two people was
+-- closed. A partial freeze is worse than no freeze: nobody goes looking
+-- for a hole in something that said it worked.
+--
+-- So it collects what is missing and refuses the whole run. Everything
+-- here is idempotent, so the fix is to run the missing migration and
+-- paste this one again.
 -- ---------------------------------------------------------------------
 
 do $$
 declare
   t text;
+  missing text[] := '{}';
   frozen text[] := array[
     'memories', 'memory_photos', 'important_dates', 'remember_facts',
     'dismissed_questions', 'family_members', 'phrases', 'culture_notes',
@@ -67,9 +80,8 @@ declare
   ];
 begin
   foreach t in array frozen loop
-    -- Skip anything a migration has not created yet, so this file is safe
-    -- to run against a database that is a version or two behind.
     if to_regclass('public.' || t) is null then
+      missing := missing || t;
       continue;
     end if;
 
@@ -80,5 +92,11 @@ begin
       t || '_refuse_when_ended', t
     );
   end loop;
+
+  if array_length(missing, 1) is not null then
+    raise exception
+      '0012_closed_space cannot finish: % missing. An earlier migration has not been run — 0004_together creates places, checkins, plans, intimacy_entries and flowers; 0011_relational_core creates cycle_events. Run it, then run this file again.',
+      array_to_string(missing, ', ');
+  end if;
 end;
 $$;

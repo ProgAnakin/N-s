@@ -234,6 +234,41 @@ describe('signing out', () => {
   });
 });
 
+describe('when the function does not exist yet', () => {
+  /**
+   * `leave_couple()` is added by 0005, which depends on a table 0004
+   * creates. Running them out of order rolled 0005 back entirely, so the
+   * function was missing from a database that otherwise looked complete —
+   * and this button reported "something went wrong" with no hint that the
+   * fix was a SQL file.
+   */
+  it('tells you to run the migrations rather than shrugging', async () => {
+    const user = userEvent.setup();
+    const { db } = mount();
+    // Deliberately not registered: the fake answers an unknown function the
+    // way Postgres does, with 42883.
+    expect(db.rpcs.has('leave_couple')).toBe(false);
+
+    await user.click(await screen.findByRole('button', { name: /Leave this space/ }));
+    const dialog = await screen.findByRole('dialog');
+    await user.click(within(dialog).getByRole('button', { name: /Leave this space/ }));
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent(/migrations/i);
+  });
+
+  it('says the same for a missing rotate_invite_code', async () => {
+    const user = userEvent.setup();
+    mount();
+
+    await user.click(await screen.findByRole('button', { name: /Get a new code/ }));
+    const dialog = await screen.findByRole('dialog');
+    await user.click(within(dialog).getByRole('button', { name: /Get a new code/ }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/migrations/i);
+  });
+});
+
 describe('when a write is refused', () => {
   it('says so rather than reverting in silence', async () => {
     const user = userEvent.setup();

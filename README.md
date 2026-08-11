@@ -81,7 +81,21 @@ Requires Node 18+.
 
    The migrations are written to be safely re-runnable: tables use `if not
    exists`, functions use `create or replace`, and every trigger and policy is
-   dropped before it is created. If a run half-fails, paste it again.
+   dropped before it is created. If a run fails, fix the cause and paste it
+   again — nothing here minds being run twice.
+
+   **In order matters more than it looks.** The SQL Editor runs a whole file
+   as one transaction, so a failure on the last line undoes the first line
+   too: a migration either applies completely or not at all. That is the
+   right behaviour, and it means a file that errors has left the database
+   exactly as it was, however far down the error appeared.
+
+   Three files check their prerequisites before doing anything and stop with
+   a sentence naming the file to run first, rather than failing halfway with
+   `relation "public.plans" does not exist`. `0005` and `0011` both need
+   `0004`; `0012` needs every table it freezes to exist, and refuses rather
+   than quietly freezing some of them — a space the app has called closed
+   must not still be writable in six tables.
 4. **Authentication → Providers**: email is on by default. If you leave
    "Confirm email" enabled, the first sign-up will ask you to check your inbox.
    For a two-person app you may prefer to turn it off.

@@ -19,6 +19,28 @@
 -- =====================================================================
 
 -- ---------------------------------------------------------------------
+-- What this file needs to already be there
+--
+-- This runs against `public.flowers`, which 0004 creates. Skipping 0004
+-- and running this gets you `relation "public.flowers" does not exist` on
+-- line 96 of a 200-line file — true, and no help at all in working out
+-- that the fix is a different file entirely. Postgres runs the whole
+-- script in one transaction, so that failure also rolls back the security
+-- fixes above it and leaves the hole this migration exists to close.
+--
+-- Say it in one sentence instead, before anything has been attempted.
+-- ---------------------------------------------------------------------
+
+do $$
+begin
+  if to_regclass('public.flowers') is null then
+    raise exception
+      '0005_hardening needs 0004_together: public.flowers is missing. Run 0004_together.sql first, then run this file again.';
+  end if;
+end;
+$$;
+
+-- ---------------------------------------------------------------------
 -- Membership is not self-service
 -- ---------------------------------------------------------------------
 

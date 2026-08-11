@@ -27,6 +27,26 @@
 -- =====================================================================
 
 -- ---------------------------------------------------------------------
+-- What this file needs to already be there
+--
+-- Pillar 4 adds columns to `public.plans`, which 0004 creates. Without it
+-- this fails two thirds of the way down with `relation "public.plans"
+-- does not exist`, and because the whole script is one transaction, the
+-- cultural profile and the cycle table roll back with it — so the run
+-- reports a failure about plans and silently undoes three things that
+-- had nothing to do with plans.
+-- ---------------------------------------------------------------------
+
+do $$
+begin
+  if to_regclass('public.plans') is null then
+    raise exception
+      '0011_relational_core needs 0004_together: public.plans is missing. Run 0004_together.sql first, then run this file again.';
+  end if;
+end;
+$$;
+
+-- ---------------------------------------------------------------------
 -- 1. Where each person is from
 --
 -- Per profile, not per couple: the entire point is that the two answers
