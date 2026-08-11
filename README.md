@@ -74,6 +74,7 @@ Requires Node 18+.
    | `0010_memory_books.sql` | Photographs get their own table; a memory becomes a page |
    | `0011_relational_core.sql` | Cultural profile, the question↔answer link, plan outcomes, cycles, endings |
    | `0012_closed_space.sql` | A closed space refuses writes, in the database |
+   | `0013_ideas_and_wishes.sql` | The shelf of things to do, and three wishes each |
 
    Or, with the Supabase CLI linked to your project: `supabase db push`. Or,
    if you've connected this repo through Supabase's GitHub integration, it
@@ -91,12 +92,12 @@ Requires Node 18+.
    right behaviour, and it means a file that errors has left the database
    exactly as it was, however far down the error appeared.
 
-   Three files check their prerequisites before doing anything and stop with
+   Four files check their prerequisites before doing anything and stop with
    a sentence naming the file to run first, rather than failing halfway with
-   `relation "public.plans" does not exist`. `0005` and `0011` both need
-   `0004`; `0012` needs every table it freezes to exist, and refuses rather
-   than quietly freezing some of them — a space the app has called closed
-   must not still be writable in six tables.
+   `relation "public.plans" does not exist`. `0005`, `0011` and `0013` all
+   need `0004`; `0012` needs every table it freezes to exist, and refuses
+   rather than quietly freezing some of them — a space the app has called
+   closed must not still be writable in six tables.
 4. **Authentication → Providers**: email is on by default. If you leave
    "Confirm email" enabled, the first sign-up will ask you to check your inbox.
    For a two-person app you may prefer to turn it off.
@@ -671,7 +672,7 @@ npm test          # the app
 npm run db:check  # the database
 ```
 
-541 tests. The bulk cover `src/lib/`: the spending maths (including a
+657 tests. The bulk cover `src/lib/`: the spending maths (including a
 round-trip proving the rebalance suggestion lands exactly level, and that
 treats never enter the calculation), calendar arithmetic across leap years and
 month-end clamping, recurrence, the reminder rules, and the question bank.
@@ -695,15 +696,15 @@ down `supabase/test-harness.sql` (the handful of `auth.*` and `storage.*`
 objects the migrations bind to, and no more than that), applies all twelve
 migrations from nothing, and then does two things review cannot:
 
-**`supabase/verify.sql`** asks the catalog for all 116 objects the app
+**`supabase/verify.sql`** asks the catalog for all 132 objects the app
 expects — every table, every column added after its table existed, every
 function the client calls by name, the load-bearing triggers, RLS on all
-twenty-one tables, and the nineteen closing triggers — and prints anything
+twenty-three tables, and the closing triggers — and prints anything
 missing with the file that creates it. Paste it into the Supabase SQL Editor
 any time you want to know what state the real project is actually in. It is
 read-only.
 
-**`supabase/tests/rls.sql`** runs 42 checks as `authenticated` and `anon`,
+**`supabase/tests/rls.sql`** runs 56 checks as `authenticated` and `anon`,
 never as the owner, because the owner bypasses RLS and would pass
 everything. Two couples exist throughout, since one cannot demonstrate a
 leak. It confirms a stranger cannot read, rewrite, delete or plant a row in

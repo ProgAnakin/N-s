@@ -7,6 +7,7 @@ import { TextAreaField, TextField } from '@/components/ui/Field';
 import { Modal } from '@/components/ui/Modal';
 import { EmptyState, PageHeader } from '@/components/ui/Surface';
 import { Lightbox } from '@/components/Lightbox';
+import { MemorySheet } from '@/components/MemorySheet';
 import { useCouple } from '@/data/session';
 import { removeMedia, uploadMedia, useSignedUrls, UploadError } from '@/data/storage';
 import type { MemoryPhotoRow, MemoryRow } from '@/data/database.types';
@@ -69,6 +70,10 @@ export function MemoriesScreen() {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [openSlide, setOpenSlide] = useState(-1);
+  // Which memory is being read. Separate from the lightbox: one is for
+  // reading a day, the other for looking at one photograph, and
+  // collapsing them is what made the note unreadable in the first place.
+  const [reading, setReading] = useState<string | null>(null);
   const newMemoryFiles = useRef<HTMLInputElement>(null);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
 
@@ -219,10 +224,7 @@ export function MemoriesScreen() {
                         ? formatDate(parseISODate(book.memory.date)!, 'dayMonth', intlLocale)
                         : book.memory.date
                     }
-                    onOpen={() => {
-                      if (!book.cover) return;
-                      setOpenSlide(slideIndexOf(slides, book.cover.id));
-                    }}
+                    onOpen={() => setReading(book.memory.id)}
                     onEdit={() => startEdit(book.memory)}
                     onDelete={() => void onDeleteMemory(book.memory)}
                   />
@@ -232,6 +234,29 @@ export function MemoriesScreen() {
           ))}
         </div>
       )}
+
+      <MemorySheet
+        book={books.find((entry) => entry.memory.id === reading) ?? null}
+        urls={photoUrls}
+        dateLabel={(() => {
+          const book = books.find((entry) => entry.memory.id === reading);
+          const date = book ? parseISODate(book.memory.date) : null;
+          return date ? formatDate(date, 'long', intlLocale) : (book?.memory.date ?? '');
+        })()}
+        onClose={() => setReading(null)}
+        onOpenPhoto={(photo) => setOpenSlide(slideIndexOf(slides, photo.id))}
+        onAddPhotos={onAddPhotosToMemory}
+        onEdit={() => {
+          const book = books.find((entry) => entry.memory.id === reading);
+          setReading(null);
+          if (book) startEdit(book.memory);
+        }}
+        onDelete={() => {
+          const book = books.find((entry) => entry.memory.id === reading);
+          setReading(null);
+          if (book) void onDeleteMemory(book.memory);
+        }}
+      />
 
       <Lightbox
         slides={slides}
@@ -375,52 +400,86 @@ function BookTile({
           </>
         )}
 
+        {/*
+          Always openable, photographs or not.
+
+          This used to be `disabled={!book.cover}`, which meant somebody
+          who wrote three paragraphs and attached no picture had no way to
+          read them back — the one case where an album most needs to open.
+        */}
         <button
           type="button"
           onClick={onOpen}
-          disabled={!book.cover}
           aria-label={s.memories.openBook(book.memory.title)}
           className={cn(
-            'relative block w-full overflow-hidden rounded-sm border border-rule bg-sunk',
+            'relative block w-full overflow-hidden rounded-sm border border-rule',
             'aspect-[4/5] transition-[transform,border-color] duration-300 ease-page',
-            book.cover && 'hover:-translate-y-0.5 hover:border-ink-faint',
-            !book.cover && 'cursor-default',
+            'hover:-translate-y-0.5 hover:border-ink-faint',
+            book.cover ? 'bg-sunk' : 'bg-raised',
           )}
         >
           {book.cover ? (
-            url ? (
-              <img
-                src={url}
-                alt={s.memories.photoAlt(book.memory.title)}
-                loading="lazy"
-                className="h-full w-full object-cover transition-transform duration-500 ease-page group-hover:scale-[1.03]"
+            <>
+              {url ? (
+                <img
+                  src={url}
+                  alt={s.memories.photoAlt(book.memory.title)}
+                  loading="lazy"
+                  className="h-full w-full object-cover transition-transform duration-500 ease-page group-hover:scale-[1.03]"
+                />
+              ) : (
+                <span className="flex h-full w-full items-center justify-center">
+                  <Spinner />
+                </span>
+              )}
+
+              {/* The date rides on the photograph under a scrim rather than
+                  sitting in the caption below it: it belongs to the
+                  picture, and moving it up buys the title a second line
+                  before it has to truncate.
+
+                  Outside the `url` branch, deliberately. Nesting it inside
+                  meant the date and the photo count both disappeared while
+                  a signed URL was still being fetched — the tile lost its
+                  two facts at exactly the moment there was nothing else on
+                  it to read. */}
+              <span
+                aria-hidden="true"
+                className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-ink/75 to-transparent"
               />
-            ) : (
-              <span className="flex h-full w-full items-center justify-center">
-                <Spinner />
+              <span className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 px-2.5 pb-2 text-[11px] font-medium text-paper/90">
+                <span>{dateLabel}</span>
+                {many && (
+                  <span className="rounded-sm bg-ink/55 px-1.5 py-0.5 tabular-nums backdrop-blur-[2px]">
+                    {book.photos.length}
+                  </span>
+                )}
               </span>
-            )
+            </>
           ) : (
-            <span className="flex h-full w-full items-center justify-center px-3 text-center text-xs text-ink-faint">
-              {s.memories.noPhotos}
+            /* A written page, not an error state. The first lines of the
+               story set in display type, so a memory with no photograph
+               reads as a deliberate kind of page rather than a hole in
+               the grid. */
+            <span className="flex h-full w-full flex-col gap-2 p-3.5 text-left">
+              <span className="label-kicker text-[10px] text-ink-faint">{dateLabel}</span>
+              <span className="display-warm line-clamp-[9] text-pretty font-display text-sm leading-relaxed text-ink-soft">
+                {book.memory.note || s.memories.noPhotos}
+              </span>
             </span>
           )}
 
-          {many && (
-            <span className="absolute bottom-2 right-2 rounded-sm bg-ink/65 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-paper backdrop-blur-[2px]">
-              {book.photos.length}
-            </span>
-          )}
         </button>
       </div>
 
       <div className="mt-2.5 flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="text-[11px] text-ink-faint">{dateLabel}</p>
-          <h3 className="display-warm truncate font-display text-base font-medium leading-snug text-ink">
+          {/* Only when the date is not already on the picture. */}
+          {!book.cover && <p className="text-[11px] text-ink-faint">{dateLabel}</p>}
+          <h3 className="display-warm text-pretty font-display text-base font-medium leading-snug text-ink">
             {book.memory.title}
           </h3>
-          {book.memory.note && (
+          {book.cover && book.memory.note && (
             <p className="mt-0.5 line-clamp-2 text-pretty text-xs leading-relaxed text-ink-soft">
               {book.memory.note}
             </p>

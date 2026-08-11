@@ -382,6 +382,11 @@ export const en = {
     pageCount: (n: number) => (n === 1 ? '1 photo' : `${n} photos`),
     noPhotos: 'No photos yet',
     openBook: (title: string) => `Open ${title}`,
+    openPhoto: 'Look at this one',
+    /* A memory can be a photograph with no words, and that is fine — but
+       an empty column of nothing reads as a loading failure, so it says
+       so instead. */
+    noStory: 'No words on this one — just the picture.',
     emptyTitle: 'The first page is blank',
     emptyBody: 'Start anywhere. The first thing you remember about them is a good place.',
     uploading: 'Uploading…',

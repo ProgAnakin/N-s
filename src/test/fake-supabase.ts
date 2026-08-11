@@ -114,6 +114,34 @@ export class FakeSupabase {
     }),
   };
 
+  /**
+   * Storage, to the depth the app touches it.
+   *
+   * Absent, every test that seeds a photograph threw an unhandled
+   * rejection from inside a passive effect — which vitest reports at the
+   * end of the run rather than against the test that caused it, so it
+   * reads as ambient noise instead of as a component reaching for
+   * something that is not there.
+   *
+   * Signed URLs come back as data URIs so an `<img>` in jsdom has a
+   * plausible `src` without a network anywhere near it.
+   */
+  storage = {
+    from: (bucket: string) => ({
+      createSignedUrls: (paths: string[]) =>
+        Promise.resolve({
+          data: paths.map((path) => ({
+            path,
+            signedUrl: `data:image/gif;base64,R0lGODlhAQABAAAAACw=#${bucket}/${path}`,
+            error: null,
+          })),
+          error: null,
+        }),
+      upload: vi.fn((path: string) => Promise.resolve({ data: { path }, error: null })),
+      remove: vi.fn(() => Promise.resolve({ data: [], error: null })),
+    }),
+  };
+
   /** @internal */
   refusalFor(table: string, op: RecordedWrite['op']): FakeError | undefined {
     return this.refusals.get(`${table}:${op}`);
