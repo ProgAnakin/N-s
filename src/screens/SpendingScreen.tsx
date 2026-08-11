@@ -27,7 +27,7 @@ import {
   totalsByCategory,
   type Expense,
 } from '@/lib/money';
-import { convertAll } from '@/lib/fx';
+import { convertAll, convertExpense } from '@/lib/fx';
 import { captureRates } from '@/data/rates';
 import { useI18n, useStrings } from '@/i18n';
 import { RecordActions, useCoupleTable, useMoney, usePartnerNames, useToday } from './shared';
@@ -142,6 +142,31 @@ export function SpendingScreen() {
     () => totalsByCategory(convertedForCategories(domain, viewCurrency), viewCurrency),
     [domain, viewCurrency],
   );
+
+  /**
+   * What each expense counts as in the currency being read, by id.
+   *
+   * The history used to show only the amount as it was paid, which is the
+   * honest number and answers the wrong question: with four currencies in
+   * play, a list of ¥, R$ and € tells you nothing about which evening was
+   * the expensive one. Both are shown now — what was handed over, and what
+   * it weighs in the total — and an expense with no rate says so in place
+   * of the second figure rather than being quietly left out of the maths
+   * with nothing on its own row to admit it.
+   */
+  const inViewCurrency = useMemo(() => {
+    const byId = new Map<string, number | null>();
+    for (const expense of domain) {
+      const result = convertExpense({ ...expense, fx: expense.fx ?? null }, viewCurrency);
+      byId.set(expense.id, result && !result.exact ? result.cents : null);
+    }
+    return byId;
+  }, [domain, viewCurrency]);
+
+  const unconvertibleIds = useMemo(
+    () => new Set(unconvertible.map((expense) => expense.id)),
+    [unconvertible],
+  );
   const categoryTotal = categories.reduce((sum, entry) => sum + entry.totalCents, 0);
 
   function startNew() {
@@ -201,10 +226,25 @@ export function SpendingScreen() {
       trip_id: draft.tripId || null,
       note: draft.note.trim() || null,
     };
-    // Frozen here, once, and never revisited. Null when the network is not
-    // there, which is an ordinary state rather than a failure to report: the
-    // expense saves either way, and the balance says what it could not fold in.
-    const captured = await captureRates(draft.currency);
+    /**
+     * Frozen once, at the moment it is written down.
+     *
+     * The `needsRates` test is the whole point. Re-capturing on every save
+     * meant that correcting a typo in a year-old label quietly restated it
+     * at today's rate — the exact drift fx.ts exists to prevent, arrived at
+     * through the edit button instead of through arithmetic. A rate is
+     * captured for a new expense, for one that never got a rate, and for
+     * one whose currency has actually changed. Nothing else.
+     *
+     * A capture that fails is an ordinary state rather than a failure to
+     * report: the expense saves either way, and the balance says how many
+     * it could not fold in.
+     */
+    const existing = draft.id ? expenses.rows.find((row) => row.id === draft.id) : undefined;
+    const needsRates =
+      !draft.id || !existing?.fx || existing.currency !== draft.currency;
+
+    const captured = needsRates ? await captureRates(draft.currency) : null;
     const withRates = captured
       ? { ...values, fx: captured.fx, fx_on: captured.on }
       : values;
@@ -293,6 +333,10 @@ export function SpendingScreen() {
           </div>
           <BalanceBar balance={balance} names={names} />
 
+          <p className="mt-3 text-xs leading-relaxed text-ink-faint">
+            {s.spending.frozenNote}
+          </p>
+
           {unconvertible.length > 0 && (
             <p className="mt-3 text-xs leading-relaxed text-ink-faint">
               {s.spending.notConverted(unconvertible.length)}{' '}
@@ -336,8 +380,12 @@ export function SpendingScreen() {
                       style={{ width: `${percent}%` }}
                     />
                   </span>
+                  {/* `viewCurrency`, not the couple's. These totals were
+                      converted into whatever the reader is thinking in, and
+                      labelling them with the couple's currency put a euro
+                      sign in front of a number of yuan. */}
                   <span className="shrink-0 text-sm tabular-nums text-ink-faint">
-                    {money(entry.totalCents, couple.currency, true)}
+                    {money(entry.totalCents, viewCurrency, true)}
                   </span>
                 </li>
               );
@@ -392,8 +440,25 @@ export function SpendingScreen() {
                       )}
                     </p>
                   </div>
-                  <span className="shrink-0 text-base tabular-nums text-ink">
-                    {money(row.amount_cents, row.currency)}
+                  <span className="shrink-0 text-right">
+                    <span className="block text-base tabular-nums text-ink">
+                      {money(row.amount_cents, row.currency)}
+                    </span>
+                    {row.currency !== viewCurrency &&
+                      (unconvertibleIds.has(row.id) ? (
+                        <span className="block text-[11px] text-cinnabar">
+                          {s.spending.noRateRow}
+                        </span>
+                      ) : (
+                        inViewCurrency.get(row.id) !== null &&
+                        inViewCurrency.get(row.id) !== undefined && (
+                          <span className="block text-[11px] tabular-nums text-ink-faint">
+                            {s.spending.countsAs(
+                              money(inViewCurrency.get(row.id)!, viewCurrency),
+                            )}
+                          </span>
+                        )
+                      ))}
                   </span>
                   <RecordActions
                     onEdit={() => startEdit(row)}

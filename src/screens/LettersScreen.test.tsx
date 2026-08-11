@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { COUPLE_ID, HER_ID, HIM_ID, lastWriteTo, mountSignedIn } from '@/test/harness';
@@ -264,12 +264,122 @@ describe('when the table does not exist yet', () => {
   });
 });
 
+/**
+ * Dropping a file on the shelf.
+ *
+ * Driven through the screen rather than against the parser, because the
+ * parser was never the risky part: what breaks is the seam — a file that
+ * imports but never reaches the textarea, a drop that saves a letter
+ * nobody read first, or a shelf that offers a drop target to somebody
+ * with no partner to send it to.
+ */
+
+function fileOf(name: string, contents: string, type = 'text/plain'): File {
+  const file = new File([contents], name, { type });
+  // jsdom's File has no arrayBuffer() in some versions, and the import
+  // path depends on it entirely.
+  if (typeof file.arrayBuffer !== 'function') {
+    Object.defineProperty(file, 'arrayBuffer', {
+      value: async () => new TextEncoder().encode(contents).buffer,
+    });
+  }
+  return file;
+}
+
+async function drop(target: HTMLElement, file: File) {
+  const dataTransfer = {
+    files: [file],
+    items: [{ kind: 'file', type: file.type }],
+    types: ['Files'],
+    dropEffect: 'copy',
+  };
+  fireEvent.dragEnter(target, { dataTransfer });
+  fireEvent.dragOver(target, { dataTransfer });
+  fireEvent.drop(target, { dataTransfer });
+}
+
+describe('importing a file', () => {
+  it('puts a dropped .txt into the composer instead of saving it outright', async () => {
+    const { db } = mount({ seed: (d) => d.seed('letters', []) });
+    const shelf = await screen.findByText(/Nothing on the shelf yet/);
+
+    await drop(shelf, fileOf('carta.txt', 'Querida,\n\nvocê ficou acordada.'));
+
+    // The composer opens with the text in it — and nothing is saved yet,
+    // because an accidental drop must not become a sent letter.
+    const field = await screen.findByLabelText(/What you want to say/);
+    await waitFor(() => {
+      expect(field).toHaveValue('Querida,\n\nvocê ficou acordada.');
+    });
+    expect(lastWriteTo(db, 'letters')).toBeUndefined();
+  });
+
+  it('says where the text came from, so an edited import is not mistaken for typing', async () => {
+    mount({ seed: (d) => d.seed('letters', []) });
+    const shelf = await screen.findByText(/Nothing on the shelf yet/);
+
+    await drop(shelf, fileOf('para-voce.txt', 'Uma coisa pequena.'));
+
+    expect(await screen.findByText(/Loaded from para-voce\.txt/)).toBeInTheDocument();
+  });
+
+  it('saves the imported text once it has actually been read and confirmed', async () => {
+    const user = userEvent.setup();
+    const { db } = mount({ seed: (d) => d.seed('letters', []) });
+    const shelf = await screen.findByText(/Nothing on the shelf yet/);
+
+    await drop(shelf, fileOf('carta.md', '# Obrigado\n\nPela sopa.'));
+    await screen.findByLabelText(/What you want to say/);
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => {
+      expect(lastWriteTo(db, 'letters')?.values).toMatchObject({
+        body: '# Obrigado\n\nPela sopa.',
+      });
+    });
+  });
+
+  it('names the reason a file was refused rather than doing nothing', async () => {
+    mount({ seed: (d) => d.seed('letters', []) });
+    const shelf = await screen.findByText(/Nothing on the shelf yet/);
+
+    await drop(shelf, fileOf('slides.key', 'binary junk', 'application/octet-stream'));
+
+    expect(await screen.findByText(/Only \.txt, \.md, \.rtf, \.docx and \.pdf/)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/What you want to say/)).not.toBeInTheDocument();
+  });
+
+  it('refuses an empty file instead of opening a blank composer', async () => {
+    mount({ seed: (d) => d.seed('letters', []) });
+    const shelf = await screen.findByText(/Nothing on the shelf yet/);
+
+    await drop(shelf, fileOf('empty.txt', '   \n\n  '));
+
+    expect(await screen.findByText(/had no text in it/)).toBeInTheDocument();
+  });
+
+  it('offers a button as well, since a phone has nothing to drag from', async () => {
+    mount({ seed: (d) => d.seed('letters', []) });
+    expect(await screen.findAllByRole('button', { name: /Import a file/ })).not.toHaveLength(0);
+  });
+});
+
 describe('before the partner has joined', () => {
-  it('offers no way to write to nobody', async () => {
+  it('explains why there is nothing to write, instead of showing an empty page', async () => {
     mount({ partner: null, seed: (d) => d.seed('letters', []) });
 
-    await screen.findByText(/Nothing on the shelf yet/);
-    expect(screen.queryByRole('button', { name: /Write one/ })).not.toBeInTheDocument();
+    expect(await screen.findByText(/A letter needs someone to open it/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Get the invite code/ })).toHaveAttribute(
+      'href',
+      '/settings',
+    );
+  });
+
+  it('offers no import either, since there is nobody to address it to', async () => {
+    mount({ partner: null, seed: (d) => d.seed('letters', []) });
+
+    await screen.findByText(/A letter needs someone to open it/);
+    expect(screen.queryByRole('button', { name: /Import a file/ })).not.toBeInTheDocument();
   });
 });
 

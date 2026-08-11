@@ -1,7 +1,11 @@
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Clock, Feather, Mail, MailOpen, Trash2 } from 'lucide-react';
 import { Button, IconButton } from '@/components/ui/Button';
 import { ErrorNote, Tag } from '@/components/ui/Bits';
+import { DropZone, FilePickButton } from '@/components/DropZone';
+import { importDocument } from '@/lib/import-document';
+import type { ImportFailure } from '@/lib/documents';
 import { ChoiceField, TextAreaField, TextField, Toggle } from '@/components/ui/Field';
 import { ConfirmDialog, Modal } from '@/components/ui/Modal';
 import { EmptyState, PageHeader, Sheet } from '@/components/ui/Surface';
@@ -46,6 +50,48 @@ export function LettersScreen() {
   const [editing, setEditing] = useState<LetterRow | null>(null);
   const [deleting, setDeleting] = useState<LetterRow | null>(null);
 
+  // What a dropped file turned into, handed to the composer as its
+  // starting text. Kept here rather than inside Compose so a file can be
+  // dropped on the shelf itself, with nothing open.
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importedFrom, setImportedFrom] = useState<string | null>(null);
+  const [importedText, setImportedText] = useState<string | null>(null);
+
+  const importFailures: Record<ImportFailure, string> = {
+    unsupported: s.letters.importUnsupported,
+    too_large: s.letters.importTooBig,
+    empty: s.letters.importEmpty,
+    unreadable: s.letters.importFailed,
+    no_text_layer: s.letters.importPdfScanned,
+  };
+
+  /**
+   * A dropped file becomes a draft, never a saved letter.
+   *
+   * Importing straight to the shelf would make the drop an irreversible
+   * act performed by accident. This opens the composer with the text in
+   * it, so the last thing that happens before a letter exists is still a
+   * person reading it and pressing Save.
+   */
+  async function onImport(file: File) {
+    if (!partner) return;
+    setImportError(null);
+    setImporting(true);
+    try {
+      const result = await importDocument(file);
+      if (!result.ok) {
+        setImportError(importFailures[result.reason]);
+        return;
+      }
+      setImportedText(result.text);
+      setImportedFrom(file.name);
+      setComposing(true);
+    } finally {
+      setImporting(false);
+    }
+  }
+
   const rows = useMemo(
     () => sortForReading(letters.rows as unknown as Letter[], profile.id, today),
     [letters.rows, profile.id, today],
@@ -70,10 +116,17 @@ export function LettersScreen() {
         subtitle={s.letters.subtitle}
         actions={
           partner ? (
-            <Button variant="primary" onClick={() => setComposing(true)}>
-              <Feather className="h-4 w-4" />
-              {s.letters.write}
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <FilePickButton
+                onFile={onImport}
+                busy={importing}
+                label={importing ? s.letters.importing : s.letters.importAction}
+              />
+              <Button variant="primary" onClick={() => setComposing(true)}>
+                <Feather className="h-4 w-4" />
+                {s.letters.write}
+              </Button>
+            </div>
           ) : undefined
         }
       />
@@ -82,6 +135,38 @@ export function LettersScreen() {
         <div className="mb-4">
           <ErrorNote>{letters.error}</ErrorNote>
         </div>
+      )}
+
+      {importError && (
+        <div className="mb-4">
+          <ErrorNote>{importError}</ErrorNote>
+        </div>
+      )}
+
+      {/*
+        Before anybody has joined.
+
+        This used to render nothing at all — no button, no explanation —
+        which is indistinguishable from a broken page. A letter is
+        addressed to a specific person and the row policy requires that
+        person to exist, so the honest answer is to say so and point at
+        the one thing that changes it.
+      */}
+      {!partner && (
+        <Sheet className="mb-6 p-5">
+          <h2 className="font-display text-lg font-medium text-ink">
+            {s.letters.needsPartnerTitle}
+          </h2>
+          <p className="mt-1.5 max-w-prose text-pretty text-sm leading-relaxed text-ink-soft">
+            {s.letters.needsPartnerBody}
+          </p>
+          <Link
+            to="/settings"
+            className="mt-4 inline-flex items-center gap-2 rounded-sm bg-stamp px-3 py-2 text-sm font-medium text-on-stamp transition-opacity hover:opacity-90"
+          >
+            {s.letters.needsPartnerAction}
+          </Link>
+        </Sheet>
       )}
 
       {rows.length > 0 && (
@@ -93,6 +178,14 @@ export function LettersScreen() {
         </div>
       )}
 
+      {/* The whole shelf is the drop target, empty or not. A zone that
+          only exists on an empty page is one you can never find again. */}
+      <DropZone
+        onFile={onImport}
+        disabled={!partner}
+        title={s.letters.dropTitle}
+        hint={s.letters.dropHint}
+      >
       {rows.length === 0 ? (
         <EmptyState
           icon={<Mail />}
@@ -100,10 +193,17 @@ export function LettersScreen() {
           body={s.letters.empty}
           action={
             partner ? (
-              <Button variant="primary" onClick={() => setComposing(true)}>
-                <Feather className="h-4 w-4" />
-                {s.letters.writeFirst}
-              </Button>
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <Button variant="primary" onClick={() => setComposing(true)}>
+                  <Feather className="h-4 w-4" />
+                  {s.letters.writeFirst}
+                </Button>
+                <FilePickButton
+                  onFile={onImport}
+                  busy={importing}
+                  label={importing ? s.letters.importing : s.letters.importAction}
+                />
+              </div>
             ) : undefined
           }
         />
@@ -135,6 +235,7 @@ export function LettersScreen() {
           ))}
         </ul>
       )}
+      </DropZone>
 
       {rows.length > 2 && (
         <p className="mt-8 max-w-prose text-pretty text-xs leading-relaxed text-ink-faint">
@@ -146,6 +247,8 @@ export function LettersScreen() {
         <Compose
           open={composing || editing !== null}
           existing={editing}
+          importedText={importedText}
+          importedFrom={importedFrom}
           recipientId={partner.id}
           recipientName={names.partnerName}
           coupleId={couple.id}
@@ -153,6 +256,8 @@ export function LettersScreen() {
           onClose={() => {
             setComposing(false);
             setEditing(null);
+            setImportedText(null);
+            setImportedFrom(null);
           }}
           onCreate={async (values) => {
             await letters.create(values);
@@ -271,6 +376,8 @@ function LetterCard({
 function Compose({
   open,
   existing,
+  importedText,
+  importedFrom,
   recipientId,
   recipientName,
   coupleId,
@@ -281,6 +388,9 @@ function Compose({
 }: {
   open: boolean;
   existing: LetterRow | null;
+  /** Text lifted out of a dropped file, seeded once as the starting body. */
+  importedText: string | null;
+  importedFrom: string | null;
   recipientId: string;
   recipientName: string;
   coupleId: string;
@@ -309,11 +419,14 @@ function Compose({
   // without an effect that fights the user's typing.
   const [seeded, setSeeded] = useState<string | null>(null);
 
-  const seedKey = existing?.id ?? (open ? 'new' : null);
+  // An import gets its own seed key, so dropping a second file while the
+  // composer is already open reseeds it — and typing after a drop does not,
+  // which is the bug the seed key exists to prevent.
+  const seedKey = existing?.id ?? (importedFrom ? `import:${importedFrom}` : open ? 'new' : null);
   if (open && seedKey !== seeded) {
     setSeeded(seedKey);
     setKind(existing?.kind ?? 'thanks');
-    setBody(existing?.body ?? '');
+    setBody(existing?.body ?? importedText ?? '');
     setSealing(Boolean(existing?.open_on));
     setOpenOn(existing?.open_on ?? '');
   }
@@ -364,6 +477,12 @@ function Compose({
       }
     >
       <div className="flex flex-col gap-4">
+        {importedFrom && !existing && (
+          <p className="rounded-sm bg-jade-wash px-3 py-2 text-xs leading-relaxed text-ink-soft">
+            {s.letters.imported(importedFrom)}
+          </p>
+        )}
+
         <ChoiceField
           label={s.letters.kind}
           value={kind}

@@ -555,6 +555,16 @@ export const en = {
         ? '1 expense was recorded offline and has no exchange rate, so it isn’t in this total.'
         : `${n} expenses were recorded offline and have no exchange rate, so they aren’t in this total.`,
     convertNow: 'Use today’s rate for those',
+    /* On a row whose currency isn't the one being read. Both figures are
+       shown because either alone answers half the question: what was
+       handed over, and what it weighs in the shared total. */
+    countsAs: (amount: string) => `counts as ${amount}`,
+    noRateRow: 'no rate — not in the total',
+    /* The rate is the one from the day the expense was written down, never
+       today's. Said out loud once, near the switch, because a total that
+       silently restated the past would be the same harm as a scoreboard. */
+    frozenNote:
+      'Each expense is converted at the rate on the day it was logged, so last year’s dinner keeps last year’s value.',
   },
 
   splitRules: {
@@ -987,6 +997,30 @@ export const en = {
     deleteConfirm: 'Unsend this letter?',
     deleteConfirmBody: 'It hasn’t been opened, so it disappears entirely.',
     cannotDelete: 'Already opened — this one’s theirs now.',
+
+    /* Before anybody has joined.
+       The write button used to simply not render, which made a working
+       screen look like a broken one: there was no button, no explanation,
+       and no way to tell the difference between "not yet" and "bug". A
+       letter needs a named recipient — the row policy requires it — so the
+       honest answer is to say so and point at the thing that fixes it. */
+    needsPartnerTitle: 'A letter needs someone to open it',
+    needsPartnerBody:
+      'Letters are addressed to your partner, so there’s nobody to write to until they’ve joined. Share your invite code and this shelf opens up.',
+    needsPartnerAction: 'Get the invite code',
+
+    /* Drag and drop. */
+    dropTitle: 'Drop it here',
+    dropHint: 'A .txt, .md, .docx or .pdf becomes the body of a letter you can still edit.',
+    importing: 'Reading the file…',
+    imported: (name: string) => `Loaded from ${name}. Edit it however you like before saving.`,
+    importFailed: 'That file couldn’t be read.',
+    importEmpty: 'That file had no text in it.',
+    importTooBig: 'That file is too large — 2 MB is the limit for an import.',
+    importUnsupported: 'Only .txt, .md, .rtf, .docx and .pdf can be read.',
+    importAction: 'Import a file',
+    importPdfScanned:
+      'That PDF looks scanned rather than typed, so there was no text to pull out of it.',
   },
 
   clocks: {

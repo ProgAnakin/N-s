@@ -87,11 +87,6 @@ export function GiftsScreen() {
         actions={
           <Button variant="primary" onClick={startNew}>
             <Plus className="h-4 w-4" />
-
-      {/* Gift ideas and cautions live here rather than on Home: this page
-          is `author_id = auth.uid()` in every direction, so a surprise
-          cannot be spoiled by somebody glancing at the front page. */}
-      <SuggestionList kinds={['caution', 'gift']} className="mb-8" />
             {s.common.add}
           </Button>
         }
@@ -101,6 +96,11 @@ export function GiftsScreen() {
         <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" />
         {s.gifts.privateNotice}
       </p>
+
+      {/* Gift ideas and cautions live here rather than on Home: this page
+          is `author_id = auth.uid()` in every direction, so a surprise
+          cannot be spoiled by somebody glancing at the front page. */}
+      <SuggestionList kinds={['caution', 'gift']} className="mb-8" />
 
       {gifts.rows.length === 0 ? (
         <EmptyState
