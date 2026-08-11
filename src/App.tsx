@@ -33,6 +33,7 @@ const TripsScreen = lazyScreen(() => import('@/screens/TripsScreen'), 'TripsScre
 const TripDetailScreen = lazyScreen(() => import('@/screens/TripDetailScreen'), 'TripDetailScreen');
 const SpendingScreen = lazyScreen(() => import('@/screens/SpendingScreen'), 'SpendingScreen');
 const GiftsScreen = lazyScreen(() => import('@/screens/GiftsScreen'), 'GiftsScreen');
+const IdeasScreen = lazyScreen(() => import('@/screens/IdeasScreen'), 'IdeasScreen');
 const DistanceScreen = lazyScreen(() => import('@/screens/DistanceScreen'), 'DistanceScreen');
 const CalendarScreen = lazyScreen(() => import('@/screens/CalendarScreen'), 'CalendarScreen');
 const TogetherScreen = lazyScreen(() => import('@/screens/TogetherScreen'), 'TogetherScreen');
@@ -89,6 +90,7 @@ function Gate() {
             <Route path="trips/:tripId" element={<Lazy><TripDetailScreen /></Lazy>} />
             <Route path="spending" element={<Lazy><SpendingScreen /></Lazy>} />
             <Route path="gifts" element={<Lazy><GiftsScreen /></Lazy>} />
+            <Route path="ideas" element={<Lazy><IdeasScreen /></Lazy>} />
             <Route path="calendar" element={<Lazy><CalendarScreen /></Lazy>} />
             <Route path="together" element={<Lazy><TogetherScreen /></Lazy>} />
             <Route path="letters" element={<Lazy><LettersScreen /></Lazy>} />

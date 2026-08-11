@@ -16,7 +16,7 @@
 -- missing at the top with the file that creates it.
 --
 -- Paste it into the SQL Editor. The answer you want is every row ok, and
--- the last row reading "12 / 12 migrations fully applied".
+-- every row reading ok.
 -- =====================================================================
 
 with expected(migration, kind, ident, note) as (
@@ -45,7 +45,9 @@ with expected(migration, kind, ident, note) as (
     ('0004_together',      'table', 'flowers',             '0005 needs this'),
     ('0007_letters',       'table', 'letters',             null),
     ('0010_memory_books',  'table', 'memory_photos',       'a memory becomes a page'),
-    ('0011_relational_core','table','cycle_events',        'only read when shared')
+    ('0011_relational_core','table','cycle_events',        'only read when shared'),
+    ('0013_ideas_and_wishes','table','date_ideas',         'what to do on a Friday'),
+    ('0013_ideas_and_wishes','table','wishes',             'three each, no more')
   ) as t(migration, kind, ident, note)
 
   union all
@@ -82,7 +84,12 @@ with expected(migration, kind, ident, note) as (
     ('0011_relational_core','column','plans.tags',                   null),
     ('0011_relational_core','column','plans.memory_id',              null),
     ('0011_relational_core','column','couples.ended_on',             'ending it'),
-    ('0011_relational_core','column','couples.ended_by',             null)
+    ('0011_relational_core','column','couples.ended_by',             null),
+    ('0013_ideas_and_wishes','column','plans.idea_id',                'a plan remembers its idea'),
+    ('0013_ideas_and_wishes','column','wishes.slot',                  'null once granted'),
+    ('0013_ideas_and_wishes','column','wishes.granted_on',            'the achievement shelf'),
+    ('0013_ideas_and_wishes','column','date_ideas.feeling',           'the field that makes it usable'),
+    ('0013_ideas_and_wishes','column','date_ideas.booking',           null)
   ) as t(migration, kind, ident, note)
 
   union all
@@ -113,7 +120,9 @@ with expected(migration, kind, ident, note) as (
     ('0011_relational_core','function','set_cycle_event_couple', null),
     ('0011_relational_core','function','end_couple',             'called by the app'),
     ('0011_relational_core','function','reopen_couple',          'called by the app'),
-    ('0012_closed_space',  'function', 'refuse_when_ended',      null)
+    ('0012_closed_space',  'function', 'refuse_when_ended',      null),
+    ('0013_ideas_and_wishes','function','set_wish_couple',       null),
+    ('0013_ideas_and_wishes','function','guard_wish_update',     'only the wisher writes the words')
   ) as t(migration, kind, ident, note)
 
   union all
@@ -130,7 +139,11 @@ with expected(migration, kind, ident, note) as (
     ('0005_hardening',     'trigger', 'flowers_check_recipient',     null),
     ('0007_letters',       'trigger', 'letters_guard_update',        null),
     ('0010_memory_books',  'trigger', 'memory_photos_set_couple',    null),
-    ('0011_relational_core','trigger','cycle_events_set_couple',     null)
+    ('0011_relational_core','trigger','cycle_events_set_couple',     null),
+    ('0013_ideas_and_wishes','trigger','wishes_set_couple',           null),
+    ('0013_ideas_and_wishes','trigger','wishes_guard_update',         'stops a partner rewriting a wish'),
+    ('0013_ideas_and_wishes','trigger','date_ideas_refuse_when_ended','0012 predates this table'),
+    ('0013_ideas_and_wishes','trigger','wishes_refuse_when_ended',    '0012 predates this table')
   ) as t(migration, kind, ident, note)
 
   union all
@@ -150,7 +163,8 @@ with expected(migration, kind, ident, note) as (
        'couples','profiles','memories','important_dates','remember_facts',
        'dismissed_questions','family_members','phrases','culture_notes','trips',
        'trip_items','expenses','gift_ideas','places','checkins','plans',
-       'intimacy_entries','flowers','letters','memory_photos','cycle_events'
+       'intimacy_entries','flowers','letters','memory_photos','cycle_events',
+       'date_ideas','wishes'
      )
 
   union all
@@ -173,6 +187,12 @@ with expected(migration, kind, ident, note) as (
   union all
 
   select '0003_storage', 'bucket', 'media', 'private, 10 MB, images only'
+
+  union all
+
+  -- The three-wish cap is an index, not a trigger: a count-then-insert
+  -- check loses the race between two devices, and an index cannot.
+  select '0013_ideas_and_wishes', 'index', 'wishes_one_per_slot', 'three each, enforced'
 ),
 
 checked as (
@@ -213,6 +233,10 @@ checked as (
           join pg_namespace n on n.oid = c.relnamespace
          where n.nspname = 'public' and c.relname = ident
       ), false)
+
+      when 'index' then exists (
+        select 1 from pg_indexes where schemaname = 'public' and indexname = ident
+      )
 
       when 'bucket' then exists (select 1 from storage.buckets where id = ident)
     end as present

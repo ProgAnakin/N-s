@@ -321,7 +321,62 @@ export type PlanRow = {
   tags: string[];
   /** The album page it became. */
   memory_id: string | null;
+  /** The shelved idea it came from, so the idea learns it was used. */
+  idea_id: string | null;
   created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CostColumn = 'free' | 'cheap' | 'modest' | 'splash';
+export type TimeOfDayColumn = 'morning' | 'afternoon' | 'evening' | 'night' | 'allday';
+export type FeelingColumn =
+  | 'calm'
+  | 'playful'
+  | 'romantic'
+  | 'adventurous'
+  | 'cultured'
+  | 'easy';
+export type BookingColumn = 'none' | 'advised' | 'required';
+
+export type DateIdeaRow = {
+  id: string;
+  couple_id: string;
+  title: string;
+  note: string | null;
+  cost: CostColumn;
+  /** Minor units of whatever the couple's currency was when it was written. */
+  typical_cents: number | null;
+  times: TimeOfDayColumn[];
+  feeling: FeelingColumn;
+  bring: string | null;
+  booking: BookingColumn;
+  book_days_ahead: number | null;
+  outdoors: boolean;
+  minutes: number | null;
+  place_id: string | null;
+  last_done_on: string | null;
+  done_count: number;
+  favourite: boolean;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type WishRow = {
+  id: string;
+  /** Set by a trigger from the profile; never sent by the client. */
+  couple_id: string;
+  profile_id: string;
+  title: string;
+  note: string | null;
+  photo_path: string | null;
+  link: string | null;
+  /** 1, 2 or 3 while live; null once granted, which frees the seat. */
+  slot: number | null;
+  granted_on: string | null;
+  granted_by: string | null;
+  granted_note: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -421,6 +476,9 @@ export type Database = {
       letters: TableDef<LetterRow, 'couple_id' | 'from_profile' | 'to_profile' | 'body'>;
       // couple_id is absent on purpose: the trigger fills it in.
       cycle_events: TableDef<CycleEventRow, 'profile_id' | 'started_on'>;
+      date_ideas: TableDef<DateIdeaRow, 'couple_id' | 'title'>;
+      // Same as cycle_events: couple_id comes from the trigger.
+      wishes: TableDef<WishRow, 'profile_id' | 'title'>;
     };
     Views: { [_ in never]: never };
     Functions: {

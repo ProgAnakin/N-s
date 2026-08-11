@@ -583,6 +583,179 @@ end;
 $$;
 rollback;
 
+-- =====================================================================
+-- 10. Three wishes each, and only yours to word
+--
+-- The one table where both people write to the same row and mean
+-- different things by it. RLS restricts rows, not columns, so the policy
+-- alone cannot say "you may set granted_on and nothing else" — the same
+-- gap that let a partner rewrite their own role in 0005. A trigger
+-- carries that half, and it is the half worth attacking.
+-- =====================================================================
+
+begin;
+do $$
+begin
+  perform nos_test.sign_in(nos_test.who('yan'));
+  insert into public.wishes (profile_id, couple_id, title, slot) values
+    (nos_test.who('yan'), nos_test.space('a'), 'The green coat', 1),
+    (nos_test.who('yan'), nos_test.space('a'), 'A day with no plans', 2),
+    (nos_test.who('yan'), nos_test.space('a'), 'That book about rivers', 3);
+
+  perform nos_test.ok((select count(*) from public.wishes) = 3, 'three wishes go in');
+
+  perform nos_test.refuses(
+    format('insert into public.wishes (profile_id, couple_id, title, slot)
+            values (%L, %L, ''a fourth thing'', 1)',
+           nos_test.who('yan'), nos_test.space('a')),
+    '23505',
+    'and a fourth cannot take a seat that is occupied');
+end;
+$$;
+rollback;
+
+begin;
+do $$
+begin
+  perform nos_test.sign_in(nos_test.who('yan'));
+  insert into public.wishes (profile_id, couple_id, title, slot)
+    values (nos_test.who('yan'), nos_test.space('a'), 'The green coat', 1);
+
+  perform nos_test.sign_in(nos_test.who('leo'));
+  perform nos_test.ok((select count(*) from public.wishes) = 1,
+    'the partner can read it — that is the entire point of a wish');
+
+  -- What he may do.
+  update public.wishes set granted_on = current_date, slot = null,
+                           granted_by = nos_test.who('leo'),
+                           granted_note = 'the one with wooden buttons';
+  perform nos_test.ok((select granted_on is not null from public.wishes),
+    'and he can grant it, which is the act the whole feature exists for');
+
+  -- What he may not.
+  perform nos_test.refuses(
+    'update public.wishes set title = ''a coat, any coat''',
+    '42501',
+    'but he cannot reword somebody else''s wish');
+end;
+$$;
+rollback;
+
+begin;
+do $$
+declare v_touched int;
+begin
+  perform nos_test.sign_in(nos_test.who('yan'));
+  insert into public.wishes (profile_id, couple_id, title, slot)
+    values (nos_test.who('yan'), nos_test.space('a'), 'The green coat', 1);
+
+  perform nos_test.sign_in(nos_test.who('leo'));
+  delete from public.wishes;
+  get diagnostics v_touched = row_count;
+  perform nos_test.ok(v_touched = 0,
+    'nor delete it — taking a wish back is the wisher''s to do');
+end;
+$$;
+rollback;
+
+begin;
+do $$
+begin
+  perform nos_test.sign_in(nos_test.who('yan'));
+  insert into public.wishes (profile_id, couple_id, title, slot)
+    values (nos_test.who('yan'), nos_test.space('a'), 'The green coat', 1);
+
+  -- Granting frees the seat in the same statement that files the history,
+  -- so a granted wish never occupies one of the three.
+  update public.wishes set granted_on = current_date, slot = null;
+  insert into public.wishes (profile_id, couple_id, title, slot)
+    values (nos_test.who('yan'), nos_test.space('a'), 'Something new', 1);
+
+  perform nos_test.ok((select count(*) from public.wishes where slot is not null) = 1,
+    'a granted wish frees its seat rather than holding one for ever');
+  perform nos_test.ok((select count(*) from public.wishes where granted_on is not null) = 1,
+    'and stays on the shelf as something that happened');
+end;
+$$;
+rollback;
+
+begin;
+do $$
+begin
+  perform nos_test.sign_in(nos_test.who('yan'));
+  -- The constraint that keeps the two states from drifting apart: a live
+  -- wish holds a seat, a granted one does not, and nothing is both.
+  perform nos_test.refuses(
+    format('insert into public.wishes (profile_id, couple_id, title, slot, granted_on)
+            values (%L, %L, ''both at once'', 1, current_date)',
+           nos_test.who('yan'), nos_test.space('a')),
+    '23514',
+    'a wish cannot be granted and still hold a seat');
+end;
+$$;
+rollback;
+
+begin;
+do $$
+begin
+  perform nos_test.sign_in(nos_test.who('x'));
+  perform nos_test.refuses(
+    format('insert into public.wishes (profile_id, couple_id, title, slot)
+            values (%L, %L, ''planted'', 1)',
+           nos_test.who('yan'), nos_test.space('a')),
+    '42501',
+    'and nobody wishes on somebody else''s behalf');
+end;
+$$;
+rollback;
+
+-- =====================================================================
+-- 11. Date ideas are ordinary shared data
+-- =====================================================================
+
+begin;
+do $$
+begin
+  perform nos_test.sign_in(nos_test.who('leo'));
+  insert into public.date_ideas (couple_id, title, cost, feeling, times, booking, created_by)
+    values (nos_test.space('a'), 'The rooftop with the bad wine', 'cheap', 'romantic',
+            array['evening','night'], 'none', nos_test.who('leo'));
+
+  perform nos_test.sign_in(nos_test.who('yan'));
+  perform nos_test.ok((select count(*) from public.date_ideas) = 1,
+    'both of you keep the same shelf of ideas');
+
+  perform nos_test.sign_in(nos_test.who('x'));
+  perform nos_test.ok((select count(*) from public.date_ideas) = 0,
+    'and another couple sees none of it');
+end;
+$$;
+rollback;
+
+begin;
+do $$
+begin
+  perform nos_test.sign_in(nos_test.who('leo'));
+  insert into public.date_ideas (couple_id, title) values (nos_test.space('a'), 'Somewhere');
+  perform public.end_couple();
+
+  perform nos_test.refuses(
+    format('insert into public.date_ideas (couple_id, title) values (%L, ''after'')',
+           nos_test.space('a')),
+    '42501',
+    'a closed space closes the shelf too — 0013 attaches its own trigger');
+
+  perform nos_test.sign_in(nos_test.who('yan'));
+  perform nos_test.refuses(
+    format('insert into public.wishes (profile_id, couple_id, title, slot)
+            values (%L, %L, ''after'', 1)',
+           nos_test.who('yan'), nos_test.space('a')),
+    '42501',
+    'and the wishes with it');
+end;
+$$;
+rollback;
+
 -- ---------------------------------------------------------------------
 -- Tidy up, so the database is left as the migrations made it
 --

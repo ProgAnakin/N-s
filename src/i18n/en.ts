@@ -61,6 +61,7 @@ export const en = {
     trips: 'Trips',
     spending: 'Spending',
     gifts: 'Gift radar',
+    ideas: 'Things to do',
     distance: 'Distance',
     calendar: 'Calendar',
     together: 'Together',
@@ -574,6 +575,161 @@ export const en = {
     '50_50Hint': 'Split evenly.',
     custom_pctHint: 'For when your incomes aren’t the same.',
     treatHint: 'A gift. Left out of the balance entirely.',
+  },
+
+  ideas: {
+    /* Not the nav label repeated. The kicker above this already says
+       "Things to do", and a page whose eyebrow and headline are the same
+       three words looks like a templating mistake. */
+    title: 'What shall we do?',
+    subtitle: 'The list you can never remember at seven o’clock on a Friday.',
+    intro:
+      'Everything either of you has ever said “we should do that” about, with the parts that decide whether you actually can.',
+    add: 'Add an idea',
+    edit: 'Edit idea',
+    emptyTitle: 'Nothing on the shelf yet',
+    emptyBody:
+      'Add the last thing one of you said “we should do that” about. The point of writing it down is that you will not remember it on the evening you need it.',
+
+    ideaTitle: 'What is it',
+    titlePlaceholder: 'e.g. The rooftop place with the bad wine and the good view',
+    note: 'Anything worth knowing',
+    notePlaceholder: 'Go before eight or there is nowhere to sit.',
+
+    cost: 'Roughly what it costs',
+    costs: {
+      free: 'Free',
+      cheap: 'Cheap',
+      modest: 'Middling',
+      splash: 'A splash',
+    },
+    /* Bands rather than a number: this app holds four currencies with no
+       shared sense of what a figure means, and "cheap" survives both a
+       flight and a decade of inflation. */
+    costHint: 'A band, not a number — it has to still be true next year and in another country.',
+    typical: 'Or the actual number',
+    typicalHint: 'Only if you know it. Never added up with anything.',
+
+    times: 'When it’s good',
+    timesHint: 'Pick every one that works. Leaving them all off means it always works.',
+    timesOf: {
+      morning: 'Morning',
+      afternoon: 'Afternoon',
+      evening: 'Evening',
+      night: 'Late',
+      allday: 'Any time',
+    },
+
+    feeling: 'How it feels',
+    /* The field that makes the shelf usable. On a flat Tuesday nobody is
+       looking for "an activity" — they are looking for something calm. */
+    feelingHint: 'The thing you are actually choosing by when you are tired.',
+    feelings: {
+      calm: 'Calm',
+      playful: 'Playful',
+      romantic: 'Romantic',
+      adventurous: 'A bit brave',
+      cultured: 'Something to think about',
+      easy: 'Easy',
+    },
+
+    bring: 'Take with you',
+    bringPlaceholder: 'Cash — they don’t take cards. And the good camera.',
+
+    booking: 'Booking',
+    bookings: {
+      none: 'Just turn up',
+      advised: 'Worth booking',
+      required: 'Must book',
+    },
+    bookDaysAhead: 'How far ahead',
+    bookDaysAheadHint: 'Days. Used to keep it off tonight’s list when it is already too late.',
+    bookBy: (date: string) => `Book by ${date}`,
+    bookNow: 'Too late to book for that day',
+
+    outdoorsShort: 'Outdoors',
+    outdoors: 'Weather decides it',
+    outdoorsHint: 'Set aside on a wet day instead of being suggested and then abandoned.',
+    minutes: 'How long, roughly',
+    minutesHint: 'Minutes. Leave it empty if it stretches.',
+
+    // --- The filter -----------------------------------------------------
+    tonight: 'What fits tonight',
+    anyBudget: 'Any cost',
+    anyTime: 'Any time',
+    anyFeeling: 'Any feeling',
+    anyLength: 'However long',
+    wet: 'It’s raining',
+    clearFilters: 'Show everything',
+    forDay: 'For',
+
+    fitCount: (n: number) =>
+      n === 1 ? '1 idea fits' : `${n} ideas fit`,
+    /* The half that stops the filter lying. A screen quietly showing four
+       of twenty leaves you believing you own four. */
+    setAside: (n: number) =>
+      n === 1 ? '1 set aside' : `${n} set aside`,
+    showSetAside: 'Show what was set aside',
+    hideSetAside: 'Hide those',
+    loosen: {
+      too_expensive: (n: number) =>
+        n === 1 ? '1 more if you’d spend a bit more' : `${n} more if you’d spend a bit more`,
+      wrong_time: (n: number) =>
+        n === 1 ? '1 more at another time of day' : `${n} more at another time of day`,
+      wrong_feeling: (n: number) =>
+        n === 1 ? '1 more in a different mood' : `${n} more in a different mood`,
+      too_long: (n: number) =>
+        n === 1 ? '1 more if you had longer' : `${n} more if you had longer`,
+      weather: (n: number) =>
+        n === 1 ? '1 more if you’d go outdoors' : `${n} more if you’d go outdoors`,
+      too_late_to_book: (n: number) =>
+        n === 1 ? '1 more on a later day' : `${n} more on a later day`,
+    },
+    missReasons: {
+      too_expensive: 'Costs more than that',
+      wrong_time: 'Not at that hour',
+      wrong_feeling: 'A different mood',
+      too_long: 'Takes longer',
+      weather: 'Outdoors',
+      too_late_to_book: 'Too late to book',
+    },
+
+    // --- The cards ------------------------------------------------------
+    never: 'Never tried',
+    doneOnce: 'Done once',
+    doneTimes: (n: number) => `Done ${n} times`,
+    lastTime: (days: number) =>
+      days === 0
+        ? 'Last done today'
+        : days === 1
+          ? 'Last done yesterday'
+          : days < 30
+            ? `Last done ${days} days ago`
+            : days < 365
+              ? `Last done ${Math.round(days / 30)} months ago`
+              : 'Last done over a year ago',
+    favourite: 'One you keep coming back to',
+    markFavourite: 'Keep this one near the top',
+    unmarkFavourite: 'Stop keeping it near the top',
+    untried: (n: number) =>
+      n === 1 ? '1 you have never tried' : `${n} you have never tried`,
+
+    plan: 'Put it in the calendar',
+    planned: (date: string) => `Planned for ${date}`,
+    planTitle: 'When?',
+    planDay: 'Which day',
+    markDone: 'We did this',
+    /* Increments the count and dates it, which is what moves an idea down
+       the shelf rather than off it. A good evening is worth repeating. */
+    markDoneHint: 'Moves it down the list without losing it. Good ones come round again.',
+    doneToday: 'Marked done',
+
+    /* "1 h 30" reads as an unfinished sentence and "90 min" is hard to
+       size at a glance. The unspaced form is how a duration is written
+       across most of Europe and reads unambiguously in all four of the
+       languages this app is heading for. */
+    minutesShort: (n: number) =>
+      n < 60 ? `${n} min` : n % 60 === 0 ? `${n / 60}h` : `${Math.floor(n / 60)}h${n % 60}`,
   },
 
   gifts: {
