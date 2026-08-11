@@ -1,0 +1,37 @@
+name: check
+
+# Everything that can be verified without touching the real project.
+#
+# The database half of this was skipped for a long time on the assumption
+# that testing migrations needed a Supabase project and a token nobody
+# wanted to hand to CI. It does not: the migrations are ordinary Postgres,
+# and `supabase/test-harness.sql` supplies the handful of `auth.*` and
+# `storage.*` objects they bind to. The runner already has Postgres.
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+jobs:
+  app:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+  database:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Applies all twelve migrations to a throwaway cluster, checks every
+      # object they promise is actually there, then attacks the privacy
+      # model as `authenticated` and `anon`.
+      - run: npm run db:check

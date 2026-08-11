@@ -28,6 +28,7 @@ rather than failing silently.
 | `npm run build` | Typecheck then production build |
 | `npm test` | Unit tests |
 | `npm run typecheck` | Types only |
+| `npm run db:check` | Applies every migration to a throwaway Postgres, then attacks the privacy model |
 
 Requires Node 18+.
 
@@ -666,10 +667,11 @@ control is labelled, and the layout is built phone-first.
 ## Tests
 
 ```bash
-npm test
+npm test          # the app
+npm run db:check  # the database
 ```
 
-257 tests. The bulk cover `src/lib/`: the spending maths (including a
+541 tests. The bulk cover `src/lib/`: the spending maths (including a
 round-trip proving the rebalance suggestion lands exactly level, and that
 treats never enter the calculation), calendar arithmetic across leap years and
 month-end clamping, recurrence, the reminder rules, and the question bank.
@@ -684,6 +686,42 @@ a heavily lopsided balance and asserts the output never contains *owes*,
 *debt* or *settle up*. `letters.test.ts` asserts the module exports no
 per-author tally. Neither is testing an implementation; both are testing that
 the app has not quietly become a scoreboard.
+
+### The database half
+
+`npm run db:check` needs a local Postgres server and nothing else — no
+Supabase project, no token, no network. It starts a throwaway cluster, lays
+down `supabase/test-harness.sql` (the handful of `auth.*` and `storage.*`
+objects the migrations bind to, and no more than that), applies all twelve
+migrations from nothing, and then does two things review cannot:
+
+**`supabase/verify.sql`** asks the catalog for all 116 objects the app
+expects — every table, every column added after its table existed, every
+function the client calls by name, the load-bearing triggers, RLS on all
+twenty-one tables, and the nineteen closing triggers — and prints anything
+missing with the file that creates it. Paste it into the Supabase SQL Editor
+any time you want to know what state the real project is actually in. It is
+read-only.
+
+**`supabase/tests/rls.sql`** runs 42 checks as `authenticated` and `anon`,
+never as the owner, because the owner bypasses RLS and would pass
+everything. Two couples exist throughout, since one cannot demonstrate a
+leak. It confirms a stranger cannot read, rewrite, delete or plant a row in
+someone else's space; that a private note is invisible *and uncountable* to
+the partner; that a gift idea is invisible to the person it is for; that
+neither partner can promote themselves and reassign every expense ever
+logged; that the invite code can be rotated but not chosen; that a sealed
+letter is sealed by the database rather than by the screen; that a cycle is
+readable only while shared; and that a closed space refuses writes while
+staying readable and deletable, because closing a space is not confiscating
+it.
+
+Every refusal is asserted with its error code, not merely as "it threw".
+Dropping the membership trigger to prove the suite can fail showed why: the
+role flip is *still* refused without it, by the unique index on
+`(couple_id, role)` colliding with the partner who holds that role — real
+defence in depth, and worthless the moment that partner leaves and the seat
+is free. A test satisfied by any refusal would have called that safe.
 
 Three defects in this codebase were only ever visible in a rendered build, and
 none of them were caught by review: a bar chart with zero height, because a
