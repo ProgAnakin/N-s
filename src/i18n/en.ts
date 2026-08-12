@@ -539,6 +539,19 @@ export const en = {
     balanceNothingBody: 'Once you log a few things, you’ll see how it’s been shared.',
     rebalanceTitle: 'To even it out naturally',
     rebalanceBody: (name: string, amount: string) => `The next ${amount} is on ${name}.`,
+    /* The working, shown because the answer alone is not believable.
+       The figure is twice the gap — half of anything they pay is their own
+       share anyway — so on a €109 total it can suggest €90, which looks
+       absurd until you can see the two contributions it comes from and the
+       number they both end up at. */
+    rebalanceWorking: (
+      yourName: string,
+      yours: string,
+      theirName: string,
+      theirs: string,
+      levelAt: string,
+    ) =>
+      `${yourName} has put in ${yours} and ${theirName} ${theirs}. Covering it puts you both at about ${levelAt}.`,
     // Deliberately does not reach for the word "owed", even to deny it.
     // Naming the idea in order to dismiss it still puts it in the room.
     rebalanceHint: 'No rush. It’s just the number that would bring the split back level.',
@@ -555,7 +568,9 @@ export const en = {
     /* Shown when the amount, the currency, who paid or the split changed
        after the fact. Fixing a typo in the label is not flagged. */
     edited: 'edited',
-    splitBadge: (pct: number) => `${pct}%`,
+    /* Named, not bare. "35%" alone never said whose 35% it was, which on a
+       two-person split is exactly the half of the sentence that matters. */
+    splitBadge: (name: string, pct: number) => `${name} ${pct}%`,
     /* An expense written down offline has no frozen rate of its own yet. It
        is *in* the total, at today's rate, and the app is quietly fetching
        the rate of the day it actually happened to replace that. Said out

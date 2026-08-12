@@ -1,6 +1,6 @@
 import { m } from 'framer-motion';
 import type { Balance } from '@/lib/money';
-import { formatPercent, isLevel, rebalanceSuggestion } from '@/lib/money';
+import { formatPercent, isLevel, otherPartner, rebalanceSuggestion } from '@/lib/money';
 import { useI18n, useStrings } from '@/i18n';
 import type { PartnerNames } from '@/screens/shared';
 import { useMoney } from '@/screens/shared';
@@ -141,6 +141,19 @@ export function RebalanceNote({
         {s.spending.rebalanceBody(
           names[suggestion.partner],
           money(suggestion.amountCents, balance.currency),
+        )}
+      </p>
+      {/* The working, not just the answer. The figure is twice the gap,
+          which on a small total looks wrong until you can see the two
+          contributions behind it and where they meet — and a number that
+          cannot be checked is a number nobody believes. */}
+      <p className="text-sm leading-relaxed text-ink-soft">
+        {s.spending.rebalanceWorking(
+          names[otherPartner(suggestion.partner)],
+          money(suggestion.contributed[otherPartner(suggestion.partner)], balance.currency),
+          names[suggestion.partner],
+          money(suggestion.contributed[suggestion.partner], balance.currency),
+          money(suggestion.levelAtCents, balance.currency),
         )}
       </p>
       <p className="text-sm leading-relaxed text-ink-soft">{s.spending.rebalanceHint}</p>

@@ -10,6 +10,7 @@ import {
   isLevel,
   otherPartner,
   parseAmountToCents,
+  REBALANCE_FLOOR_CENTS,
   rebalanceSuggestion,
   shareOf,
   totalsByCategory,
@@ -246,6 +247,127 @@ describe('rebalanceSuggestion', () => {
     );
     expect(balance.totalCents).toBe(0);
     expect(rebalanceSuggestion(balance)).toBeNull();
+  });
+
+  /**
+   * Eighty cents of drift on a €20 total is over the proportional tolerance
+   * and still not worth a sentence. "The next €1.60 is on Ling" reads as
+   * pettiness, which is the one tone this whole module exists to avoid.
+   */
+  it('stays quiet about small change, even past the proportional tolerance', () => {
+    // €5.25 and €4.75 on a €10 total: 2.5% apart, so the proportional
+    // tolerance alone would speak up — about fifty cents.
+    const balance = computeBalance(
+      [expense(525, 'partner_a'), expense(475, 'partner_b')],
+      'EUR',
+    );
+    expect(isLevel(balance)).toBe(false);
+    expect(balance.differenceCents * 2).toBeLessThan(REBALANCE_FLOOR_CENTS);
+    expect(rebalanceSuggestion(balance)).toBeNull();
+  });
+
+  it('speaks up as soon as a whole unit is at stake', () => {
+    const balance = computeBalance(
+      [expense(550, 'partner_a'), expense(450, 'partner_b')],
+      'EUR',
+    );
+    expect(rebalanceSuggestion(balance)?.amountCents).toBe(REBALANCE_FLOOR_CENTS);
+  });
+});
+
+/**
+ * The figure the page shows, checked the only way that really proves it.
+ *
+ * A user reported the suggestion as obviously wrong: €100 in from one of
+ * them, €9.49 from the other, and the app asking for €90.52 — more than
+ * eight times what she had put in, on a total of €109.49. It reads as
+ * absurd, and it is exactly right, because half of anything she pays is her
+ * own share to begin with. The gap is €45.26; closing it takes twice that.
+ *
+ * Asserting a hard-coded €90.52 would only prove the code agrees with
+ * itself. So these apply the suggestion to the history it came from and
+ * assert the balance genuinely lands level — the claim the sentence on
+ * screen actually makes.
+ */
+describe('the suggestion, proved by following it', () => {
+  it('squares the exact case that was reported as wrong', () => {
+    // €100 from him, ¥75 converted to €9.49 from her.
+    const history = [expense(10000, 'partner_a'), expense(949, 'partner_b')];
+    const before = computeBalance(history, 'EUR');
+
+    expect(before.contributed).toEqual({ partner_a: 10000, partner_b: 949 });
+    expect(before.totalCents).toBe(10949);
+
+    const suggestion = rebalanceSuggestion(before)!;
+    expect(suggestion.partner).toBe('partner_b');
+    expect(suggestion.amountCents).toBe(9052);
+
+    // The three figures the screen now shows, so the reader can check it.
+    expect(suggestion.contributed.partner_a).toBe(10000);
+    expect(suggestion.contributed.partner_b).toBe(949);
+    expect(suggestion.levelAtCents).toBe(10000);
+
+    const after = computeBalance(
+      [...history, expense(suggestion.amountCents, suggestion.partner)],
+      'EUR',
+    );
+    expect(after.aheadPartner).toBeNull();
+    // And they really do both end up at about the stated figure.
+    expect(after.contributed.partner_a).toBe(10000);
+    expect(after.contributed.partner_b).toBe(10001);
+  });
+
+  it('is a cent short if the naive gap is used instead', () => {
+    // Guards against "simplifying" the doubling back out. The difference
+    // between the two contributions looks like the obvious answer and
+    // leaves the two of them one cent apart for ever.
+    const history = [expense(10000, 'partner_a'), expense(949, 'partner_b')];
+    const naive = 10000 - 949;
+    const after = computeBalance([...history, expense(naive, 'partner_b')], 'EUR');
+    expect(after.differenceCents).toBe(1);
+  });
+
+  /**
+   * Every history, not just the convenient ones. Mixed percentages, treats,
+   * either partner paying, amounts up to €500 — following the suggestion
+   * must land exactly level every single time.
+   */
+  it('lands exactly level across thousands of random histories', () => {
+    // A fixed seed: a property test that fails only sometimes is worse than
+    // no property test, because nobody can reproduce it.
+    let seed = 12345;
+    const rand = (n: number) => ((seed = (seed * 1103515245 + 12345) & 0x7fffffff) % n);
+
+    let checked = 0;
+    for (let trial = 0; trial < 3000; trial += 1) {
+      const history: Expense[] = [];
+      for (let i = 0; i <= rand(5); i += 1) {
+        const kind = rand(10);
+        const rule: SplitRule =
+          kind === 9
+            ? { kind: 'treat' }
+            : kind < 6
+              ? { kind: '50_50' }
+              : { kind: 'custom_pct', partnerAPercent: rand(101) };
+        history.push(expense(1 + rand(50000), rand(2) ? 'partner_a' : 'partner_b', rule));
+      }
+
+      const before = computeBalance(history, 'EUR');
+      const suggestion = rebalanceSuggestion(before);
+      if (!suggestion) continue;
+
+      checked += 1;
+      const after = computeBalance(
+        [...history, expense(suggestion.amountCents, suggestion.partner)],
+        'EUR',
+      );
+      expect(after.differenceCents).toBe(0);
+      expect(after.aheadPartner).toBeNull();
+    }
+
+    // If a refactor ever made the guard clauses reject everything, the loop
+    // above would pass by doing nothing at all.
+    expect(checked).toBeGreaterThan(1000);
   });
 });
 

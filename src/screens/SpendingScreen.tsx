@@ -483,8 +483,11 @@ export function SpendingScreen() {
                       {row.split_rule === 'treat' && (
                         <Tag tone="jade">{s.spending.treatBadge}</Tag>
                       )}
+                      {/* Named, because a bare "35%" never said whose. */}
                       {row.split_rule === 'custom_pct' && row.partner_a_percent !== null && (
-                        <Tag>{s.spending.splitBadge(row.partner_a_percent)}</Tag>
+                        <Tag>
+                          {s.spending.splitBadge(names.partner_a, row.partner_a_percent)}
+                        </Tag>
                       )}
                       {/* Not a lock, a record. Either partner may correct a
                           mis-tapped entry — that is legitimate — but the

@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { COUPLE_ID, lastWriteTo, mountSignedIn } from '@/test/harness';
@@ -313,10 +313,14 @@ describe('one total, with nothing left out of it', () => {
     const user = userEvent.setup();
     mount([expenseRow({ label: 'Offline one', fx: null, fx_on: null })]);
 
-    await screen.findByText('Offline one');
+    const row = (await screen.findByText('Offline one')).closest('li')!;
     await user.click(screen.getByRole('button', { name: 'BRL' }));
 
-    expect(await screen.findByText(/about\s+R\$\s?279/)).toBeInTheDocument();
+    // Scoped to the row: the rebalance note underneath now also says "about",
+    // because it explains where the two of them would land.
+    await waitFor(() => {
+      expect(within(row).getByText(/about\s+R\$\s?279/)).toBeInTheDocument();
+    });
     expect(screen.getByText(/haven’t got|hasn’t got/i)).toBeInTheDocument();
   });
 

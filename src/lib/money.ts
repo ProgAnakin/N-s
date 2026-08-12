@@ -325,9 +325,33 @@ export interface RebalanceSuggestion {
    * people. If A is €50 ahead and B pays for a €50 dinner that they split
    * evenly, B has only moved €25 of the gap — half of what B paid was B's own
    * share to begin with. Covering €100 is what actually squares it.
+   *
+   * That surprise used to live only in this comment, where nobody using the
+   * app could ever read it — and a figure that looks too big and explains
+   * nothing is a figure nobody trusts. The three fields below exist so the
+   * screen can show the working instead of just the answer.
    */
   amountCents: number;
+  /** What each of them has actually put in so far. */
+  contributed: PartnerTotals;
+  /**
+   * What they would each have contributed once this is covered — the same
+   * number for both, give or take the odd rounding cent, which is the whole
+   * point and the thing that makes `amountCents` believable.
+   */
+  levelAtCents: number;
 }
+
+/**
+ * Below this, saying anything at all is noise.
+ *
+ * `isLevel`'s tolerance is proportional, which is right for a couple with
+ * years of history and useless in week one: eighty cents of drift on a €20
+ * total is 4% and would otherwise produce "the next €1.60 is on Ling",
+ * which reads as pettiness rather than fairness. One major unit is the floor
+ * in every currency the app supports.
+ */
+export const REBALANCE_FLOOR_CENTS = MINOR_UNITS;
 
 /**
  * How far the split can drift before it is worth mentioning. Two people who
@@ -355,9 +379,18 @@ export function rebalanceSuggestion(
 ): RebalanceSuggestion | null {
   if (balance.aheadPartner === null) return null;
   if (isLevel(balance, tolerancePercent)) return null;
+
+  const amountCents = balance.differenceCents * 2;
+  if (amountCents < REBALANCE_FLOOR_CENTS) return null;
+
   return {
     partner: otherPartner(balance.aheadPartner),
-    amountCents: balance.differenceCents * 2,
+    amountCents,
+    contributed: { ...balance.contributed },
+    // Where the two of them meet. Derived from the partner who is ahead,
+    // because that one does not move: the whole suggestion is the other
+    // one climbing to meet them.
+    levelAtCents: balance.contributed[balance.aheadPartner],
   };
 }
 
