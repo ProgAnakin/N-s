@@ -47,7 +47,8 @@ with expected(migration, kind, ident, note) as (
     ('0010_memory_books',  'table', 'memory_photos',       'a memory becomes a page'),
     ('0011_relational_core','table','cycle_events',        'only read when shared'),
     ('0013_ideas_and_wishes','table','date_ideas',         'what to do on a Friday'),
-    ('0013_ideas_and_wishes','table','wishes',             'three each, no more')
+    ('0013_ideas_and_wishes','table','wishes',             'three each, no more'),
+    ('0015_shared_rates',    'table','fx_rates',           'no couple_id — a rate is the same fact for everyone')
   ) as t(migration, kind, ident, note)
 
   union all
@@ -168,7 +169,7 @@ with expected(migration, kind, ident, note) as (
        'dismissed_questions','family_members','phrases','culture_notes','trips',
        'trip_items','expenses','gift_ideas','places','checkins','plans',
        'intimacy_entries','flowers','letters','memory_photos','cycle_events',
-       'date_ideas','wishes'
+       'date_ideas','wishes','fx_rates'
      )
 
   union all

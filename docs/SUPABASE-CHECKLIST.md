@@ -101,7 +101,7 @@ check by hand:
 | | |
 |---|---|
 | Every table has RLS, every RLS table has a policy | `npm run db:check` |
-| The privacy model holds under attack | 70 checks in `supabase/tests/rls.sql` |
+| The privacy model holds under attack | 73 checks in `supabase/tests/rls.sql` |
 | Storage paths are scoped to the couple | `0003`, attacked in the same suite |
 | The migrations apply from nothing, in order | `npm run db:check` |
 | What actually landed in the real project | paste `supabase/verify.sql` |

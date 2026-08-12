@@ -907,6 +907,57 @@ end;
 $$;
 rollback;
 
+-- =====================================================================
+-- 15. A shared rate belongs to nobody's couple
+--
+-- Everything else in this file is about a boundary that must hold. This
+-- one is about a boundary that must *not* exist: an ECB reference rate
+-- for a given day is the same fact whoever is asking, and the couple
+-- whose browser could not reach the provider directly has to be able to
+-- read what a stranger's browser found, not just their own partner's.
+-- =====================================================================
+
+begin;
+do $$
+begin
+  -- Léo's browser could reach the rate provider. He leaves the day's
+  -- rates behind.
+  perform nos_test.sign_in(nos_test.who('leo'));
+  insert into public.fx_rates (date, base, per_base)
+    values ('2025-11-04', 'EUR', '{"EUR":1,"BRL":6.2,"CNY":7.9,"USD":1.08}'::jsonb);
+
+  -- A stranger from an entirely different couple reads the same row —
+  -- not a leak, because it was never couple data to begin with.
+  perform nos_test.sign_in(nos_test.who('x'));
+  perform nos_test.ok(
+    (select per_base ->> 'BRL' from public.fx_rates where date = '2025-11-04') = '6.2',
+    'a published exchange rate is the same fact for every couple in the app');
+
+  -- And the stranger can leave a day of their own for somebody else.
+  insert into public.fx_rates (date, base, per_base)
+    values ('2025-11-05', 'EUR', '{"EUR":1,"BRL":6.3,"CNY":7.8,"USD":1.07}'::jsonb);
+  perform nos_test.sign_in(nos_test.who('leo'));
+  perform nos_test.ok(
+    (select count(*) from public.fx_rates where date = '2025-11-05') = 1,
+    'and anybody signed in can leave a day''s rates for the next person');
+end;
+$$;
+
+do $$
+begin
+  -- Same rule as expenses.fx in 0009: a snapshot missing one of the four
+  -- currencies is worse than none, because it converts three and
+  -- silently drops the fourth out of every total that reads it.
+  perform nos_test.sign_in(nos_test.who('leo'));
+  perform nos_test.refuses(
+    $sql$insert into public.fx_rates (date, base, per_base)
+         values ('2025-11-06', 'EUR', '{"EUR":1,"BRL":6.2,"CNY":7.9}'::jsonb)$sql$,
+    '23514',
+    'a rate missing one of the four currencies is refused, not silently short');
+end;
+$$;
+rollback;
+
 -- ---------------------------------------------------------------------
 -- Tidy up, so the database is left as the migrations made it
 --

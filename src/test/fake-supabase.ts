@@ -28,7 +28,7 @@ export interface FakeError {
 
 export interface RecordedWrite {
   table: string;
-  op: 'insert' | 'update' | 'delete';
+  op: 'insert' | 'update' | 'delete' | 'upsert';
   values: Record<string, unknown> | null;
   match: Record<string, unknown>;
 }
@@ -192,6 +192,7 @@ class FakeQuery implements PromiseLike<{ data: unknown; error: FakeError | null 
   private orders: { column: string; ascending: boolean }[] = [];
   private columns = '*';
   private rowLimit: number | undefined;
+  private upsertOptions: { onConflict: string; ignoreDuplicates: boolean } | undefined;
 
   constructor(
     private readonly db: FakeSupabase,
@@ -217,6 +218,22 @@ class FakeQuery implements PromiseLike<{ data: unknown; error: FakeError | null 
   update(values: Row): this {
     this.op = 'update';
     this.payload = values;
+    return this;
+  }
+
+  /**
+   * Matches supabase-js closely enough for a table with no `id` primary
+   * key: the conflict column is whatever `onConflict` names (defaulting to
+   * `id`, same as the real client), not always the generated identity
+   * every other fake table gets stamped with on insert.
+   */
+  upsert(values: Row, options?: { onConflict?: string; ignoreDuplicates?: boolean }): this {
+    this.op = 'upsert';
+    this.payload = values;
+    this.upsertOptions = {
+      onConflict: options?.onConflict ?? 'id',
+      ignoreDuplicates: options?.ignoreDuplicates ?? false,
+    };
     return this;
   }
 
@@ -298,6 +315,21 @@ class FakeQuery implements PromiseLike<{ data: unknown; error: FakeError | null 
         const kept = rows.filter((row) => !this.matches(row));
         this.db.tables.set(this.table, kept);
         return { data: null, error: null };
+      }
+      case 'upsert': {
+        const key = this.upsertOptions!.onConflict;
+        const existing = rows.find((row) => row[key] === this.payload![key]);
+        if (existing) {
+          // `ignoreDuplicates` is the whole reason this fake exists rather
+          // than reusing 'insert': a row already there is left exactly as
+          // it was, which a plain insert-and-stamp cannot express.
+          if (!this.upsertOptions!.ignoreDuplicates) Object.assign(existing, this.payload);
+          return { data: this.wantsSingle ? existing : [existing], error: null };
+        }
+        const created: Row = { id: `generated-${this.db.writes.length}`, ...this.payload };
+        rows.push(created);
+        this.db.tables.set(this.table, rows);
+        return { data: this.wantsSingle ? created : [created], error: null };
       }
       default: {
         this.db.selects.push({

@@ -1,3 +1,4 @@
+import { supabase } from './client';
 import { CURRENCIES, type CurrencyCode } from '@/lib/money';
 import { snapshotFrom, type RateBook, type RateSnapshot } from '@/lib/fx';
 
@@ -5,9 +6,9 @@ import { snapshotFrom, type RateBook, type RateSnapshot } from '@/lib/fx';
  * Exchange rates: today's, and any day in the past.
  *
  * Frankfurter publishes the European Central Bank's reference rates: free,
- * no key, no rate limit worth worrying about, CORS open. It was chosen over
- * the alternatives because it needs no account — an app for two people
- * should not require somebody to register for an API key to log a dinner.
+ * no key, no rate limit worth worrying about. It was chosen over the
+ * alternatives because it needs no account — an app for two people should
+ * not require somebody to register for an API key to log a dinner.
  *
  * The ECB publishes once per working day, so a weekend request returns
  * Friday's rates. That is the correct answer, not a stale one: no interbank
@@ -20,9 +21,21 @@ import { snapshotFrom, type RateBook, type RateSnapshot } from '@/lib/fx';
  * without anybody deciding anything. That is what `ratesOn` is for, and
  * historical rates never change, so they are cached forever.
  *
- * Everything here degrades to null. A failed fetch means an expense is
- * written down without a snapshot, which the spending page counts at
- * today's rate and marks as an estimate until the real one arrives.
+ * **Reaching the provider directly is not something every browser can do.**
+ * A corporate firewall, an ad blocker, or a country's own network filtering
+ * can and does block a rate-lookup domain for one person while leaving it
+ * open for the other — which for a couple split across two countries is not
+ * a rare edge case, it is closer to the ordinary one. So the fetch is not
+ * the only path: whichever partner's device *can* reach Frankfurter shares
+ * what it found in `public.fx_rates`, a table with no couple_id at all,
+ * because an ECB reference rate is the same fact for everyone. The other
+ * partner's browser reads it back from Supabase, which the whole app
+ * already depends on reaching.
+ *
+ * Everything here still degrades to null in the end. A day nobody's browser
+ * could reach Frankfurter for, and nobody had already shared, means an
+ * expense is written down without a snapshot — which the spending page
+ * counts at today's rate and marks as an estimate until a real one arrives.
  */
 
 const ENDPOINT = 'https://api.frankfurter.app';
@@ -76,10 +89,30 @@ function writeCache(rates: CachedRates): void {
 }
 
 /**
+ * Turns whatever the provider sent back into a validated rate table, or null.
+ *
+ * Shared between the live fetch and the Supabase read so both paths refuse
+ * a partial or malformed table the same way — a rate for three currencies
+ * would silently drop the fourth out of every total that reads it.
+ */
+function parseRates(rates: Record<string, unknown>): Record<string, number> | null {
+  const perBase: Record<string, number> = { [BASE]: 1 };
+  for (const code of CURRENCIES) {
+    if (code === BASE) continue;
+    const rate = rates[code];
+    if (typeof rate !== 'number' || !Number.isFinite(rate) || rate <= 0) return null;
+    perBase[code] = rate;
+  }
+  return perBase;
+}
+
+/**
  * One request to the provider, for `when` — a date, or `latest`.
  *
  * Does no caching of its own so the two callers can cache differently:
- * today's rates go stale at midnight, a past day's never do.
+ * today's rates go stale at midnight, a past day's never do. Does not fall
+ * back to Supabase either — that is `fetchRates` and `fetchHistorical`'s
+ * job, since only they know whether "latest" or an exact date is wanted.
  */
 async function requestRates(when: string): Promise<CachedRates | null> {
   const wanted = CURRENCIES.filter((code) => code !== BASE).join(',');
@@ -91,14 +124,9 @@ async function requestRates(when: string): Promise<CachedRates | null> {
     if (typeof body !== 'object' || body === null || !('rates' in body)) return null;
 
     const { rates, date } = body as { rates: Record<string, unknown>; date?: unknown };
-    const perBase: Record<string, number> = { [BASE]: 1 };
-    for (const code of CURRENCIES) {
-      if (code === BASE) continue;
-      const rate = rates[code];
-      // One missing currency invalidates the lot — see the CHECK in 0009.
-      if (typeof rate !== 'number' || !Number.isFinite(rate) || rate <= 0) return null;
-      perBase[code] = rate;
-    }
+    // One missing currency invalidates the lot — see the CHECK in 0009.
+    const perBase = parseRates(rates);
+    if (!perBase) return null;
 
     return {
       // The provider answers with the day it actually used, which for a
@@ -114,10 +142,97 @@ async function requestRates(when: string): Promise<CachedRates | null> {
   }
 }
 
+/* ------------------------------------------------------------------ *
+ * The shared table — what this browser cannot reach, another one might
+ * ------------------------------------------------------------------ */
+
+/**
+ * Leaves a successful fetch for the partner, best-effort.
+ *
+ * `ignoreDuplicates` so this never overwrites a day that is already there
+ * — there is nothing to correct in an ECB reference rate that has not
+ * changed, and the ordinary case is two devices racing to write the same
+ * day within seconds of each other.
+ */
+async function shareWithPartner(rates: CachedRates): Promise<void> {
+  if (!supabase) return;
+  try {
+    await supabase
+      .from('fx_rates')
+      .upsert(
+        { date: rates.date, base: BASE, per_base: rates.perBase },
+        { onConflict: 'date', ignoreDuplicates: true },
+      );
+  } catch {
+    // The rate still works for this browser even if sharing it failed —
+    // sharing is a courtesy to the partner, not something this save
+    // depends on.
+  }
+}
+
+function fromRow(row: { date: string; per_base: Record<string, unknown> }): CachedRates | null {
+  const perBase = parseRates(row.per_base);
+  if (!perBase) return null;
+  return { date: row.date, perBase, fetchedOn: todayIso() };
+}
+
+/** The most recent day anybody has shared, whatever it is. */
+async function readSharedLatest(): Promise<CachedRates | null> {
+  if (!supabase) return null;
+  try {
+    const { data, error } = await supabase
+      .from('fx_rates')
+      .select('date, per_base')
+      .order('date', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error || !data) return null;
+    return fromRow(data);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * One exact day, or null.
+ *
+ * Deliberately not "the nearest day anybody has": a value frozen onto an
+ * expense claims to be that day's rate, not a stand-in for it, and a
+ * nearby-but-wrong date would get written down as though it were exact.
+ */
+async function readShared(date: string): Promise<CachedRates | null> {
+  if (!supabase) return null;
+  try {
+    const { data, error } = await supabase
+      .from('fx_rates')
+      .select('date, per_base')
+      .eq('date', date)
+      .maybeSingle();
+    if (error || !data) return null;
+    return fromRow(data);
+  } catch {
+    return null;
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Today
+ * ------------------------------------------------------------------ */
+
 async function fetchRates(): Promise<CachedRates | null> {
-  const fresh = await requestRates('latest');
-  if (fresh) writeCache(fresh);
-  return fresh;
+  const direct = await requestRates('latest');
+  if (direct) {
+    writeCache(direct);
+    void shareWithPartner(direct);
+    return direct;
+  }
+
+  // This browser could not reach the provider itself. Ask whether the
+  // partner's could — today's shared rate is exactly as good as fetching
+  // it directly would have been.
+  const shared = await readSharedLatest();
+  if (shared) writeCache(shared);
+  return shared;
 }
 
 /**
@@ -170,6 +285,15 @@ function rememberHistory(key: string, rates: CachedRates): void {
 
 const pending = new Map<string, Promise<CachedRates | null>>();
 
+async function fetchHistorical(date: string): Promise<CachedRates | null> {
+  const direct = await requestRates(date);
+  if (direct) {
+    void shareWithPartner(direct);
+    return direct;
+  }
+  return readShared(date);
+}
+
 /**
  * The rates as they stood on `date` (ISO, `YYYY-MM-DD`).
  *
@@ -188,7 +312,7 @@ export async function ratesOn(date: string): Promise<CachedRates | null> {
   // will share a date. One request each, not one per row.
   let request = pending.get(date);
   if (!request) {
-    request = requestRates(date).finally(() => pending.delete(date));
+    request = fetchHistorical(date).finally(() => pending.delete(date));
     pending.set(date, request);
   }
   const fetched = await request;
@@ -212,7 +336,7 @@ function capture(rates: CachedRates | null, currency: CurrencyCode): CapturedRat
  * The snapshot to freeze onto an expense in `currency`, or null.
  *
  * Null is not an error to report — it is the ordinary consequence of being
- * offline, and the expense saves regardless.
+ * offline (or blocked, and unshared), and the expense saves regardless.
  */
 export async function captureRates(currency: CurrencyCode): Promise<CapturedRates | null> {
   return capture(await currentRates(), currency);
@@ -248,4 +372,3 @@ export async function rateBook(): Promise<RateBook> {
   }
   return book;
 }
-

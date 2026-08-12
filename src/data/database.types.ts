@@ -434,6 +434,23 @@ export type LetterRow = {
   updated_at: string;
 };
 
+/**
+ * A day's exchange rates, shared across every couple in the app.
+ *
+ * Not couple data — an ECB reference rate is the same fact for everyone —
+ * so there is no couple_id here, unlike almost every other row type in
+ * this file. Whichever partner's browser can reach the rate provider
+ * writes the day down; the other reads it back from here instead.
+ */
+export type FxRateRow = {
+  /** ISO date, the provider's own — see the comment in data/rates.ts. */
+  date: string;
+  base: CurrencyColumn;
+  /** What one unit of `base` was worth in each currency, keyed by code. */
+  per_base: Record<string, number>;
+  created_at: string;
+};
+
 /** Columns the database fills in for us on insert. */
 type Generated = 'id' | 'created_at' | 'updated_at';
 
@@ -484,6 +501,8 @@ export type Database = {
       date_ideas: TableDef<DateIdeaRow, 'couple_id' | 'title'>;
       // Same as cycle_events: couple_id comes from the trigger.
       wishes: TableDef<WishRow, 'profile_id' | 'title'>;
+      // No couple_id at all — see the type's own comment.
+      fx_rates: TableDef<FxRateRow, 'date' | 'per_base'>;
     };
     Views: { [_ in never]: never };
     Functions: {

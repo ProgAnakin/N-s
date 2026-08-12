@@ -396,12 +396,25 @@ for two people should not require registering for an API key to log a dinner.
 The ECB publishes once per working day, so a Saturday request returns
 Friday's rates; that is the correct answer, not a stale one.
 
-Everything degrades to null. An expense written down offline saves without a
-snapshot, stays **out** of the total rather than being folded in as a guess,
-and the page says how many and offers to fill them in at today's rate —
-date-stamped, so the approximation is visible. A partial rate table is
-refused outright in both the CHECK and the parser: converting three
-currencies and silently dropping the fourth is worse than converting none.
+**Nothing is ever excluded from the total**, which took two attempts to get
+right. The first cut an expense with no snapshot out of the balance entirely
+— honest, and useless: the one number the page exists to give was quietly
+not the answer. It counts now, at today's rate, marked "about" everywhere it
+appears, and is repaired in the background to the rate of the day it
+actually happened, replacing the estimate the moment a real rate lands.
+
+The second attempt assumed the browser asking could always reach
+Frankfurter directly, which is not a safe assumption for a couple split
+across two countries: a firewall, a blocker, or a country's own filtering
+can and does stop one partner's network while leaving the other's alone.
+So the fetch is not the only path. `public.fx_rates` holds a day's rates
+with no `couple_id` at all — an ECB reference rate is the same fact for
+every couple in the app — and whichever partner's device *can* reach the
+provider leaves the answer there for the one whose device cannot, via
+`data/rates.ts`. A partial rate table is refused outright, in the CHECK on
+both the client's own `expenses.fx` and the shared `fx_rates` table and in
+the parser that reads either: converting three currencies and silently
+dropping the fourth is worse than converting none.
 
 ## The album
 
@@ -673,7 +686,7 @@ npm test          # the app
 npm run db:check  # the database
 ```
 
-693 tests. The bulk cover `src/lib/`: the spending maths (including a
+978 tests. The bulk cover `src/lib/`: the spending maths (including a
 round-trip proving the rebalance suggestion lands exactly level, and that
 treats never enter the calculation), calendar arithmetic across leap years and
 month-end clamping, recurrence, the reminder rules, and the question bank.
@@ -694,18 +707,18 @@ the app has not quietly become a scoreboard.
 `npm run db:check` needs a local Postgres server and nothing else — no
 Supabase project, no token, no network. It starts a throwaway cluster, lays
 down `supabase/test-harness.sql` (the handful of `auth.*` and `storage.*`
-objects the migrations bind to, and no more than that), applies all twelve
+objects the migrations bind to, and no more than that), applies all fifteen
 migrations from nothing, and then does two things review cannot:
 
-**`supabase/verify.sql`** asks the catalog for all 137 objects the app
+**`supabase/verify.sql`** asks the catalog for all 138 objects the app
 expects — every table, every column added after its table existed, every
 function the client calls by name, the load-bearing triggers, RLS on all
-twenty-three tables, and the closing triggers — and prints anything
+twenty-four tables, and the closing triggers — and prints anything
 missing with the file that creates it. Paste it into the Supabase SQL Editor
 any time you want to know what state the real project is actually in. It is
 read-only.
 
-**`supabase/tests/rls.sql`** runs 70 checks as `authenticated` and `anon`,
+**`supabase/tests/rls.sql`** runs 73 checks as `authenticated` and `anon`,
 never as the owner, because the owner bypasses RLS and would pass
 everything. Two couples exist throughout, since one cannot demonstrate a
 leak. It confirms a stranger cannot read, rewrite, delete or plant a row in
