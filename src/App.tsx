@@ -1,6 +1,6 @@
 import { lazy, Suspense, type ReactNode } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
-import { LazyMotion } from 'framer-motion';
+import { LazyMotion, MotionConfig } from 'framer-motion';
 import { AppShell } from '@/components/layout/AppShell';
 import { LoadingBlock } from '@/components/ui/Bits';
 import { SessionProvider, useSession } from '@/data/session';
@@ -119,6 +119,15 @@ const animationFeatures = () => import('@/motion-features').then((mod) => mod.de
 export default function App() {
   return (
     <ThemeProvider>
+      {/*
+        `reducedMotion="user"` is the half the stylesheet cannot do. The
+        media query in index.css neutralises CSS animation and transition
+        duration; Framer Motion writes inline styles frame by frame and
+        never sees it, so every entrance in the app still ran at full
+        speed for somebody who had asked their system to stop. For
+        vestibular migraine that difference is not decorative.
+      */}
+      <MotionConfig reducedMotion="user">
       <LazyMotion features={animationFeatures} strict>
         <I18nProvider locale="en">
           <BrowserRouter>
@@ -128,6 +137,7 @@ export default function App() {
           </BrowserRouter>
         </I18nProvider>
       </LazyMotion>
+      </MotionConfig>
     </ThemeProvider>
   );
 }

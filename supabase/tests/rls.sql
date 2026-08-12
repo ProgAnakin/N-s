@@ -756,6 +756,157 @@ end;
 $$;
 rollback;
 
+-- =====================================================================
+-- 12. What is yours goes with you
+--
+-- The failure 0014 exists for, and the one that made this the worst
+-- finding of the audit: leaving the couple used to take your own private
+-- notebook with it. Not deleted — unreachable, by you and by everyone,
+-- for ever. The onboarding promises the opposite in as many words.
+--
+-- These run the leave, then look again.
+-- =====================================================================
+
+begin;
+do $$
+declare v_solo uuid := gen_random_uuid(); v_space uuid;
+begin
+  insert into auth.users (id, email, raw_user_meta_data)
+    values (v_solo, 'solo@example.test', '{"display_name":"Solo"}'::jsonb);
+  perform set_config('nos.test.uid', v_solo::text, true);
+  v_space := (public.create_couple('Solo', null, 'EUR')).id;
+
+  insert into public.remember_facts (couple_id, author_id, question, answer, visibility)
+    values (v_space, v_solo, 'What I am afraid of', 'Losing this', 'private');
+  insert into public.gift_ideas (couple_id, author_id, idea)
+    values (v_space, v_solo, 'the jade pin');
+
+  perform nos_test.sign_in(v_solo);
+
+  perform nos_test.ok((select count(*) from public.remember_facts) = 1,
+    'before leaving, your private note is there');
+
+  perform public.leave_couple();
+
+  perform nos_test.ok((select count(*) from public.remember_facts) = 1,
+    'and after leaving it is STILL there — it was always yours');
+  perform nos_test.ok((select count(*) from public.gift_ideas) = 1,
+    'so is the gift idea nobody else was ever able to see');
+end;
+$$;
+rollback;
+
+begin;
+do $$
+begin
+  -- The promise that did not change: a private note is still invisible
+  -- to the partner, and now for a reason that survives leaving.
+  perform nos_test.sign_in(nos_test.who('leo'));
+  insert into public.remember_facts (couple_id, author_id, question, answer, visibility)
+    values (nos_test.space('a'), nos_test.who('leo'), 'Mine', 'Only mine', 'private');
+  insert into public.remember_facts (couple_id, author_id, question, answer, visibility)
+    values (nos_test.space('a'), nos_test.who('leo'), 'Ours', 'Both', 'shared');
+
+  perform nos_test.sign_in(nos_test.who('yan'));
+  perform nos_test.ok((select count(*) from public.remember_facts) = 1,
+    'the partner still sees only the shared one');
+
+  perform nos_test.sign_in(nos_test.who('x'));
+  perform nos_test.ok((select count(*) from public.remember_facts) = 0,
+    'and a stranger sees neither');
+end;
+$$;
+rollback;
+
+-- =====================================================================
+-- 13. Deleting your own data actually deletes it
+-- =====================================================================
+
+begin;
+do $$
+declare v_left uuid := gen_random_uuid(); v_space uuid; v_result jsonb;
+begin
+  insert into auth.users (id, email, raw_user_meta_data)
+    values (v_left, 'erase@example.test', '{"display_name":"Erase"}'::jsonb);
+  perform set_config('nos.test.uid', v_left::text, true);
+  v_space := (public.create_couple('Erasing', null, 'EUR')).id;
+  insert into public.gift_ideas (couple_id, author_id, idea) values (v_space, v_left, 'a thing');
+  insert into public.memories (couple_id, title, date, created_by)
+    values (v_space, 'a day', current_date, v_left);
+
+  perform nos_test.sign_in(v_left);
+  v_result := public.delete_my_data();
+
+  perform nos_test.ok(v_result->>'shared' = 'true',
+    'the last one out takes the shared space with them');
+  perform nos_test.ok((select count(*) from public.couples where id = v_space) = 0,
+    'so a space nobody is left in stops existing, rather than lingering unreachable');
+end;
+$$;
+rollback;
+
+begin;
+do $$
+declare v_result jsonb;
+begin
+  perform nos_test.sign_in(nos_test.who('leo'));
+  insert into public.gift_ideas (couple_id, author_id, idea)
+    values (nos_test.space('a'), nos_test.who('leo'), 'the pin');
+  insert into public.memories (couple_id, title, date, created_by)
+    values (nos_test.space('a'), 'Porto', current_date, nos_test.who('leo'));
+
+  v_result := public.delete_my_data();
+
+  perform nos_test.ok(v_result->>'shared' = 'false',
+    'leaving while your partner is still there removes only what was yours');
+  perform nos_test.ok((select count(*) from public.couples) = 0,
+    'and you stop seeing the space, which is what leaving means');
+
+  /*
+   * Asserted from the partner's session, deliberately.
+   *
+   * The first version of this checked the couple still existed from the
+   * leaver's own session — and failed, correctly: once you are out,
+   * `current_couple_id()` is null and the space is invisible to you.
+   * Whether it still exists is a question only the person still in it
+   * can answer.
+   */
+  perform nos_test.sign_in(nos_test.who('yan'));
+  perform nos_test.ok((select count(*) from public.couples) = 1,
+    'the space survives for the person still in it');
+  perform nos_test.ok((select count(*) from public.memories) = 1,
+    'and their memories are untouched — deleting yours is not confiscating theirs');
+end;
+$$;
+rollback;
+
+-- =====================================================================
+-- 14. A corrected expense says it was corrected
+-- =====================================================================
+
+begin;
+do $$
+begin
+  perform nos_test.sign_in(nos_test.who('leo'));
+  insert into public.expenses (couple_id, label, amount_cents, currency, paid_by, date, category)
+    values (nos_test.space('a'), 'Dinner', 4500, 'EUR', 'partner_a', current_date, 'food');
+
+  perform nos_test.ok((select edited_at is null from public.expenses),
+    'a new expense carries no edit mark');
+
+  -- The label is not part of what the balance means.
+  update public.expenses set label = 'Dinner by the river';
+  perform nos_test.ok((select edited_at is null from public.expenses),
+    'fixing a typo is not an edit worth flagging');
+
+  -- Who paid is.
+  update public.expenses set paid_by = 'partner_b';
+  perform nos_test.ok((select edited_at is not null from public.expenses),
+    'but changing who paid marks it, so the balance cannot move in silence');
+end;
+$$;
+rollback;
+
 -- ---------------------------------------------------------------------
 -- Tidy up, so the database is left as the migrations made it
 --

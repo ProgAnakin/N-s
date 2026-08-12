@@ -262,6 +262,11 @@ export type ExpenseRow = {
    */
   fx: Record<string, number> | null;
   fx_on: string | null;
+  /**
+   * Set by a trigger when a field that changes the balance changes.
+   * Null on a new expense, and on one where only the label was fixed.
+   */
+  edited_at: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -493,6 +498,15 @@ export type Database = {
       join_couple: {
         Args: { p_invite_code: string };
         Returns: CoupleRow;
+      };
+      /**
+       * Removes what belongs to the caller alone, and the whole space
+       * only when nobody else is left in it. Returns which of the two
+       * happened, so the screen can say so.
+       */
+      delete_my_data: {
+        Args: Record<string, never>;
+        Returns: { private: boolean; shared: boolean };
       };
       leave_couple: {
         Args: Record<PropertyKey, never>;

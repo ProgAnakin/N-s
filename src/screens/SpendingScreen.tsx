@@ -438,6 +438,14 @@ export function SpendingScreen() {
                       {row.split_rule === 'custom_pct' && row.partner_a_percent !== null && (
                         <Tag>{s.spending.splitBadge(row.partner_a_percent)}</Tag>
                       )}
+                      {/* Not a lock, a record. Either partner may correct a
+                          mis-tapped entry — that is legitimate — but the
+                          balance is the one number this page makes claims
+                          about, and a claim that can change in silence is
+                          worth less than one that cannot. */}
+                      {row.edited_at && (
+                        <span className="text-ink-faint/80">{s.spending.edited}</span>
+                      )}
                     </p>
                   </div>
                   <span className="shrink-0 text-right">

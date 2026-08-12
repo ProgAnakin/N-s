@@ -9,6 +9,8 @@ import { PlacesSection } from '@/components/PlacesSection';
 import { ClockSection } from '@/components/ClockSection';
 import { YoursSection } from '@/components/YoursSection';
 import { MyWishesSection } from '@/components/WishesSection';
+import { ArchiveSection } from '@/components/ArchiveSection';
+import { EraseSection } from '@/components/EraseSection';
 import { OriginSection } from '@/components/OriginSection';
 import { EndingSection } from '@/components/EndingSection';
 import { CycleSection } from '@/components/CycleSection';
@@ -358,8 +360,17 @@ export function SettingsScreen() {
           </div>
         </section>
 
+        {/* --- Taking it with you ---------------------------------------------- */}
+        {/* Above the ending, deliberately. Somebody reading their way down
+            to the hardest decision on this page should pass the way to
+            keep everything before they reach the way to close it. */}
+        <ArchiveSection />
+
         {/* --- Ending it -------------------------------------------------------- */}
         <EndingSection />
+
+        {/* --- Actually going --------------------------------------------------- */}
+        <EraseSection />
       </div>
 
       <ConfirmDialog
@@ -371,10 +382,15 @@ export function SettingsScreen() {
         onConfirm={() => void onRotate()}
       />
 
+      {/* The dialog used to say only that it could not be undone, which
+          is the least useful true thing it could say. Leaving is not a
+          confiscation — since 0014 your private notes, gift ideas and
+          wishes follow you — and somebody deciding needs to know that
+          before they decide, not after. */}
       <ConfirmDialog
         open={confirmLeave}
         title={s.settings.leaveConfirm}
-        body={s.settings.leaveConfirmBody}
+        body={`${s.settings.leaveConfirmBody} ${s.erase.leaveKeeps}`}
         confirmLabel={s.settings.leaveCouple}
         onCancel={() => setConfirmLeave(false)}
         onConfirm={() => void onLeave()}

@@ -552,6 +552,9 @@ export const en = {
       'Add the last thing either of you paid for. It takes a few seconds and it saves the conversation later.',
     byCategory: 'Where it goes',
     treatBadge: 'Treat',
+    /* Shown when the amount, the currency, who paid or the split changed
+       after the fact. Fixing a typo in the label is not flagged. */
+    edited: 'edited',
     splitBadge: (pct: number) => `${pct}%`,
     /* Shown when an expense was written down with no network, so it has no
        frozen rate and cannot join the total. Naming the count matters: a
@@ -1249,6 +1252,70 @@ export const en = {
     importAction: 'Import a file',
     importPdfScanned:
       'That PDF looks scanned rather than typed, so there was no text to pull out of it.',
+  },
+
+  archive: {
+    title: 'Take it with you',
+    subtitle:
+      'Everything here is yours. These two buttons are how you get it out — no account needed on the other end, and no permission to ask.',
+
+    htmlTitle: 'One file that opens anywhere',
+    /* The point of the whole feature. An archive that needs an app is not
+       an archive; it is a hostage with better manners. */
+    htmlBody:
+      'A single page with the photographs inside it. No app, no server, no connection — double-click it on any computer, now or in twenty years, and it opens.',
+    htmlAction: 'Download the keepsake',
+
+    jsonTitle: 'The raw data',
+    jsonBody: 'Every row exactly as stored, for moving it somewhere else or reading it with a program.',
+    jsonAction: 'Download JSON',
+
+    gathering: 'Gathering everything…',
+    photos: (n: number, total: number) => `Photographs, ${n} of ${total}…`,
+    failed: 'That didn’t finish. Try again — nothing was changed.',
+    privacyNote:
+      'The file contains what you can see, and only that. Your partner’s private notes and their gift ideas are not in it, the same way they are not on your screen.',
+  },
+
+  erase: {
+    title: 'Delete what’s mine',
+    subtitle:
+      'Different from leaving. Leaving keeps everything and just unlinks you; this removes it.',
+
+    /* Said before the confirm, not after. Somebody deciding whether to do
+       this needs the list, not a shrug and a "cannot be undone". */
+    whatGoes: 'What goes, whatever happens',
+    whatGoesList: [
+      'Your private notes',
+      'Your gift ideas',
+      'Your three wishes and their history',
+      'Anything you tracked about your cycle',
+    ],
+    whatStays: (name: string) => `What stays, because ${name} is still here`,
+    whatStaysList: [
+      'Memories and photographs — they were both of yours',
+      'Letters, on both sides of the shelf',
+      'Everything logged in spending',
+      'Notes you marked as shared',
+    ],
+    whatStaysAlone: 'What goes too, because nobody else is left',
+    whatStaysAloneList: [
+      'The whole space: memories, photographs, letters, spending',
+      'Everything in it, for both of you',
+    ],
+
+    action: 'Delete what’s mine',
+    confirm: 'Delete your things?',
+    confirmBody:
+      'This cannot be undone, and there is no grace period. Download the keepsake first if there is any chance you will want it.',
+    confirmAction: 'Yes, delete it',
+    exportFirst: 'Download the keepsake first',
+    done: 'Done. What was yours is gone.',
+    failed: 'That didn’t finish. Nothing was deleted.',
+
+    /* On the leave dialog, which used to say nothing about consequences. */
+    leaveKeeps:
+      'Your private notes, gift ideas and wishes stay yours — you keep them wherever you go next. What you shared stays with the space.',
   },
 
   clocks: {

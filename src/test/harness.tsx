@@ -179,6 +179,37 @@ export function mountUnpaired(ui: ReactNode): Scene {
   return { db, view };
 }
 
+/**
+ * Nobody signed in at all.
+ *
+ * The door. Until now the only screen with no coverage whatsoever was
+ * the one every single person meets first, which is a strange place for
+ * a blind spot: if it breaks, none of the other 670 tests matter.
+ */
+export function mountSignedOut(ui: ReactNode): Scene {
+  const db = new FakeSupabase();
+  db.seed('profiles', []);
+  db.seed('couples', []);
+  setFakeClient(db);
+  db.signedInUser = null;
+
+  const view = render(
+    <ThemeProvider>
+      <LazyMotion features={domAnimation} strict>
+        <I18nProvider locale="en">
+          <MemoryRouter>
+            <SessionProvider>
+              <WhenStatus is="signed_out">{ui}</WhenStatus>
+            </SessionProvider>
+          </MemoryRouter>
+        </I18nProvider>
+      </LazyMotion>
+    </ThemeProvider>,
+  );
+
+  return { db, view };
+}
+
 function WhenStatus({ is, children }: { is: string; children: ReactNode }) {
   const { status } = useSession();
   if (status !== is) return null;

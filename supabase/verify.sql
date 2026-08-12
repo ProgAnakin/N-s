@@ -89,7 +89,8 @@ with expected(migration, kind, ident, note) as (
     ('0013_ideas_and_wishes','column','wishes.slot',                  'null once granted'),
     ('0013_ideas_and_wishes','column','wishes.granted_on',            'the achievement shelf'),
     ('0013_ideas_and_wishes','column','date_ideas.feeling',           'the field that makes it usable'),
-    ('0013_ideas_and_wishes','column','date_ideas.booking',           null)
+    ('0013_ideas_and_wishes','column','date_ideas.booking',           null),
+    ('0014_what_is_yours',  'column', 'expenses.edited_at',            'shown as “edited” on the row')
   ) as t(migration, kind, ident, note)
 
   union all
@@ -122,7 +123,9 @@ with expected(migration, kind, ident, note) as (
     ('0011_relational_core','function','reopen_couple',          'called by the app'),
     ('0012_closed_space',  'function', 'refuse_when_ended',      null),
     ('0013_ideas_and_wishes','function','set_wish_couple',       null),
-    ('0013_ideas_and_wishes','function','guard_wish_update',     'only the wisher writes the words')
+    ('0013_ideas_and_wishes','function','guard_wish_update',     'only the wisher writes the words'),
+    ('0014_what_is_yours',  'function', 'delete_my_data',        'called by the app'),
+    ('0014_what_is_yours',  'function', 'note_expense_edit',     null)
   ) as t(migration, kind, ident, note)
 
   union all
@@ -143,7 +146,8 @@ with expected(migration, kind, ident, note) as (
     ('0013_ideas_and_wishes','trigger','wishes_set_couple',           null),
     ('0013_ideas_and_wishes','trigger','wishes_guard_update',         'stops a partner rewriting a wish'),
     ('0013_ideas_and_wishes','trigger','date_ideas_refuse_when_ended','0012 predates this table'),
-    ('0013_ideas_and_wishes','trigger','wishes_refuse_when_ended',    '0012 predates this table')
+    ('0013_ideas_and_wishes','trigger','wishes_refuse_when_ended',    '0012 predates this table'),
+    ('0014_what_is_yours',  'trigger', 'expenses_note_edit',          'the balance cannot move in silence')
   ) as t(migration, kind, ident, note)
 
   union all

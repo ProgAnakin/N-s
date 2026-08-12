@@ -88,9 +88,20 @@ export function CycleSection() {
     }
   }
 
-  // The partner sees this only while the flag is on, and only because the
-  // row policy let those rows through in the first place.
-  const showTheirs = Boolean(partner) && theirs.length > 0;
+  /**
+   * The consent flag is checked here as well as in the policy.
+   *
+   * This used to rely entirely on RLS having filtered the rows out —
+   * true in production, and a single point of failure with two ways to
+   * fail. A policy regression shows the data with nothing else to catch
+   * it; and until this session `cycle_events` was being written to
+   * localStorage, so revoking the flag left rows cached on the device
+   * that this component would happily render, because it never asked.
+   *
+   * Reading `partner.cycle_shared` costs nothing and closes both.
+   */
+  const showTheirs =
+    Boolean(partner?.cycle_shared) && theirs.length > 0;
 
   return (
     <section>

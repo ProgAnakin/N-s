@@ -106,8 +106,17 @@ export class FakeSupabase {
     onAuthStateChange: vi.fn(() => ({
       data: { subscription: { unsubscribe: vi.fn() } },
     })),
-    signInWithPassword: vi.fn(() => Promise.resolve({ data: {}, error: null })),
-    signUp: vi.fn(() => Promise.resolve({ data: {}, error: null })),
+    // Typed loosely on purpose: a test that wants to see what happens on
+    // a refused sign-in has to be able to hand back an error, and
+    // inferring `null` from the happy path makes that a type error.
+    signInWithPassword: vi.fn(
+      (): Promise<{ data: unknown; error: FakeError | null }> =>
+        Promise.resolve({ data: {}, error: null }),
+    ),
+    signUp: vi.fn(
+      (): Promise<{ data: unknown; error: FakeError | null }> =>
+        Promise.resolve({ data: {}, error: null }),
+    ),
     signOut: vi.fn(() => {
       this.signedInUser = null;
       return Promise.resolve({ error: null });

@@ -70,27 +70,38 @@ const CACHE_PREFIX = 'nos.cache.';
 const CACHE_VERSION = 'v1';
 
 /**
- * Tables whose rows never touch localStorage.
+ * The only tables whose rows may touch localStorage.
  *
  * The read cache exists so opening the app on a train shows something
- * instead of a spinner, and for a memory or an expense that trade is
- * obviously worth it. For these four it is not.
+ * rather than a spinner. It also writes those rows, in plain text, to
+ * the disk of whatever device opened them — which quietly undoes the
+ * work RLS did, from outside the database.
  *
- * `remember_facts` holds private notes the author's own partner cannot read
- * — the app's central promise. `gift_ideas` is a surprise. `letters` may be
- * sealed until a date the recipient has not reached. `intimacy_entries` is
- * the most private thing here by some distance. Caching any of them writes
- * plaintext to a device that two people share, survives locking the screen,
- * and is one DevTools tab away from undoing the whole privacy model.
+ * This used to be a deny-list of four tables. It was written before
+ * migration 0011 and before 0013, and was never revisited, so
+ * `cycle_events` — the one table in the whole schema whose read policy is
+ * a consent check, holding menstrual-cycle data — was being cached. So
+ * were `wishes`.
  *
- * The cost is a spinner on those four pages when offline. That is the right
- * side of the trade.
+ * An allow-list fails the safe way. A table added tomorrow is not cached
+ * until somebody looks at this list and decides it is harmless, which is
+ * exactly the decision that got skipped twice.
  */
-const UNCACHED_TABLES: ReadonlySet<string> = new Set([
-  'remember_facts',
-  'gift_ideas',
-  'letters',
-  'intimacy_entries',
+const CACHEABLE_TABLES: ReadonlySet<string> = new Set([
+  'memories',
+  'memory_photos',
+  'important_dates',
+  'family_members',
+  'phrases',
+  'culture_notes',
+  'trips',
+  'trip_items',
+  'expenses',
+  'places',
+  'checkins',
+  'plans',
+  'date_ideas',
+  'flowers',
 ]);
 
 function cacheKey(table: string, column: string, value: string, orderBy: string): string {
@@ -176,7 +187,7 @@ export function useTable<T extends TableName>(table: T, options: UseTableOptions
     limit,
   } = options;
 
-  const cacheable = !UNCACHED_TABLES.has(table);
+  const cacheable = CACHEABLE_TABLES.has(table);
 
   const active = enabled && Boolean(value);
   const key = useMemo(
