@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { BalanceBar, RebalanceNote, ShareNote, TreatsNote } from './BalanceBar';
+import { BalanceBar, RebalanceNote, ShareBar, TreatsNote } from './BalanceBar';
 import { computeBalance, type Expense, type PartnerRole, type SplitRule } from '@/lib/money';
 import type { PartnerNames } from '@/screens/shared';
 
@@ -80,7 +80,7 @@ describe('BalanceBar', () => {
   it('says what the bar is measuring', () => {
     const balance = computeBalance([expense(10000, 'partner_a')], 'EUR');
     render(<BalanceBar balance={balance} names={names} />);
-    expect(screen.getByText(/who put the money in/i)).toBeInTheDocument();
+    expect(screen.getByText(/put the money in/i)).toBeInTheDocument();
   });
 
   it('never uses debt language, even when badly lopsided', () => {
@@ -121,7 +121,7 @@ describe('BalanceBar', () => {
  * was missing is the other reading — half of that €50 was theirs — which
  * the page computed and never showed.
  */
-describe('ShareNote', () => {
+describe('ShareBar', () => {
   it('moves for both of them when one pays for something shared', () => {
     const before = computeBalance([expense(10000, 'partner_a')], 'EUR');
     const after = computeBalance(
@@ -137,7 +137,7 @@ describe('ShareNote', () => {
     expect(after.fairShare.partner_a).toBe(7500);
     expect(after.fairShare.partner_b).toBe(7500);
 
-    render(<ShareNote balance={after} names={names} />);
+    render(<ShareBar balance={after} names={names} />);
     expect(screen.getAllByText('€75.00')).toHaveLength(2);
   });
 
@@ -146,7 +146,7 @@ describe('ShareNote', () => {
       [expense(10000, 'partner_a', { kind: 'custom_pct', partnerAPercent: 70 })],
       'EUR',
     );
-    render(<ShareNote balance={balance} names={names} />);
+    render(<ShareBar balance={balance} names={names} />);
 
     expect(screen.getByText('€70.00')).toBeInTheDocument();
     expect(screen.getByText('€30.00')).toBeInTheDocument();
@@ -157,7 +157,7 @@ describe('ShareNote', () => {
       [expense(4000, 'partner_a'), expense(9000, 'partner_b', { kind: 'treat' })],
       'EUR',
     );
-    render(<ShareNote balance={balance} names={names} />);
+    render(<ShareBar balance={balance} names={names} />);
 
     // €20 each from the shared expense. The €90 gift is not anybody's share.
     expect(screen.getAllByText('€20.00')).toHaveLength(2);
@@ -166,7 +166,7 @@ describe('ShareNote', () => {
 
   it('renders nothing before anything has been logged', () => {
     const { container } = render(
-      <ShareNote balance={computeBalance([], 'EUR')} names={names} />,
+      <ShareBar balance={computeBalance([], 'EUR')} names={names} />,
     );
     expect(container).toBeEmptyDOMElement();
   });
@@ -176,7 +176,7 @@ describe('ShareNote', () => {
       [expense(500000, 'partner_a'), expense(1000, 'partner_b')],
       'EUR',
     );
-    const { container } = render(<ShareNote balance={balance} names={names} />);
+    const { container } = render(<ShareBar balance={balance} names={names} />);
     expectNoDebtLanguage(container.textContent ?? '');
   });
 });

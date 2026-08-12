@@ -7,7 +7,7 @@ import { TwoClocks } from '@/components/TwoClocks';
 import { LettersCard } from '@/components/LettersCard';
 import { MetricsSection } from '@/components/MetricsSection';
 import { OnThisDay } from '@/components/OnThisDay';
-import { BalanceBar } from '@/components/BalanceBar';
+import { BalanceBar, ShareBar } from '@/components/BalanceBar';
 import { ButtonLink } from '@/components/ui/Button';
 import { LoadingBlock } from '@/components/ui/Bits';
 import { Curve } from '@/components/ui/Curve';
@@ -284,7 +284,11 @@ export function HomeScreen() {
                 {s.common.more}
               </Link>
             </div>
-            <Sheet>
+            {/* Both halves here too. Showing one without the other is
+                exactly what made a shared dinner look like it belonged to
+                whichever card came out. */}
+            <Sheet className="flex flex-col gap-5">
+              <ShareBar balance={balance} names={names} />
               <BalanceBar balance={balance} names={names} />
             </Sheet>
           </section>

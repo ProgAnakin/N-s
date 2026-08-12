@@ -148,6 +148,32 @@ export function shareOf(
   return totals;
 }
 
+/**
+ * How one expense's cost falls between the two, as partner A's percentage.
+ *
+ * This is what the history colours each row by. The stripe used to be the
+ * payer's colour, flat, which quietly said "this one was his" about a
+ * dinner they split down the middle — the row's own badge said €50 each
+ * and the colour beside it disagreed. Drawn in both colours at this ratio,
+ * a shared row looks shared, and a 70/30 one looks like 70/30.
+ *
+ * A treat is the one case that really is one-sided, so it returns the
+ * giver outright rather than the zeros `shareOf` gives it.
+ */
+export function costRatio(
+  amountCents: number,
+  rule: SplitRule,
+  paidBy: PartnerRole,
+): number {
+  const solo = paidBy === 'partner_a' ? 100 : 0;
+  if (rule.kind === 'treat') return solo;
+
+  const share = shareOf(amountCents, rule, paidBy);
+  const total = share.partner_a + share.partner_b;
+  if (total <= 0) return solo;
+  return (share.partner_a / total) * 100;
+}
+
 /* ------------------------------------------------------------------ *
  * Balance
  * ------------------------------------------------------------------ */
@@ -192,7 +218,7 @@ function emptyBalance(currency: CurrencyCode): Balance {
  * method on a one-decimal grid. Without this, two 33.333% halves render as
  * "66.7% / 33.3%" one day and "66.6% / 33.3%" the next.
  */
-function contributionSplit(totals: PartnerTotals): Record<PartnerRole, number> {
+export function percentSplit(totals: PartnerTotals): Record<PartnerRole, number> {
   const sum = totals.partner_a + totals.partner_b;
   if (sum <= 0) return { partner_a: 50, partner_b: 50 };
   const exactA = (totals.partner_a * 1000) / sum;
@@ -222,7 +248,7 @@ export function computeBalance(expenses: readonly Expense[], currency: CurrencyC
     balance.sharedCount += 1;
   }
 
-  balance.contributionPercent = contributionSplit(balance.contributed);
+  balance.contributionPercent = percentSplit(balance.contributed);
 
   const gap = balance.contributed.partner_a - balance.fairShare.partner_a;
   balance.differenceCents = Math.abs(gap);
@@ -335,11 +361,21 @@ export interface RebalanceSuggestion {
   /** What each of them has actually put in so far. */
   contributed: PartnerTotals;
   /**
-   * What they would each have contributed once this is covered — the same
-   * number for both, give or take the odd rounding cent, which is the whole
-   * point and the thing that makes `amountCents` believable.
+   * What each of them has actually *spent* — their share under the rules.
+   *
+   * This is the pair the suggestion closes, and naming it is what makes the
+   * doubling read as arithmetic rather than as a mistake: paying for
+   * something shared raises what you have put in by the whole amount and
+   * what you have spent by your share of it, so the two figures approach
+   * each other at half speed.
+   *
+   * It replaced a single `levelAtCents`, which quietly assumed that being
+   * level meant the two contributions were equal. That is only true when
+   * every split is down the middle. Put one 70/30 expense in the history
+   * and the page confidently printed a figure the two of them would never
+   * both arrive at.
    */
-  levelAtCents: number;
+  fairShare: PartnerTotals;
 }
 
 /**
@@ -387,10 +423,7 @@ export function rebalanceSuggestion(
     partner: otherPartner(balance.aheadPartner),
     amountCents,
     contributed: { ...balance.contributed },
-    // Where the two of them meet. Derived from the partner who is ahead,
-    // because that one does not move: the whole suggestion is the other
-    // one climbing to meet them.
-    levelAtCents: balance.contributed[balance.aheadPartner],
+    fairShare: { ...balance.fairShare },
   };
 }
 

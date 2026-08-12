@@ -1,6 +1,11 @@
 import { m } from 'framer-motion';
 import type { Balance } from '@/lib/money';
-import { formatPercent, isLevel, otherPartner, rebalanceSuggestion } from '@/lib/money';
+import {
+  formatPercent,
+  isLevel,
+  percentSplit,
+  rebalanceSuggestion,
+} from '@/lib/money';
 import { useI18n, useStrings } from '@/i18n';
 import type { PartnerNames } from '@/screens/shared';
 import { useMoney } from '@/screens/shared';
@@ -134,7 +139,7 @@ export function BalanceBar({
  * said out loud, in money. It is the one that goes up for *both* of them
  * when something shared gets logged, whoever handed the card over.
  */
-export function ShareNote({
+export function ShareBar({
   balance,
   names,
   className,
@@ -144,29 +149,70 @@ export function ShareNote({
   className?: string;
 }) {
   const s = useStrings();
+  const { intlLocale } = useI18n();
   const money = useMoney();
 
   if (balance.totalCents === 0) return null;
 
+  const percent = percentSplit(balance.fairShare);
+
   return (
-    <div className={cn('flex flex-col gap-2', className)}>
+    <div className={cn('flex flex-col gap-3', className)}>
       <p className="text-xs font-medium text-ink-soft">{s.spending.shareTitle}</p>
-      <div className="flex items-baseline justify-between gap-4 text-sm">
-        <span className="flex min-w-0 items-baseline gap-1.5">
-          <span aria-hidden="true" className="h-2 w-2 shrink-0 translate-y-[-1px] rounded-sm bg-cinnabar" />
-          <span className="truncate text-ink">{names.partner_a}</span>
-          <span className="shrink-0 tabular-nums text-ink-soft">
-            {money(balance.fairShare.partner_a, balance.currency)}
+
+      {/* No hairline on this one. The bar above needs a reference mark
+          because contributions drift away from the rules; this one *is*
+          the rules, so there is nothing for it to fall short of. */}
+      <div
+        className="relative flex h-3 w-full overflow-hidden rounded-sm bg-sunk"
+        role="img"
+        aria-label={`${names.partner_a} ${money(balance.fairShare.partner_a, balance.currency)}, ${names.partner_b} ${money(balance.fairShare.partner_b, balance.currency)}`}
+      >
+        <m.div
+          className="bg-cinnabar"
+          initial={{ width: 0 }}
+          animate={{ width: `${percent.partner_a}%` }}
+          transition={{ duration: 0.6, ease: [0.2, 0.7, 0.3, 1] }}
+        />
+        <m.div
+          className="bg-jade"
+          initial={{ width: 0 }}
+          animate={{ width: `${percent.partner_b}%` }}
+          transition={{ duration: 0.6, ease: [0.2, 0.7, 0.3, 1] }}
+        />
+      </div>
+
+      <div className="flex items-start justify-between gap-4 text-sm">
+        <span className="flex min-w-0 flex-col gap-0.5">
+          <span className="flex min-w-0 items-baseline gap-1.5">
+            <span aria-hidden="true" className="h-2 w-2 shrink-0 translate-y-[-1px] rounded-sm bg-cinnabar" />
+            <span className="truncate text-ink">{names.partner_a}</span>
+          </span>
+          <span className="flex items-baseline gap-1.5 tabular-nums">
+            <span className="text-ink-soft">
+              {money(balance.fairShare.partner_a, balance.currency)}
+            </span>
+            <span className="text-ink-faint">
+              {formatPercent(percent.partner_a, intlLocale)}
+            </span>
           </span>
         </span>
-        <span className="flex min-w-0 items-baseline gap-1.5">
-          <span className="shrink-0 tabular-nums text-ink-soft">
-            {money(balance.fairShare.partner_b, balance.currency)}
+        <span className="flex min-w-0 flex-col items-end gap-0.5">
+          <span className="flex min-w-0 items-baseline gap-1.5">
+            <span className="truncate text-ink">{names.partner_b}</span>
+            <span aria-hidden="true" className="h-2 w-2 shrink-0 translate-y-[-1px] rounded-sm bg-jade" />
           </span>
-          <span className="truncate text-ink">{names.partner_b}</span>
-          <span aria-hidden="true" className="h-2 w-2 shrink-0 translate-y-[-1px] rounded-sm bg-jade" />
+          <span className="flex items-baseline gap-1.5 tabular-nums">
+            <span className="text-ink-faint">
+              {formatPercent(percent.partner_b, intlLocale)}
+            </span>
+            <span className="text-ink-soft">
+              {money(balance.fairShare.partner_b, balance.currency)}
+            </span>
+          </span>
         </span>
       </div>
+
       <p className="text-xs leading-relaxed text-ink-faint">{s.spending.shareBody}</p>
     </div>
   );
@@ -215,17 +261,14 @@ export function RebalanceNote({
           money(suggestion.amountCents, balance.currency),
         )}
       </p>
-      {/* The working, not just the answer. The figure is twice the gap,
-          which on a small total looks wrong until you can see the two
-          contributions behind it and where they meet — and a number that
-          cannot be checked is a number nobody believes. */}
+      {/* The working, not just the answer, and taken from the two blocks
+          the reader has just looked at. A number that cannot be checked
+          against anything else on the page is a number nobody believes. */}
       <p className="text-sm leading-relaxed text-ink-soft">
         {s.spending.rebalanceWorking(
-          names[otherPartner(suggestion.partner)],
-          money(suggestion.contributed[otherPartner(suggestion.partner)], balance.currency),
           names[suggestion.partner],
           money(suggestion.contributed[suggestion.partner], balance.currency),
-          money(suggestion.levelAtCents, balance.currency),
+          money(suggestion.fairShare[suggestion.partner], balance.currency),
         )}
       </p>
       <p className="text-sm leading-relaxed text-ink-soft">{s.spending.rebalanceHint}</p>

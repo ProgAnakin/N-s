@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Plus, Scale } from 'lucide-react';
-import { BalanceBar, RebalanceNote, ShareNote, TreatsNote } from '@/components/BalanceBar';
+import { BalanceBar, RebalanceNote, ShareBar, TreatsNote } from '@/components/BalanceBar';
 import { Button } from '@/components/ui/Button';
 import { Tag } from '@/components/ui/Bits';
 import { ChoiceField, SelectField, TextAreaField, TextField } from '@/components/ui/Field';
@@ -23,6 +23,7 @@ import {
   EXPENSE_CATEGORIES,
   centsToInputValue,
   computeConvertedBalance,
+  costRatio,
   parseAmountToCents,
   shareOf,
   totalsByCategory,
@@ -382,12 +383,17 @@ export function SpendingScreen() {
               ))}
             </div>
           </div>
-          <BalanceBar balance={balance} names={names} />
+          {/* This one first, and that ordering is the fix. "What each of
+              you has spent" is the question people think they are asking
+              when they open this page; who fronted the cash is the
+              follow-up that explains the nudge. Led with the second, the
+              page looked like it was crediting a shared dinner to
+              whichever card came out. */}
+          <ShareBar balance={balance} names={names} />
 
-          {/* Directly under the bar, not behind a rule. The two blocks are
-              one thought — money out, and whose it was — and separating
-              them is how the first came to be read as the whole answer. */}
-          <ShareNote balance={balance} names={names} className="mt-5" />
+          <Rule className="my-5" />
+
+          <BalanceBar balance={balance} names={names} />
 
           <p className="mt-5 text-xs leading-relaxed text-ink-faint">
             {s.spending.frozenNote}
@@ -472,14 +478,31 @@ export function SpendingScreen() {
                   key={row.id}
                   className="flex items-center gap-3 border-b border-rule py-3 last:border-0"
                 >
+                  {/* Both colours, in the proportion the cost actually
+                      falls. A row split down the middle is drawn half and
+                      half — that is what "shared" looks like, and it is
+                      the thing the flat payer-coloured stripe was getting
+                      wrong: it said "his" beside a badge saying €50 each.
+                      A treat stays solid, because a treat really is
+                      one-sided. */}
                   <span
                     aria-hidden="true"
-                    className={
-                      row.paid_by === 'partner_a'
-                        ? 'h-6 w-[3px] shrink-0 rounded-full bg-cinnabar'
-                        : 'h-6 w-[3px] shrink-0 rounded-full bg-jade'
-                    }
-                  />
+                    className="h-6 w-[3px] shrink-0 overflow-hidden rounded-full bg-jade"
+                  >
+                    <span
+                      className="block w-full bg-cinnabar"
+                      style={{
+                        height: `${costRatio(
+                          row.amount_cents,
+                          {
+                            kind: row.split_rule,
+                            partnerAPercent: row.partner_a_percent ?? undefined,
+                          },
+                          row.paid_by,
+                        )}%`,
+                      }}
+                    />
+                  </span>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-base text-ink">{row.label}</p>
                     <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-ink-faint">
@@ -489,26 +512,34 @@ export function SpendingScreen() {
                       {row.split_rule === 'treat' && (
                         <Tag tone="jade">{s.spending.treatBadge}</Tag>
                       )}
-                      {/* In money. A percentage on a row makes you do the
-                          arithmetic yourself to answer the only question
-                          you had, and the row already knows the amount. */}
-                      {row.split_rule === 'custom_pct' &&
-                        row.partner_a_percent !== null &&
+                      {/* On every shared row, not just the custom ones. The
+                          question "how much of this one was mine" is the
+                          same question whatever rule produced it, and the
+                          row already knows the amount — leaving the reader
+                          to halve it themselves was work for nothing. In
+                          money, never a bare percentage. */}
+                      {row.split_rule !== 'treat' &&
                         (() => {
                           const share = shareOf(
                             row.amount_cents,
-                            { kind: 'custom_pct', partnerAPercent: row.partner_a_percent },
+                            {
+                              kind: row.split_rule,
+                              partnerAPercent: row.partner_a_percent ?? undefined,
+                            },
                             row.paid_by,
                           );
+                          const even = share.partner_a === share.partner_b;
                           return (
-                            <Tag>
-                              {s.spending.splitBadge(
-                                names.partner_a,
-                                money(share.partner_a, row.currency),
-                                names.partner_b,
-                                money(share.partner_b, row.currency),
-                              )}
-                            </Tag>
+                            <span className="text-ink-faint">
+                              {even
+                                ? s.spending.splitEach(money(share.partner_a, row.currency))
+                                : s.spending.splitBadge(
+                                    names.partner_a,
+                                    money(share.partner_a, row.currency),
+                                    names.partner_b,
+                                    money(share.partner_b, row.currency),
+                                  )}
+                            </span>
                           );
                         })()}
                       {/* Not a lock, a record. Either partner may correct a

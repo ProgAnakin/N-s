@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  costRatio,
   BALANCE_TOLERANCE_PERCENT,
   centsToInputValue,
   computeBalance,
@@ -305,16 +306,47 @@ describe('the suggestion, proved by following it', () => {
     // The three figures the screen now shows, so the reader can check it.
     expect(suggestion.contributed.partner_a).toBe(10000);
     expect(suggestion.contributed.partner_b).toBe(949);
-    expect(suggestion.levelAtCents).toBe(10000);
+    // The pair the sentence on screen actually names: what she has put in
+    // against what she has spent. Not "you'll both be at X" — that was the
+    // old copy, and it was only ever true when every split was even.
+    expect(suggestion.fairShare).toEqual(before.fairShare);
+    expect(suggestion.fairShare.partner_b).toBe(5475);
 
     const after = computeBalance(
       [...history, expense(suggestion.amountCents, suggestion.partner)],
       'EUR',
     );
     expect(after.aheadPartner).toBeNull();
-    // And they really do both end up at about the stated figure.
     expect(after.contributed.partner_a).toBe(10000);
     expect(after.contributed.partner_b).toBe(10001);
+    // And the claim the copy makes: her two figures are now in line.
+    expect(after.contributed.partner_b).toBe(after.fairShare.partner_b);
+  });
+
+  /**
+   * The bug the new copy exists to fix. One uneven split is enough to make
+   * "you'll both be at X" false, and the old shape of the suggestion could
+   * not express anything else.
+   */
+  it('does not claim the two contributions meet when a split is uneven', () => {
+    const history = [
+      expense(10000, 'partner_a'),
+      expense(5000, 'partner_b', { kind: 'custom_pct', partnerAPercent: 70 }),
+    ];
+    const before = computeBalance(history, 'EUR');
+    const suggestion = rebalanceSuggestion(before)!;
+
+    const after = computeBalance(
+      [...history, expense(suggestion.amountCents, suggestion.partner)],
+      'EUR',
+    );
+
+    expect(after.aheadPartner).toBeNull();
+    // Level, and yet the two contributions are nowhere near each other.
+    expect(after.contributed.partner_a).not.toBe(after.contributed.partner_b);
+    // What is true of each of them is that their own pair has met.
+    expect(after.contributed.partner_a).toBe(after.fairShare.partner_a);
+    expect(after.contributed.partner_b).toBe(after.fairShare.partner_b);
   });
 
   it('is a cent short if the naive gap is used instead', () => {
@@ -636,5 +668,55 @@ describe('computeConvertedBalance', () => {
     );
     expect(balance.currency).toBe('BRL');
     expect(balance.totalCents).toBe(62_000);
+  });
+});
+
+/**
+ * The colour of a row in the history.
+ *
+ * Reported as: "I add a 50/50 expense and the row shows up in red, as if
+ * it were mine, while the badge beside it says €50 each." The stripe was
+ * the payer's colour flat, which is a fact about the card and reads as a
+ * claim about the cost.
+ */
+describe('how a row should be coloured', () => {
+  it('splits a shared expense down the middle whoever paid', () => {
+    expect(costRatio(10000, { kind: '50_50' }, 'partner_a')).toBe(50);
+    expect(costRatio(10000, { kind: '50_50' }, 'partner_b')).toBe(50);
+  });
+
+  it('follows an uneven rule, and does not flip with the payer', () => {
+    const rule: SplitRule = { kind: 'custom_pct', partnerAPercent: 70 };
+    expect(costRatio(10000, rule, 'partner_a')).toBeCloseTo(70, 6);
+    expect(costRatio(10000, rule, 'partner_b')).toBeCloseTo(70, 6);
+  });
+
+  it('gives a treat entirely to whoever gave it', () => {
+    expect(costRatio(9000, { kind: 'treat' }, 'partner_a')).toBe(100);
+    expect(costRatio(9000, { kind: 'treat' }, 'partner_b')).toBe(0);
+  });
+
+  it('stays inside 0–100 for every rule, payer and amount', () => {
+    const rules: SplitRule[] = [
+      { kind: '50_50' },
+      { kind: 'treat' },
+      { kind: 'custom_pct', partnerAPercent: 0 },
+      { kind: 'custom_pct', partnerAPercent: 100 },
+      { kind: 'custom_pct', partnerAPercent: 33 },
+    ];
+    for (const rule of rules) {
+      for (const paidBy of ['partner_a', 'partner_b'] as const) {
+        for (const amount of [0, 1, 3, 999, 123456]) {
+          const ratio = costRatio(amount, rule, paidBy);
+          expect(ratio).toBeGreaterThanOrEqual(0);
+          expect(ratio).toBeLessThanOrEqual(100);
+        }
+      }
+    }
+  });
+
+  it('falls back to the payer when there is nothing to divide', () => {
+    expect(costRatio(0, { kind: '50_50' }, 'partner_b')).toBe(0);
+    expect(costRatio(0, { kind: '50_50' }, 'partner_a')).toBe(100);
   });
 });

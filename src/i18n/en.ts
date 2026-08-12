@@ -540,29 +540,31 @@ export const en = {
        account; the block below is about whose spending it was. Both are
        true at once, and showing one without the other is what made the
        arithmetic look broken. */
-    contributedTitle: 'Who put the money in',
-    shareTitle: 'What it came to for each of you',
+    contributedTitle: 'Who’s put the money in so far',
+    shareTitle: 'What each of you has spent',
     shareBody:
-      'Every shared expense counts to both of you, whoever paid for it — down the middle unless you said otherwise. This is the part that doesn’t care whose card came out.',
+      'Every shared expense counts to both of you, whoever paid for it — down the middle unless you said otherwise. In the list below, a row carried together is drawn in both colours.',
     balanceEven: 'You’re even',
     balanceEvenBody: 'Nothing to think about. It’s been shared fairly.',
     balanceNothing: 'Nothing logged yet',
     balanceNothingBody: 'Once you log a few things, you’ll see how it’s been shared.',
     rebalanceTitle: 'To even it out naturally',
     rebalanceBody: (name: string, amount: string) => `The next ${amount} is on ${name}.`,
-    /* The working, shown because the answer alone is not believable.
-       The figure is twice the gap — half of anything they pay is their own
-       share anyway — so on a €109 total it can suggest €90, which looks
-       absurd until you can see the two contributions it comes from and the
-       number they both end up at. */
-    rebalanceWorking: (
-      yourName: string,
-      yours: string,
-      theirName: string,
-      theirs: string,
-      levelAt: string,
-    ) =>
-      `${yourName} has put in ${yours} and ${theirName} ${theirs}. Covering it puts you both at about ${levelAt}.`,
+    /* The working, shown because the answer alone is not believable: the
+       figure is twice the gap, and on a small total that looks absurd.
+
+       It names the two blocks above — put in, and spent — because those
+       are the pair the suggestion closes, and because saying so explains
+       the doubling instead of asserting it: paying for something shared
+       raises what you have put in by the whole amount and what you have
+       spent by your share, so the two close on each other at half speed.
+
+       An earlier version promised a single figure "you'll both be at",
+       which was only ever true when every split was down the middle. One
+       70/30 expense in the history and it printed a number neither of
+       them would arrive at. */
+    rebalanceWorking: (name: string, putIn: string, spent: string) =>
+      `${name} has put in ${putIn} against ${spent} spent. Covering this brings those two into line — it’s twice the gap because paying for something shared moves both figures.`,
     // Deliberately does not reach for the word "owed", even to deny it.
     // Naming the idea in order to dismiss it still puts it in the room.
     rebalanceHint: 'No rush. It’s just the number that would bring the split back level.',
@@ -584,6 +586,10 @@ export const en = {
        mine, and the answer to that is a figure with a currency on it. */
     splitBadge: (aName: string, aAmount: string, bName: string, bAmount: string) =>
       `${aName} ${aAmount} · ${bName} ${bAmount}`,
+    /* The even case, which is most of them, and worth its own shorter
+       phrasing: "€50.00 each" says the whole thing, and repeating both
+       names on every row in a two-person app is furniture. */
+    splitEach: (amount: string) => `${amount} each`,
     /* An expense written down offline has no frozen rate of its own yet. It
        is *in* the total, at today's rate, and the app is quietly fetching
        the rate of the day it actually happened to replace that. Said out
