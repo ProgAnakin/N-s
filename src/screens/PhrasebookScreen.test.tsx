@@ -181,8 +181,11 @@ describe('practice', () => {
     await user.click(screen.getByRole('button', { name: 'Next' }));
 
     expect(await screen.findByText('Second one')).toBeInTheDocument();
+    // `mode="wait"` sequences the two panels, so there is a beat with
+    // neither on screen. The prompt coming back is what says the next card
+    // is face down again.
+    expect(await screen.findByRole('button', { name: 'Show me' })).toBeInTheDocument();
     expect(screen.queryByText('二')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Show me' })).toBeInTheDocument();
   });
 
   /**

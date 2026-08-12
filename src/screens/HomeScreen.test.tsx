@@ -263,7 +263,10 @@ describe('worth knowing', () => {
     // No anniversary either — a long-running couple generates milestones on
     // their own, which is the point of them.
     mountHome({}, { couple: { anniversary_date: null } });
-    await screen.findByText(/Nothing on the horizon/);
+    // Waiting for the foot of the page, not the first thing to appear:
+    // reminders come from four separate reads, and asserting before those
+    // have landed would pass whether or not the rule holds.
+    await screen.findByText('Quick add');
     expect(screen.queryByText('Worth knowing')).not.toBeInTheDocument();
   });
 });
@@ -321,8 +324,11 @@ describe('when a table comes back empty', () => {
   it('still renders every section with no data anywhere', async () => {
     mountHome({}, { couple: { anniversary_date: '2023-06-12' } });
 
+    // The header draws immediately; the body waits on the reads, so each of
+    // these has to be awaited rather than checked the instant the first
+    // one lands.
     expect(await screen.findByText(/days together/)).toBeInTheDocument();
-    expect(screen.getByText(/Nothing on the horizon/)).toBeInTheDocument();
-    expect(screen.getByText(/Quick add/)).toBeInTheDocument();
+    expect(await screen.findByText(/Nothing on the horizon/)).toBeInTheDocument();
+    expect(await screen.findByText('Quick add')).toBeInTheDocument();
   });
 });
