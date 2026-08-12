@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Plus, Scale } from 'lucide-react';
-import { BalanceBar, RebalanceNote, ShareBar, TreatsNote } from '@/components/BalanceBar';
+import { RebalanceNote, ShareBar, TreatsNote } from '@/components/Balance';
 import { Button } from '@/components/ui/Button';
 import { Tag } from '@/components/ui/Bits';
 import { ChoiceField, SelectField, TextAreaField, TextField } from '@/components/ui/Field';
@@ -383,17 +383,7 @@ export function SpendingScreen() {
               ))}
             </div>
           </div>
-          {/* This one first, and that ordering is the fix. "What each of
-              you has spent" is the question people think they are asking
-              when they open this page; who fronted the cash is the
-              follow-up that explains the nudge. Led with the second, the
-              page looked like it was crediting a shared dinner to
-              whichever card came out. */}
           <ShareBar balance={balance} names={names} />
-
-          <Rule className="my-5" />
-
-          <BalanceBar balance={balance} names={names} />
 
           <p className="mt-5 text-xs leading-relaxed text-ink-faint">
             {s.spending.frozenNote}

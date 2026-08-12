@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { BalanceBar, RebalanceNote, ShareBar, TreatsNote } from './BalanceBar';
+import { RebalanceNote, ShareBar, TreatsNote } from './Balance';
 import { computeBalance, type Expense, type PartnerRole, type SplitRule } from '@/lib/money';
 import type { PartnerNames } from '@/screens/shared';
 
@@ -56,62 +56,6 @@ function expectNoDebtLanguage(text: string) {
   }
 }
 
-describe('BalanceBar', () => {
-  it('shows each partner’s share of what has been contributed', () => {
-    const balance = computeBalance([expense(10000, 'partner_a'), expense(5000, 'partner_b')], 'EUR');
-    render(<BalanceBar balance={balance} names={names} />);
-
-    expect(screen.getByText('Léo')).toBeInTheDocument();
-    expect(screen.getByText('Ana')).toBeInTheDocument();
-    expect(screen.getByText('66.7%')).toBeInTheDocument();
-    expect(screen.getByText('33.3%')).toBeInTheDocument();
-  });
-
-  it('puts a figure next to the percentage, so a falling share is legible', () => {
-    const balance = computeBalance([expense(10000, 'partner_a'), expense(5000, 'partner_b')], 'EUR');
-    render(<BalanceBar balance={balance} names={names} />);
-
-    // Without these, somebody whose own contribution never moved sees only
-    // their percentage drop and reads it as their money going somewhere.
-    expect(screen.getByText(/€100\.00/)).toBeInTheDocument();
-    expect(screen.getByText(/€50\.00/)).toBeInTheDocument();
-  });
-
-  it('says what the bar is measuring', () => {
-    const balance = computeBalance([expense(10000, 'partner_a')], 'EUR');
-    render(<BalanceBar balance={balance} names={names} />);
-    expect(screen.getByText(/put the money in/i)).toBeInTheDocument();
-  });
-
-  it('never uses debt language, even when badly lopsided', () => {
-    const balance = computeBalance(
-      [expense(500000, 'partner_a'), expense(1000, 'partner_b')],
-      'EUR',
-    );
-    const { container } = render(
-      <>
-        <BalanceBar balance={balance} names={names} />
-        <RebalanceNote balance={balance} names={names} />
-      </>,
-    );
-    expectNoDebtLanguage(container.textContent ?? '');
-  });
-
-  it('describes the split for screen readers without naming a creditor', () => {
-    const balance = computeBalance([expense(10000, 'partner_a')], 'EUR');
-    render(<BalanceBar balance={balance} names={names} />);
-    const label = screen.getByRole('img').getAttribute('aria-label') ?? '';
-    expect(label).toContain('Léo');
-    expect(label).toContain('Ana');
-    expectNoDebtLanguage(label);
-  });
-
-  it('says nothing has been logged rather than showing a zeroed bar', () => {
-    render(<BalanceBar balance={computeBalance([], 'EUR')} names={names} />);
-    expect(screen.getByText(/nothing logged yet/i)).toBeInTheDocument();
-  });
-});
-
 /**
  * The complaint this block exists for.
  *
@@ -164,11 +108,38 @@ describe('ShareBar', () => {
     expect(screen.queryByText(/45\.00/)).not.toBeInTheDocument();
   });
 
-  it('renders nothing before anything has been logged', () => {
-    const { container } = render(
-      <ShareBar balance={computeBalance([], 'EUR')} names={names} />,
+  it('says nothing has been logged rather than showing a zeroed bar', () => {
+    render(<ShareBar balance={computeBalance([], 'EUR')} names={names} />);
+    expect(screen.getByText(/nothing logged yet/i)).toBeInTheDocument();
+  });
+
+  it('describes the split for screen readers without naming a creditor', () => {
+    const balance = computeBalance([expense(10000, 'partner_a')], 'EUR');
+    render(<ShareBar balance={balance} names={names} />);
+    const label = screen.getByRole('img').getAttribute('aria-label') ?? '';
+    expect(label).toContain('Léo');
+    expect(label).toContain('Ana');
+    expectNoDebtLanguage(label);
+  });
+
+  it('owns up to the treats the total leaves out', () => {
+    const balance = computeBalance(
+      [expense(4000, 'partner_a'), expense(3000, 'partner_b', { kind: 'treat' })],
+      'EUR',
     );
-    expect(container).toBeEmptyDOMElement();
+    render(<ShareBar balance={balance} names={names} />);
+
+    // Otherwise somebody adds the list up by hand, gets €70, and stops
+    // believing the page.
+    expect(screen.getByText(/€40 shared so far/)).toBeInTheDocument();
+    expect(screen.getByText(/A further €30 was given as treats/)).toBeInTheDocument();
+  });
+
+  it('keeps the total plain when there are no treats', () => {
+    const balance = computeBalance([expense(4000, 'partner_a')], 'EUR');
+    render(<ShareBar balance={balance} names={names} />);
+    expect(screen.getByText('€40 shared so far')).toBeInTheDocument();
+    expect(screen.queryByText(/treats/i)).not.toBeInTheDocument();
   });
 
   it('never uses debt language either', () => {

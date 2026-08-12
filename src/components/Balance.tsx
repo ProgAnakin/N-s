@@ -12,132 +12,37 @@ import { useMoney } from '@/screens/shared';
 import { cn } from '@/utils/cn';
 
 /**
- * How the spending has been carried.
+ * The balance, and everything the page says about it.
  *
- * Everything about this component is chosen to avoid the scoreboard reading:
+ * One product rule governs this file and a test enforces it: no debt
+ * language, ever. Not "owes", not "settle up", not a figure attached to a
+ * name with a minus in front of it. The strongest statement anything here
+ * makes is a suggestion about who might comfortably pay for the next one.
  *
- *   - Two colours of equal weight, cinnabar and jade. Neither is the "good"
- *     side, and the person who has paid more is not highlighted as a creditor.
- *   - The numbers shown are percentages of what has been contributed, never a
- *     figure attached to a person's name with a minus in front of it.
- *   - The hairline is where an even split would sit given the rules in use.
- *     It is a reference mark, not a target anyone is failing to meet.
- *
- * The words "owe", "debt", "balance due" and "settle up" do not appear here,
- * and a test asserts that they never will.
+ * The two accent colours carry equal weight. Neither is the good side, and
+ * whoever has paid more is never drawn as a creditor.
  */
-export function BalanceBar({
-  balance,
-  names,
-  className,
-}: {
-  balance: Balance;
-  names: PartnerNames;
-  className?: string;
-}) {
-  const s = useStrings();
-  const { intlLocale } = useI18n();
-  const money = useMoney();
-
-  const percentA = balance.contributionPercent.partner_a;
-  const percentB = balance.contributionPercent.partner_b;
-
-  const fairTotal = balance.fairShare.partner_a + balance.fairShare.partner_b;
-  const fairPercentA = fairTotal > 0 ? (balance.fairShare.partner_a / fairTotal) * 100 : 50;
-
-  if (balance.totalCents === 0) {
-    return (
-      <div className={cn('flex flex-col gap-2', className)}>
-        <div className="h-3 w-full rounded-sm bg-sunk" aria-hidden="true" />
-        <p className="text-sm text-ink-faint">{s.spending.balanceNothing}</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className={cn('flex flex-col gap-3', className)}>
-      {/* Says what the bar measures, because it was never obvious and the
-          honest answer is narrower than the reading people give it: money
-          that left an account, not spending that belonged to someone. */}
-      <p className="text-xs font-medium text-ink-soft">{s.spending.contributedTitle}</p>
-      <div
-        className="relative h-3 w-full overflow-hidden rounded-sm bg-sunk"
-        role="img"
-        aria-label={`${names.partner_a} ${formatPercent(percentA, intlLocale)}, ${names.partner_b} ${formatPercent(percentB, intlLocale)}`}
-      >
-        <m.div
-          className="absolute inset-y-0 left-0 bg-cinnabar"
-          initial={{ width: 0 }}
-          animate={{ width: `${percentA}%` }}
-          transition={{ duration: 0.6, ease: [0.2, 0.7, 0.3, 1] }}
-        />
-        <m.div
-          className="absolute inset-y-0 right-0 bg-jade"
-          initial={{ width: 0 }}
-          animate={{ width: `${percentB}%` }}
-          transition={{ duration: 0.6, ease: [0.2, 0.7, 0.3, 1] }}
-        />
-        {/* Where the split would sit if each had covered exactly their share. */}
-        <span
-          aria-hidden="true"
-          className="absolute inset-y-0 w-px bg-paper/70"
-          style={{ left: `${fairPercentA}%` }}
-        />
-      </div>
-
-      {/* The amount, then the percentage. A percentage alone is what made
-          this unreadable: somebody who has put in the same €100 all week
-          watches their number fall as the other one logs things, and with
-          no figure beside it there is nothing to tell them their own
-          contribution never moved. */}
-      <div className="flex items-start justify-between gap-4 text-sm">
-        <span className="flex min-w-0 flex-col gap-0.5">
-          <span className="flex min-w-0 items-baseline gap-1.5">
-            <span aria-hidden="true" className="h-2 w-2 shrink-0 translate-y-[-1px] rounded-sm bg-cinnabar" />
-            <span className="truncate text-ink">{names.partner_a}</span>
-          </span>
-          <span className="flex items-baseline gap-1.5 tabular-nums">
-            <span className="text-ink-soft">
-              {money(balance.contributed.partner_a, balance.currency)}
-            </span>
-            <span className="text-ink-faint">{formatPercent(percentA, intlLocale)}</span>
-          </span>
-        </span>
-        <span className="flex min-w-0 flex-col items-end gap-0.5">
-          <span className="flex min-w-0 items-baseline gap-1.5">
-            <span className="truncate text-ink">{names.partner_b}</span>
-            <span aria-hidden="true" className="h-2 w-2 shrink-0 translate-y-[-1px] rounded-sm bg-jade" />
-          </span>
-          <span className="flex items-baseline gap-1.5 tabular-nums">
-            <span className="text-ink-faint">{formatPercent(percentB, intlLocale)}</span>
-            <span className="text-ink-soft">
-              {money(balance.contributed.partner_b, balance.currency)}
-            </span>
-          </span>
-        </span>
-      </div>
-
-      <p className="text-xs text-ink-faint">
-        {s.spending.totalShared(money(balance.totalCents, balance.currency, true))}
-      </p>
-    </div>
-  );
-}
 
 /**
- * The other half of the picture: whose spending it was.
+ * The shared total, and how it falls between the two of them.
  *
- * The bar above answers "whose account did the money leave", which is the
- * question that drifts and the one the nudge is built on. It is not the
- * question most people think they are asking. Log a €50 dinner split down
- * the middle and pay for it yourself, and the bar moves under your name
- * alone — correct as cash flow, and it reads as though the whole €50 was
- * yours to carry when in fact €25 of it was theirs.
+ * This is the only bar on the page, and getting to one took three tries.
+ * It used to sit beneath a second bar showing who had *fronted* the cash,
+ * which was a true figure answering a question nobody had asked: log a €50
+ * dinner split down the middle, pay for it yourself, and that bar moved
+ * under one name alone while the row beneath it said €50 each. Two bars
+ * that look identical and mean different things do not teach anyone the
+ * difference — they just make the page untrustworthy.
  *
- * `fairShare` has always been computed and, until now, only ever reached
- * the screen as the one-pixel hairline on the bar. This is that number,
- * said out loud, in money. It is the one that goes up for *both* of them
- * when something shared gets logged, whoever handed the card over.
+ * So the cash-flow figures went to the one place they were ever load-
+ * bearing: the working under the nudge, where they explain why the next
+ * one is on somebody. And the percentages that came with them went
+ * altogether. "77.1% / 22.9%" over two names is a scoreboard, and this
+ * app does not keep score.
+ *
+ * What is left is the honest picture of a shared life: what it all came
+ * to, and whose it was. Both names move when something shared is logged,
+ * whoever handed the card over.
  */
 export function ShareBar({
   balance,
@@ -152,9 +57,17 @@ export function ShareBar({
   const { intlLocale } = useI18n();
   const money = useMoney();
 
-  if (balance.totalCents === 0) return null;
+  if (balance.totalCents === 0) {
+    return (
+      <div className={cn('flex flex-col gap-2', className)}>
+        <div className="h-3 w-full rounded-sm bg-sunk" aria-hidden="true" />
+        <p className="text-sm text-ink-faint">{s.spending.balanceNothing}</p>
+      </div>
+    );
+  }
 
   const percent = percentSplit(balance.fairShare);
+  const treated = balance.treatedCents.partner_a + balance.treatedCents.partner_b;
 
   return (
     <div className={cn('flex flex-col gap-3', className)}>
@@ -212,6 +125,18 @@ export function ShareBar({
           </span>
         </span>
       </div>
+
+      {/* Says what is *not* in the figure when something isn't. A total
+          that silently omits €30 of flowers is a total somebody will add
+          up by hand, fail to reproduce, and stop believing. */}
+      <p className="text-xs text-ink-faint">
+        {treated > 0
+          ? s.spending.totalSharedPlusTreats(
+              money(balance.totalCents, balance.currency, true),
+              money(treated, balance.currency, true),
+            )
+          : s.spending.totalShared(money(balance.totalCents, balance.currency, true))}
+      </p>
 
       <p className="text-xs leading-relaxed text-ink-faint">{s.spending.shareBody}</p>
     </div>

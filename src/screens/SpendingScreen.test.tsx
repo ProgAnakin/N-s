@@ -389,26 +389,28 @@ describe('the two halves of the same total', () => {
 
     await screen.findByText('Abacaxi');
 
-    // Money out: €100 from him, €50 from her. Scoped to the bar, because
-    // the same figures are also down in the history and the point here is
-    // what the summary says.
-    const moneyIn = (await screen.findByText(/put the money in/i)).closest('div')!;
-    await waitFor(() => {
-      expect(within(moneyIn).getByText('€100.00')).toBeInTheDocument();
-    });
-    expect(within(moneyIn).getByText('€50.00')).toBeInTheDocument();
-
-    // Whose spending it was: €75 each. This is the half that was missing,
-    // and the one that answers "where did my €25 of that go".
+    // Whose spending it was: €75 each. This is the figure that moves for
+    // both of them, and the one the page leads with.
     const share = (await screen.findByText(/what each of you has spent/i)).closest('div')!;
     await waitFor(() => {
       expect(within(share).getAllByText('€75.00')).toHaveLength(2);
     });
+
+    // Who fronted the cash is still knowable — it is the working under the
+    // nudge, which is the one place it was ever load-bearing.
+    expect(
+      await screen.findByText(/has put in .*€50\.00.* against .*€75\.00.* spent/),
+    ).toBeInTheDocument();
   });
 
-  it('labels the bar as money in rather than leaving it to be guessed', async () => {
+  it('shows one bar, not two that look alike and mean different things', async () => {
     mount([expenseRow({ label: 'Rent' })]);
-    expect(await screen.findByText(/put the money in/i)).toBeInTheDocument();
+    await screen.findByText('Rent');
+    expect(await screen.findByText(/what each of you has spent/i)).toBeInTheDocument();
+    expect(screen.getAllByRole('img')).toHaveLength(1);
+    // The cash-flow percentages went with the second bar. "77.1% / 22.9%"
+    // over two names is a scoreboard, and this page does not keep score.
+    expect(screen.queryByText(/put the money in/i)).not.toBeInTheDocument();
   });
 
   it('says a custom split in money, not as a bare percentage', async () => {
@@ -448,10 +450,11 @@ describe('a 50/50 expense, from the row up to the summary', () => {
       expect(within(spent).getAllByText('€50.00')).toHaveLength(2);
     });
 
-    // And the cash-out view still says what is true of the cards: all €100
-    // left his account. Both are on the page, each under its own label.
-    const moneyIn = screen.getByText(/put the money in/i).closest('div')!;
-    expect(within(moneyIn).getByText('€100.00')).toBeInTheDocument();
+    // And what is true of the cards — all €100 left his account — is still
+    // on the page, in the working under the nudge.
+    expect(
+      screen.getByText(/has put in .*€0\.00.* against .*€50\.00.* spent/),
+    ).toBeInTheDocument();
   });
 
   it('says the per-person figure on the row, without a percentage to decode', async () => {

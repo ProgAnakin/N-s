@@ -533,14 +533,6 @@ export const en = {
     noTrip: 'Not part of a trip',
     note: 'Note',
     balanceTitle: 'Where things stand',
-    /* Two different questions, and the page used to answer only the first.
-       Logging a €50 dinner split down the middle moves *one* name on the
-       bar, because only one card was charged — which reads as "that was
-       hers" when half of it was yours. The bar is about cash leaving an
-       account; the block below is about whose spending it was. Both are
-       true at once, and showing one without the other is what made the
-       arithmetic look broken. */
-    contributedTitle: 'Who’s put the money in so far',
     shareTitle: 'What each of you has spent',
     shareBody:
       'Every shared expense counts to both of you, whoever paid for it — down the middle unless you said otherwise. In the list below, a row carried together is drawn in both colours.',
@@ -569,6 +561,11 @@ export const en = {
     // Naming the idea in order to dismiss it still puts it in the room.
     rebalanceHint: 'No rush. It’s just the number that would bring the split back level.',
     totalShared: (amount: string) => `${amount} shared so far`,
+    /* The same line when treats exist. Without it the total silently omits
+       them and anybody who adds the list up by hand gets a different
+       number, which is how a page stops being believed. */
+    totalSharedPlusTreats: (amount: string, treats: string) =>
+      `${amount} shared so far. A further ${treats} was given as treats, kept out of this.`,
     treatsTitle: 'Treats',
     treatsBody: 'Given freely, and kept out of the maths.',
     treatsBy: (name: string, amount: string) => `${name} gave ${amount}`,
