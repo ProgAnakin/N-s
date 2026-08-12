@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { BASELINE_PER_EUR } from '@/lib/fx-baseline';
 import { FakeSupabase } from '@/test/fake-supabase';
 import { setFakeClient } from '@/test/client-mock';
 
@@ -15,7 +16,7 @@ vi.mock('@/data/client', async (importOriginal) => {
   };
 });
 
-const { captureRatesOn, currentRates, rateBook, ratesOn } = await import('./rates');
+const { captureRates, captureRatesOn, currentRates, rateBook, ratesOn } = await import('./rates');
 
 /**
  * Asking the provider for a day in the past — and, when this browser
@@ -281,11 +282,60 @@ describe('rateBook', () => {
     expect(book.CNY?.EUR).toBeCloseTo(1 / 7.9, 10);
   });
 
-  it('is empty rather than partial when the provider is unreachable', async () => {
+  /**
+   * The regression that kept the spending page wrong through three
+   * separate fixes. This used to return `{}` when the provider was
+   * unreachable, and `{}` means every expense in a foreign currency drops
+   * straight out of the total — which is the exact thing `rateBook` was
+   * added to prevent, quietly reappearing whenever the network did not
+   * cooperate.
+   */
+  it('still covers all four currencies when nothing can be reached at all', async () => {
     fetchMock.mockImplementation(async () => {
       throw new Error('offline');
     });
-    expect(await rateBook()).toEqual({});
+
+    const book = await rateBook();
+    expect(Object.keys(book).sort()).toEqual(['BRL', 'CNY', 'EUR', 'USD']);
+    // From the table compiled into the bundle, so this holds with no
+    // network, no migration and no partner.
+    expect(book.CNY?.EUR).toBeCloseTo(1 / BASELINE_PER_EUR.CNY, 10);
+  });
+
+  it('prefers a real rate to the built-in one whenever there is one', async () => {
+    fetchMock.mockImplementation(async () => reply('2026-08-12', { BRL: 99, CNY: 99, USD: 99 }));
+    const book = await rateBook();
+    expect(book.EUR?.BRL).toBe(99);
+  });
+});
+
+/**
+ * The line that keeps the built-in table honest.
+ *
+ * A stored `fx` claims to be that day's actual rate. An approximation
+ * frozen onto a row would be indistinguishable from a real one a year
+ * later — the precise drift the whole freezing design exists to prevent,
+ * arrived at through a fallback instead of through arithmetic.
+ */
+describe('the built-in rates never get written down', () => {
+  beforeEach(() => {
+    fetchMock.mockImplementation(async () => {
+      throw new Error('offline');
+    });
+  });
+
+  it('refuses to capture a rate for today from the baseline', async () => {
+    expect(await captureRates('CNY')).toBeNull();
+  });
+
+  it('refuses to capture one for a past day either', async () => {
+    expect(await captureRatesOn('CNY', '2025-11-04')).toBeNull();
+  });
+
+  it('leaves the expense waiting for a real rate instead', async () => {
+    expect(await currentRates()).toBeNull();
+    // But the page still shows a complete total meanwhile.
+    expect(Object.keys(await rateBook())).toHaveLength(4);
   });
 });
 

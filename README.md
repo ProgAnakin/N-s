@@ -396,25 +396,35 @@ for two people should not require registering for an API key to log a dinner.
 The ECB publishes once per working day, so a Saturday request returns
 Friday's rates; that is the correct answer, not a stale one.
 
-**Nothing is ever excluded from the total**, which took two attempts to get
-right. The first cut an expense with no snapshot out of the balance entirely
-— honest, and useless: the one number the page exists to give was quietly
-not the answer. It counts now, at today's rate, marked "about" everywhere it
-appears, and is repaired in the background to the rate of the day it
-actually happened, replacing the estimate the moment a real rate lands.
+**Nothing is ever excluded from the total**, which took four attempts,
+because the first three all put a network request between "two people
+logged expenses in two currencies" and "the page shows one number".
 
-The second attempt assumed the browser asking could always reach
-Frankfurter directly, which is not a safe assumption for a couple split
-across two countries: a firewall, a blocker, or a country's own filtering
-can and does stop one partner's network while leaving the other's alone.
-So the fetch is not the only path. `public.fx_rates` holds a day's rates
-with no `couple_id` at all — an ECB reference rate is the same fact for
-every couple in the app — and whichever partner's device *can* reach the
-provider leaves the answer there for the one whose device cannot, via
-`data/rates.ts`. A partial rate table is refused outright, in the CHECK on
-both the client's own `expenses.fx` and the shared `fx_rates` table and in
-the parser that reads either: converting three currencies and silently
-dropping the fourth is worse than converting none.
+The first cut an expense with no snapshot out of the balance entirely —
+honest, and useless: the one figure the page exists to give was quietly not
+the answer, and a couple whose partner logs in yuan saw a balance reading
+100% / 0%. The second counted it at today's live rate, which needs the
+provider. The third added `public.fx_rates` — a day's rates with no
+`couple_id` at all, since an ECB reference rate is the same fact for every
+couple in the app — so whichever partner's device *can* reach Frankfurter
+leaves the answer for the one whose device cannot. Better, and still not
+enough: it needs *somebody's* browser to get through.
+
+So there is a floor. `lib/fx-baseline.ts` ships four numbers inside the
+bundle. No network, no account, no migration, no permission — the total is
+complete on any device, including a phone in flight mode on first run.
+What keeps it honest is that it is never written down: `captureRates` and
+`captureRatesOn` ignore it entirely, because a stored `fx` claims to be
+*that day's actual rate* and this is not that. It is the last resort in
+`rateBook` alone, it loses to every real rate, and everywhere it reaches
+the screen the figure says "about".
+
+The four tiers, in order: the expense's own frozen snapshot, then today's
+live rate, then a rate the partner shared, then the built-in floor. A
+partial rate table is refused at every one of them — in the CHECK on both
+`expenses.fx` and `fx_rates`, and in the parser that reads either —
+because converting three currencies and silently dropping the fourth is
+worse than converting none.
 
 ## The album
 

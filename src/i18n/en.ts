@@ -561,10 +561,15 @@ export const en = {
        the rate of the day it actually happened to replace that. Said out
        loud because an approximate figure that admits it beats a precise one
        that is silently missing rows. */
+    /* Deliberately does not say "today's rate": the stand-in is today's
+       when the provider can be reached and the table built into the app
+       when it cannot, and the reader should not be told which in a
+       sentence that would sometimes be false. "Approximate" is true of
+       both, which is the only thing that matters here. */
     estimatedNote: (n: number) =>
       n === 1
-        ? '1 expense hasn’t got its own rate yet, so today’s is standing in. It’s counted here, and it’ll settle to the rate of the day it happened.'
-        : `${n} expenses haven’t got their own rate yet, so today’s is standing in. They’re counted here, and they’ll settle to the rate of the day each happened.`,
+        ? '1 expense hasn’t got its own rate yet, so it’s counted here at an approximate one. It’ll settle to the rate of the day it happened once that can be fetched.'
+        : `${n} expenses haven’t got their own rate yet, so they’re counted here at approximate ones. They’ll settle to the rate of the day each happened once those can be fetched.`,
     /* The rare remainder: no rate of its own, and none to be had either —
        which takes a first visit with no network at all. */
     notConverted: (n: number) =>

@@ -1,6 +1,7 @@
 import { supabase } from './client';
 import { CURRENCIES, type CurrencyCode } from '@/lib/money';
 import { snapshotFrom, type RateBook, type RateSnapshot } from '@/lib/fx';
+import { BASELINE_PER_EUR } from '@/lib/fx-baseline';
 
 /**
  * Exchange rates: today's, and any day in the past.
@@ -356,18 +357,31 @@ export async function captureRatesOn(
 }
 
 /**
- * Today's rates as a snapshot per currency, for expenses that have none.
+ * Rates as a snapshot per currency, for expenses that have none of their own.
  *
- * Only a stand-in, and only until `captureRatesOn` reaches the row. Its
- * purpose is that the total on screen is never missing anything, not even
- * for the second it takes to repair.
+ * Only ever a stand-in, and only until `captureRatesOn` reaches the row.
+ * Its single purpose is that the total on screen is never missing anything.
+ *
+ * Which is why it falls all the way back to the table compiled into the
+ * bundle rather than returning nothing. Every earlier version of this
+ * returned `{}` when the network was unreachable, and `{}` means every
+ * expense in a foreign currency drops out of the total — the exact failure
+ * this function was added to prevent, reappearing whenever the provider
+ * could not be reached. There is no state now in which a couple opens this
+ * page and sees a number that is not the whole number.
+ *
+ * The baseline never leaves this function. `captureRates` and
+ * `captureRatesOn` above are deliberately not written this way: a stored
+ * `fx` claims to be that day's real rate, and an approximation must never
+ * be frozen anywhere claiming that.
  */
 export async function rateBook(): Promise<RateBook> {
   const rates = await currentRates();
-  if (!rates) return {};
+  const perBase = rates?.perBase ?? BASELINE_PER_EUR;
+
   const book: RateBook = {};
   for (const code of CURRENCIES) {
-    const fx = snapshotFrom(BASE, rates.perBase as Partial<Record<CurrencyCode, number>>, code);
+    const fx = snapshotFrom(BASE, perBase as Partial<Record<CurrencyCode, number>>, code);
     if (fx) book[code] = fx;
   }
   return book;
