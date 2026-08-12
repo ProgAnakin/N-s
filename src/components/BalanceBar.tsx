@@ -51,6 +51,10 @@ export function BalanceBar({
 
   return (
     <div className={cn('flex flex-col gap-3', className)}>
+      {/* Says what the bar measures, because it was never obvious and the
+          honest answer is narrower than the reading people give it: money
+          that left an account, not spending that belonged to someone. */}
+      <p className="text-xs font-medium text-ink-soft">{s.spending.contributedTitle}</p>
       <div
         className="relative h-3 w-full overflow-hidden rounded-sm bg-sunk"
         role="img"
@@ -76,26 +80,94 @@ export function BalanceBar({
         />
       </div>
 
-      <div className="flex items-baseline justify-between gap-4 text-sm">
-        <span className="flex min-w-0 items-baseline gap-1.5">
-          <span aria-hidden="true" className="h-2 w-2 shrink-0 translate-y-[-1px] rounded-sm bg-cinnabar" />
-          <span className="truncate text-ink">{names.partner_a}</span>
-          <span className="shrink-0 tabular-nums text-ink-faint">
-            {formatPercent(percentA, intlLocale)}
+      {/* The amount, then the percentage. A percentage alone is what made
+          this unreadable: somebody who has put in the same €100 all week
+          watches their number fall as the other one logs things, and with
+          no figure beside it there is nothing to tell them their own
+          contribution never moved. */}
+      <div className="flex items-start justify-between gap-4 text-sm">
+        <span className="flex min-w-0 flex-col gap-0.5">
+          <span className="flex min-w-0 items-baseline gap-1.5">
+            <span aria-hidden="true" className="h-2 w-2 shrink-0 translate-y-[-1px] rounded-sm bg-cinnabar" />
+            <span className="truncate text-ink">{names.partner_a}</span>
+          </span>
+          <span className="flex items-baseline gap-1.5 tabular-nums">
+            <span className="text-ink-soft">
+              {money(balance.contributed.partner_a, balance.currency)}
+            </span>
+            <span className="text-ink-faint">{formatPercent(percentA, intlLocale)}</span>
           </span>
         </span>
-        <span className="flex min-w-0 items-baseline gap-1.5">
-          <span className="shrink-0 tabular-nums text-ink-faint">
-            {formatPercent(percentB, intlLocale)}
+        <span className="flex min-w-0 flex-col items-end gap-0.5">
+          <span className="flex min-w-0 items-baseline gap-1.5">
+            <span className="truncate text-ink">{names.partner_b}</span>
+            <span aria-hidden="true" className="h-2 w-2 shrink-0 translate-y-[-1px] rounded-sm bg-jade" />
           </span>
-          <span className="truncate text-ink">{names.partner_b}</span>
-          <span aria-hidden="true" className="h-2 w-2 shrink-0 translate-y-[-1px] rounded-sm bg-jade" />
+          <span className="flex items-baseline gap-1.5 tabular-nums">
+            <span className="text-ink-faint">{formatPercent(percentB, intlLocale)}</span>
+            <span className="text-ink-soft">
+              {money(balance.contributed.partner_b, balance.currency)}
+            </span>
+          </span>
         </span>
       </div>
 
       <p className="text-xs text-ink-faint">
         {s.spending.totalShared(money(balance.totalCents, balance.currency, true))}
       </p>
+    </div>
+  );
+}
+
+/**
+ * The other half of the picture: whose spending it was.
+ *
+ * The bar above answers "whose account did the money leave", which is the
+ * question that drifts and the one the nudge is built on. It is not the
+ * question most people think they are asking. Log a €50 dinner split down
+ * the middle and pay for it yourself, and the bar moves under your name
+ * alone — correct as cash flow, and it reads as though the whole €50 was
+ * yours to carry when in fact €25 of it was theirs.
+ *
+ * `fairShare` has always been computed and, until now, only ever reached
+ * the screen as the one-pixel hairline on the bar. This is that number,
+ * said out loud, in money. It is the one that goes up for *both* of them
+ * when something shared gets logged, whoever handed the card over.
+ */
+export function ShareNote({
+  balance,
+  names,
+  className,
+}: {
+  balance: Balance;
+  names: PartnerNames;
+  className?: string;
+}) {
+  const s = useStrings();
+  const money = useMoney();
+
+  if (balance.totalCents === 0) return null;
+
+  return (
+    <div className={cn('flex flex-col gap-2', className)}>
+      <p className="text-xs font-medium text-ink-soft">{s.spending.shareTitle}</p>
+      <div className="flex items-baseline justify-between gap-4 text-sm">
+        <span className="flex min-w-0 items-baseline gap-1.5">
+          <span aria-hidden="true" className="h-2 w-2 shrink-0 translate-y-[-1px] rounded-sm bg-cinnabar" />
+          <span className="truncate text-ink">{names.partner_a}</span>
+          <span className="shrink-0 tabular-nums text-ink-soft">
+            {money(balance.fairShare.partner_a, balance.currency)}
+          </span>
+        </span>
+        <span className="flex min-w-0 items-baseline gap-1.5">
+          <span className="shrink-0 tabular-nums text-ink-soft">
+            {money(balance.fairShare.partner_b, balance.currency)}
+          </span>
+          <span className="truncate text-ink">{names.partner_b}</span>
+          <span aria-hidden="true" className="h-2 w-2 shrink-0 translate-y-[-1px] rounded-sm bg-jade" />
+        </span>
+      </div>
+      <p className="text-xs leading-relaxed text-ink-faint">{s.spending.shareBody}</p>
     </div>
   );
 }

@@ -533,6 +533,17 @@ export const en = {
     noTrip: 'Not part of a trip',
     note: 'Note',
     balanceTitle: 'Where things stand',
+    /* Two different questions, and the page used to answer only the first.
+       Logging a €50 dinner split down the middle moves *one* name on the
+       bar, because only one card was charged — which reads as "that was
+       hers" when half of it was yours. The bar is about cash leaving an
+       account; the block below is about whose spending it was. Both are
+       true at once, and showing one without the other is what made the
+       arithmetic look broken. */
+    contributedTitle: 'Who put the money in',
+    shareTitle: 'What it came to for each of you',
+    shareBody:
+      'Every shared expense counts to both of you, whoever paid for it — down the middle unless you said otherwise. This is the part that doesn’t care whose card came out.',
     balanceEven: 'You’re even',
     balanceEvenBody: 'Nothing to think about. It’s been shared fairly.',
     balanceNothing: 'Nothing logged yet',
@@ -568,9 +579,11 @@ export const en = {
     /* Shown when the amount, the currency, who paid or the split changed
        after the fact. Fixing a typo in the label is not flagged. */
     edited: 'edited',
-    /* Named, not bare. "35%" alone never said whose 35% it was, which on a
-       two-person split is exactly the half of the sentence that matters. */
-    splitBadge: (name: string, pct: number) => `${name} ${pct}%`,
+    /* In money, not percent. "Costanzo 50%" is true and tells you nothing
+       you wanted: the question a split raises is how much of this one was
+       mine, and the answer to that is a figure with a currency on it. */
+    splitBadge: (aName: string, aAmount: string, bName: string, bAmount: string) =>
+      `${aName} ${aAmount} · ${bName} ${bAmount}`,
     /* An expense written down offline has no frozen rate of its own yet. It
        is *in* the total, at today's rate, and the app is quietly fetching
        the rate of the day it actually happened to replace that. Said out

@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { BalanceBar, RebalanceNote, TreatsNote } from './BalanceBar';
+import { BalanceBar, RebalanceNote, ShareNote, TreatsNote } from './BalanceBar';
 import { computeBalance, type Expense, type PartnerRole, type SplitRule } from '@/lib/money';
 import type { PartnerNames } from '@/screens/shared';
 
@@ -67,6 +67,22 @@ describe('BalanceBar', () => {
     expect(screen.getByText('33.3%')).toBeInTheDocument();
   });
 
+  it('puts a figure next to the percentage, so a falling share is legible', () => {
+    const balance = computeBalance([expense(10000, 'partner_a'), expense(5000, 'partner_b')], 'EUR');
+    render(<BalanceBar balance={balance} names={names} />);
+
+    // Without these, somebody whose own contribution never moved sees only
+    // their percentage drop and reads it as their money going somewhere.
+    expect(screen.getByText(/€100\.00/)).toBeInTheDocument();
+    expect(screen.getByText(/€50\.00/)).toBeInTheDocument();
+  });
+
+  it('says what the bar is measuring', () => {
+    const balance = computeBalance([expense(10000, 'partner_a')], 'EUR');
+    render(<BalanceBar balance={balance} names={names} />);
+    expect(screen.getByText(/who put the money in/i)).toBeInTheDocument();
+  });
+
   it('never uses debt language, even when badly lopsided', () => {
     const balance = computeBalance(
       [expense(500000, 'partner_a'), expense(1000, 'partner_b')],
@@ -93,6 +109,75 @@ describe('BalanceBar', () => {
   it('says nothing has been logged rather than showing a zeroed bar', () => {
     render(<BalanceBar balance={computeBalance([], 'EUR')} names={names} />);
     expect(screen.getByText(/nothing logged yet/i)).toBeInTheDocument();
+  });
+});
+
+/**
+ * The complaint this block exists for.
+ *
+ * Somebody logged a €50 expense split down the middle and paid for by their
+ * partner, and reported that "my number didn't go up, only hers did". They
+ * were right, and so was the arithmetic: only one card was charged. What
+ * was missing is the other reading — half of that €50 was theirs — which
+ * the page computed and never showed.
+ */
+describe('ShareNote', () => {
+  it('moves for both of them when one pays for something shared', () => {
+    const before = computeBalance([expense(10000, 'partner_a')], 'EUR');
+    const after = computeBalance(
+      [expense(10000, 'partner_a'), expense(5000, 'partner_b')],
+      'EUR',
+    );
+
+    // Cash out: Léo's does not move, and that is correct.
+    expect(after.contributed.partner_a).toBe(before.contributed.partner_a);
+
+    // Whose spending it was: Léo's climbs by half the new expense.
+    expect(before.fairShare.partner_a).toBe(5000);
+    expect(after.fairShare.partner_a).toBe(7500);
+    expect(after.fairShare.partner_b).toBe(7500);
+
+    render(<ShareNote balance={after} names={names} />);
+    expect(screen.getAllByText('€75.00')).toHaveLength(2);
+  });
+
+  it('follows the rule when the split is not down the middle', () => {
+    const balance = computeBalance(
+      [expense(10000, 'partner_a', { kind: 'custom_pct', partnerAPercent: 70 })],
+      'EUR',
+    );
+    render(<ShareNote balance={balance} names={names} />);
+
+    expect(screen.getByText('€70.00')).toBeInTheDocument();
+    expect(screen.getByText('€30.00')).toBeInTheDocument();
+  });
+
+  it('leaves treats out, the same as the balance does', () => {
+    const balance = computeBalance(
+      [expense(4000, 'partner_a'), expense(9000, 'partner_b', { kind: 'treat' })],
+      'EUR',
+    );
+    render(<ShareNote balance={balance} names={names} />);
+
+    // €20 each from the shared expense. The €90 gift is not anybody's share.
+    expect(screen.getAllByText('€20.00')).toHaveLength(2);
+    expect(screen.queryByText(/45\.00/)).not.toBeInTheDocument();
+  });
+
+  it('renders nothing before anything has been logged', () => {
+    const { container } = render(
+      <ShareNote balance={computeBalance([], 'EUR')} names={names} />,
+    );
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it('never uses debt language either', () => {
+    const balance = computeBalance(
+      [expense(500000, 'partner_a'), expense(1000, 'partner_b')],
+      'EUR',
+    );
+    const { container } = render(<ShareNote balance={balance} names={names} />);
+    expectNoDebtLanguage(container.textContent ?? '');
   });
 });
 

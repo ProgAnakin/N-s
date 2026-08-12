@@ -371,3 +371,60 @@ describe('one total, with nothing left out of it', () => {
     expect(vi.mocked(captureRatesOn)).toHaveBeenCalledTimes(2);
   });
 });
+
+/**
+ * "I added a 50/50 split and my number didn't go up, only hers did."
+ *
+ * A real report, and the arithmetic behind it was right: only one card was
+ * charged, so only one contribution moved. What the page was missing is
+ * that the same expense raised *both* of their shares — the number it had
+ * always computed and only ever drawn as a one-pixel hairline.
+ */
+describe('the two halves of the same total', () => {
+  it('moves one contribution and both shares when one of them pays', async () => {
+    mount([
+      expenseRow({ id: 'his', label: 'Camcaro', amount_cents: 10000, paid_by: 'partner_a' }),
+      expenseRow({ id: 'hers', label: 'Abacaxi', amount_cents: 5000, paid_by: 'partner_b' }),
+    ]);
+
+    await screen.findByText('Abacaxi');
+
+    // Money out: €100 from him, €50 from her. Scoped to the bar, because
+    // the same figures are also down in the history and the point here is
+    // what the summary says.
+    const moneyIn = (await screen.findByText(/who put the money in/i)).closest('div')!;
+    await waitFor(() => {
+      expect(within(moneyIn).getByText('€100.00')).toBeInTheDocument();
+    });
+    expect(within(moneyIn).getByText('€50.00')).toBeInTheDocument();
+
+    // Whose spending it was: €75 each. This is the half that was missing,
+    // and the one that answers "where did my €25 of that go".
+    const share = (await screen.findByText(/what it came to for each of you/i)).closest('div')!;
+    await waitFor(() => {
+      expect(within(share).getAllByText('€75.00')).toHaveLength(2);
+    });
+  });
+
+  it('labels the bar as money in rather than leaving it to be guessed', async () => {
+    mount([expenseRow({ label: 'Rent' })]);
+    expect(await screen.findByText(/who put the money in/i)).toBeInTheDocument();
+  });
+
+  it('says a custom split in money, not as a bare percentage', async () => {
+    mount([
+      expenseRow({
+        label: 'Groceries',
+        amount_cents: 10000,
+        split_rule: 'custom_pct',
+        partner_a_percent: 70,
+      }),
+    ]);
+
+    const row = (await screen.findByText('Groceries')).closest('li')!;
+    // "Léo 70%" made you do the arithmetic yourself to learn the only thing
+    // you wanted, and the row already knew the amount.
+    expect(within(row).getByText(/Léo €70\.00/)).toBeInTheDocument();
+    expect(within(row).getByText(/€30\.00/)).toBeInTheDocument();
+  });
+});

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Plus, Scale } from 'lucide-react';
-import { BalanceBar, RebalanceNote, TreatsNote } from '@/components/BalanceBar';
+import { BalanceBar, RebalanceNote, ShareNote, TreatsNote } from '@/components/BalanceBar';
 import { Button } from '@/components/ui/Button';
 import { Tag } from '@/components/ui/Bits';
 import { ChoiceField, SelectField, TextAreaField, TextField } from '@/components/ui/Field';
@@ -24,6 +24,7 @@ import {
   centsToInputValue,
   computeConvertedBalance,
   parseAmountToCents,
+  shareOf,
   totalsByCategory,
   type Expense,
 } from '@/lib/money';
@@ -383,7 +384,12 @@ export function SpendingScreen() {
           </div>
           <BalanceBar balance={balance} names={names} />
 
-          <p className="mt-3 text-xs leading-relaxed text-ink-faint">
+          {/* Directly under the bar, not behind a rule. The two blocks are
+              one thought — money out, and whose it was — and separating
+              them is how the first came to be read as the whole answer. */}
+          <ShareNote balance={balance} names={names} className="mt-5" />
+
+          <p className="mt-5 text-xs leading-relaxed text-ink-faint">
             {s.spending.frozenNote}
           </p>
 
@@ -483,12 +489,28 @@ export function SpendingScreen() {
                       {row.split_rule === 'treat' && (
                         <Tag tone="jade">{s.spending.treatBadge}</Tag>
                       )}
-                      {/* Named, because a bare "35%" never said whose. */}
-                      {row.split_rule === 'custom_pct' && row.partner_a_percent !== null && (
-                        <Tag>
-                          {s.spending.splitBadge(names.partner_a, row.partner_a_percent)}
-                        </Tag>
-                      )}
+                      {/* In money. A percentage on a row makes you do the
+                          arithmetic yourself to answer the only question
+                          you had, and the row already knows the amount. */}
+                      {row.split_rule === 'custom_pct' &&
+                        row.partner_a_percent !== null &&
+                        (() => {
+                          const share = shareOf(
+                            row.amount_cents,
+                            { kind: 'custom_pct', partnerAPercent: row.partner_a_percent },
+                            row.paid_by,
+                          );
+                          return (
+                            <Tag>
+                              {s.spending.splitBadge(
+                                names.partner_a,
+                                money(share.partner_a, row.currency),
+                                names.partner_b,
+                                money(share.partner_b, row.currency),
+                              )}
+                            </Tag>
+                          );
+                        })()}
                       {/* Not a lock, a record. Either partner may correct a
                           mis-tapped entry — that is legitimate — but the
                           balance is the one number this page makes claims
