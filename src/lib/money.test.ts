@@ -740,9 +740,9 @@ describe('an expense that belongs to one person', () => {
     });
   });
 
-  it('leaves nothing to rebalance', () => {
+  it('stays out of the balance entirely', () => {
     // He spends €100 of his own, she spends €100 of hers. Two different
-    // purchases, and nobody is behind on anything.
+    // purchases, nothing agreed between them, nothing to divide.
     const balance = computeBalance(
       [
         expense(10000, 'partner_a', { kind: 'mine' }),
@@ -751,17 +751,21 @@ describe('an expense that belongs to one person', () => {
       'EUR',
     );
 
-    expect(balance.fairShare).toEqual({ partner_a: 10000, partner_b: 10000 });
-    expect(balance.contributed).toEqual({ partner_a: 10000, partner_b: 10000 });
-    expect(balance.totalCents).toBe(20000);
+    expect(balance.ownCents).toEqual({ partner_a: 10000, partner_b: 10000 });
+    expect(balance.ownCount).toBe(2);
+
+    // Not in the shared pool, in any of its forms.
+    expect(balance.totalCents).toBe(0);
+    expect(balance.fairShare).toEqual({ partner_a: 0, partner_b: 0 });
+    expect(balance.contributed).toEqual({ partner_a: 0, partner_b: 0 });
     expect(balance.aheadPartner).toBeNull();
     expect(rebalanceSuggestion(balance)).toBeNull();
   });
 
   it('never moves anything between them, however lopsided', () => {
     // One of them logs a great deal more of their own spending than the
-    // other. That is a fact about their week, not a debt, and the page
-    // must not turn it into a suggestion.
+    // other. That is a fact about their week, not a debt, and there is no
+    // percentage anywhere that sets the two figures against each other.
     const balance = computeBalance(
       [
         expense(500000, 'partner_a', { kind: 'mine' }),
@@ -770,39 +774,81 @@ describe('an expense that belongs to one person', () => {
       'EUR',
     );
 
+    expect(balance.ownCents).toEqual({ partner_a: 500000, partner_b: 1000 });
     expect(balance.differenceCents).toBe(0);
+    expect(balance.contributionPercent).toEqual({ partner_a: 50, partner_b: 50 });
     expect(rebalanceSuggestion(balance)).toBeNull();
   });
 
-  it('is counted in the total, unlike a treat', () => {
+  it('is kept apart from a treat, which is a different thing', () => {
     const mine = computeBalance([expense(5000, 'partner_a', { kind: 'mine' })], 'EUR');
     const gift = computeBalance([expense(5000, 'partner_a', { kind: 'treat' })], 'EUR');
 
-    expect(mine.totalCents).toBe(5000);
+    // Both sit outside the shared pool, and they are not interchangeable:
+    // one is money spent on yourself, the other money spent on them. The
+    // screen says different things about each, so the model has to keep
+    // them in different places.
+    expect(mine.ownCents.partner_a).toBe(5000);
     expect(mine.treatedCents.partner_a).toBe(0);
-
-    // A gift is in neither total. Counting it would turn a present into a
-    // claim, which is the one thing this module refuses to do.
-    expect(gift.totalCents).toBe(0);
+    expect(gift.ownCents.partner_a).toBe(0);
     expect(gift.treatedCents.partner_a).toBe(5000);
+
+    expect(mine.totalCents).toBe(0);
+    expect(gift.totalCents).toBe(0);
   });
 
-  it('mixes with divided expenses without disturbing them', () => {
-    const balance = computeBalance(
+  it('does not disturb the divided expenses it sits beside', () => {
+    const withOwn = computeBalance(
       [
         expense(10000, 'partner_a', { kind: 'mine' }),
         expense(4000, 'partner_a', { kind: '50_50' }),
       ],
       'EUR',
     );
+    const without = computeBalance([expense(4000, 'partner_a', { kind: '50_50' })], 'EUR');
 
-    // His own €100, plus his half of the shared €40.
-    expect(balance.fairShare.partner_a).toBe(12000);
-    expect(balance.fairShare.partner_b).toBe(2000);
-    // He fronted all €140, so he is €20 ahead — from the shared one alone.
-    expect(balance.contributed.partner_a).toBe(14000);
-    expect(balance.differenceCents).toBe(2000);
-    expect(rebalanceSuggestion(balance)?.amountCents).toBe(4000);
+    // The €100 of his own is recorded and changes nothing about the €40
+    // they split. This is the property the whole separation exists for:
+    // a €100 personal purchase used to swamp a €4.75 shared one, produce a
+    // bar reading 95.7% / 4.3%, and hang a fairness nudge off it.
+    expect(withOwn.totalCents).toBe(without.totalCents);
+    expect(withOwn.fairShare).toEqual(without.fairShare);
+    expect(withOwn.contributed).toEqual(without.contributed);
+    expect(withOwn.contributionPercent).toEqual(without.contributionPercent);
+    expect(rebalanceSuggestion(withOwn)?.amountCents).toBe(
+      rebalanceSuggestion(without)?.amountCents,
+    );
+
+    expect(withOwn.ownCents.partner_a).toBe(10000);
+    expect(withOwn.fairShare).toEqual({ partner_a: 2000, partner_b: 2000 });
+  });
+
+  /**
+   * The reported case, exactly. €100 of his own tools and €9.49 of shared
+   * medicine she paid for produced "Costanzo €104.74, 95.7%" and, directly
+   * underneath, "the next €9.48 is on Costanzo" — telling the person who
+   * had apparently spent almost everything to spend more.
+   */
+  it('no longer swamps a small shared pool with a large personal one', () => {
+    const balance = computeBalance(
+      [
+        expense(10000, 'partner_a', { kind: 'mine' }),
+        expense(949, 'partner_b', { kind: '50_50' }),
+      ],
+      'EUR',
+    );
+
+    expect(balance.totalCents).toBe(949);
+    expect(balance.fairShare).toEqual({ partner_a: 474, partner_b: 475 });
+    // Near enough half each, which is what they agreed — not 95.7%.
+    expect(balance.contributionPercent.partner_a).toBe(0);
+    expect(balance.ownCents.partner_a).toBe(10000);
+
+    // The nudge is still right, and now it is the only figure on the page
+    // about the shared pool, so it reads as being about the €9.49.
+    const suggestion = rebalanceSuggestion(balance)!;
+    expect(suggestion.partner).toBe('partner_a');
+    expect(suggestion.amountCents).toBe(948);
   });
 
   it('is drawn solid, in the colour of whoever spent it', () => {

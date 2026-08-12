@@ -391,7 +391,7 @@ describe('the two halves of the same total', () => {
 
     // Whose spending it was: €75 each. This is the figure that moves for
     // both of them, and the one the page leads with.
-    const share = (await screen.findByText(/what each of you has spent/i)).closest('div')!;
+    const share = (await screen.findByText(/what each of you carries/i)).closest('div')!;
     await waitFor(() => {
       expect(within(share).getAllByText('€75.00')).toHaveLength(2);
     });
@@ -406,7 +406,7 @@ describe('the two halves of the same total', () => {
   it('shows one bar, not two that look alike and mean different things', async () => {
     mount([expenseRow({ label: 'Rent' })]);
     await screen.findByText('Rent');
-    expect(await screen.findByText(/what each of you has spent/i)).toBeInTheDocument();
+    expect(await screen.findByText(/what each of you carries/i)).toBeInTheDocument();
     expect(screen.getAllByRole('img')).toHaveLength(1);
     // The cash-flow percentages went with the second bar. "77.1% / 22.9%"
     // over two names is a scoreboard, and this page does not keep score.
@@ -445,7 +445,7 @@ describe('a 50/50 expense, from the row up to the summary', () => {
       expenseRow({ label: 'Camcaro', amount_cents: 10000, paid_by: 'partner_a' }),
     ]);
 
-    const spent = (await screen.findByText(/what each of you has spent/i)).closest('div')!;
+    const spent = (await screen.findByText(/what each of you carries/i)).closest('div')!;
     await waitFor(() => {
       expect(within(spent).getAllByText('€50.00')).toHaveLength(2);
     });
@@ -533,12 +533,43 @@ describe('logging something that is just yours', () => {
     ]);
 
     await screen.findByText('Hers');
-    const spent = (await screen.findByText(/what each of you has spent/i)).closest('div')!;
+
+    // Nothing was shared, so there is no shared pool to draw — and saying
+    // "nothing logged yet" to somebody with two rows on screen would read
+    // as though the app had mislaid them.
+    expect(await screen.findByText(/nothing shared yet/i)).toBeInTheDocument();
+    expect(screen.getByText(/€200 logged, all of it each of your own/i)).toBeInTheDocument();
+
+    // Two people spending their own money are not out of balance, and the
+    // page must not invent a nudge from it.
+    expect(screen.queryByText(/the next .* is on/i)).not.toBeInTheDocument();
+  });
+
+  /**
+   * The reported case. €100 of his own tools beside €9.49 of shared
+   * medicine she paid for read "Costanzo €104.74, 95.7%" and then, right
+   * underneath, "the next €9.48 is on Costanzo" — telling the person who
+   * had apparently spent almost everything to go and spend more.
+   */
+  it('keeps a large personal expense from swamping a small shared one', async () => {
+    mount([
+      expenseRow({ id: 'his', label: 'Tools', amount_cents: 10000, paid_by: 'partner_a', split_rule: 'mine' }),
+      expenseRow({ id: 'med', label: 'Aspirin', amount_cents: 949, paid_by: 'partner_b', split_rule: '50_50' }),
+    ]);
+
+    await screen.findByText('Aspirin');
+    const carries = (await screen.findByText(/what each of you carries/i)).closest('div')!;
+
+    // The shared pool is €9.49 and falls near enough evenly, which is what
+    // they agreed. His €100 of tools is named, and named apart.
     await waitFor(() => {
-      expect(within(spent).getAllByText('€100.00')).toHaveLength(2);
+      expect(within(carries).getByText('€4.74')).toBeInTheDocument();
     });
-    // Two people spending their own money are not out of balance.
-    expect(await screen.findByText(/you’re even/i)).toBeInTheDocument();
+    expect(within(carries).getByText('€4.75')).toBeInTheDocument();
+    expect(
+      within(carries).getByText(/€9\.49 shared so far, with €100 of personal spending/i),
+    ).toBeInTheDocument();
+    expect(within(carries).queryByText('95.7%')).not.toBeInTheDocument();
   });
 });
 

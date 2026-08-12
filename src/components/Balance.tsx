@@ -57,17 +57,32 @@ export function ShareBar({
   const { intlLocale } = useI18n();
   const money = useMoney();
 
+  const own = balance.ownCents.partner_a + balance.ownCents.partner_b;
+  const treated = balance.treatedCents.partner_a + balance.treatedCents.partner_b;
+
   if (balance.totalCents === 0) {
+    // Two different empty states. Somebody a fortnight into logging their
+    // own coffees has not logged nothing, and saying so reads as though
+    // the app mislaid it.
     return (
       <div className={cn('flex flex-col gap-2', className)}>
         <div className="h-3 w-full rounded-sm bg-sunk" aria-hidden="true" />
-        <p className="text-sm text-ink-faint">{s.spending.balanceNothing}</p>
+        {own > 0 ? (
+          <>
+            <p className="text-sm text-ink-faint">{s.spending.nothingShared}</p>
+            <p className="text-xs leading-relaxed text-ink-faint">
+              {s.spending.nothingSharedBody(money(own, balance.currency, true))}
+            </p>
+          </>
+        ) : (
+          <p className="text-sm text-ink-faint">{s.spending.balanceNothing}</p>
+        )}
       </div>
     );
   }
 
   const percent = percentSplit(balance.fairShare);
-  const treated = balance.treatedCents.partner_a + balance.treatedCents.partner_b;
+  const total = money(balance.totalCents, balance.currency, true);
 
   return (
     <div className={cn('flex flex-col gap-3', className)}>
@@ -126,16 +141,23 @@ export function ShareBar({
         </span>
       </div>
 
-      {/* Says what is *not* in the figure when something isn't. A total
-          that silently omits €30 of flowers is a total somebody will add
-          up by hand, fail to reproduce, and stop believing. */}
-      <p className="text-xs text-ink-faint">
-        {treated > 0
-          ? s.spending.totalSharedPlusTreats(
-              money(balance.totalCents, balance.currency, true),
+      {/* Says what is *not* in the figure whenever something isn't. A
+          total that silently omits €100 of one person's tools is a total
+          somebody will add up by hand, fail to reproduce, and stop
+          believing — and the omission is the whole point here, so it had
+          better be the thing said out loud. */}
+      <p className="text-xs leading-relaxed text-ink-faint">
+        {own > 0 && treated > 0
+          ? s.spending.totalPlusBoth(
+              total,
+              money(own, balance.currency, true),
               money(treated, balance.currency, true),
             )
-          : s.spending.totalShared(money(balance.totalCents, balance.currency, true))}
+          : own > 0
+            ? s.spending.totalPlusOwn(total, money(own, balance.currency, true))
+            : treated > 0
+              ? s.spending.totalPlusTreats(total, money(treated, balance.currency, true))
+              : s.spending.totalShared(total)}
       </p>
 
       <p className="text-xs leading-relaxed text-ink-faint">{s.spending.shareBody}</p>

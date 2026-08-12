@@ -533,15 +533,21 @@ export const en = {
     noTrip: 'Not part of a trip',
     note: 'Note',
     balanceTitle: 'Where things stand',
-    shareTitle: 'What each of you has spent',
+    shareTitle: 'What each of you carries',
     shareBody:
-      'An expense marked as just yours counts to you alone. One you divided counts to both, in whatever proportion you chose, whoever actually paid — so either of you can log something for the two of you without the other having to enter it again. In the list below, a row carried together is drawn in both colours.',
+      'This is only what you divided. An expense you split counts to both of you, in whatever proportion you chose and whoever actually paid — so either of you can log something for the two of you without the other entering it again. In the list below, a row carried together is drawn in both colours.',
     balanceEven: 'You’re even',
     /* Not "it's been shared fairly" — with personal expenses in the list
        most of it was never shared at all, and the sentence was quietly
        wrong on the commonest page there is. */
     balanceEvenBody: 'Nothing to think about. It’s come out fair.',
     balanceNothing: 'Nothing logged yet',
+    /* Distinct from the above, and worth the extra string. Somebody who
+       has logged a fortnight of their own coffees has not "logged
+       nothing", and telling them so reads as though the app lost it. */
+    nothingShared: 'Nothing shared yet',
+    nothingSharedBody: (own: string) =>
+      `${own} logged, all of it each of your own. Split something between you and it'll show up here.`,
     balanceNothingBody: 'Once you log a few things, you’ll see how it’s been shared.',
     rebalanceTitle: 'To even it out naturally',
     rebalanceBody: (name: string, amount: string) => `The next ${amount} is on ${name}.`,
@@ -563,12 +569,21 @@ export const en = {
     // Deliberately does not reach for the word "owed", even to deny it.
     // Naming the idea in order to dismiss it still puts it in the room.
     rebalanceHint: 'No rush. It’s just the number that would bring the split back level.',
-    totalShared: (amount: string) => `${amount} logged so far`,
-    /* The same line when treats exist. Without it the total silently omits
-       them and anybody who adds the list up by hand gets a different
-       number, which is how a page stops being believed. */
-    totalSharedPlusTreats: (amount: string, treats: string) =>
-      `${amount} logged so far. A further ${treats} was given as treats, kept out of this.`,
+    totalShared: (amount: string) => `${amount} shared so far`,
+    /* What the figure leaves out, said in the same breath as the figure.
+       Personal spending and treats are both deliberately outside it, and a
+       total that omits them in silence is one anybody adding the list up
+       by hand will fail to reproduce and stop believing.
+
+       Three phrasings rather than one assembled from fragments, because
+       "and" between two clauses is not the same word in every language
+       this app will one day speak. */
+    totalPlusOwn: (amount: string, own: string) =>
+      `${amount} shared so far, with ${own} of personal spending kept out of it.`,
+    totalPlusTreats: (amount: string, treats: string) =>
+      `${amount} shared so far, with ${treats} of treats kept out of it.`,
+    totalPlusBoth: (amount: string, own: string, treats: string) =>
+      `${amount} shared so far, with ${own} of personal spending and ${treats} of treats kept out of it.`,
     treatsTitle: 'Treats',
     treatsBody: 'Given freely, and kept out of the maths.',
     treatsBy: (name: string, amount: string) => `${name} gave ${amount}`,

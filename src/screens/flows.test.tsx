@@ -375,7 +375,7 @@ describe('the spending page across currencies', () => {
     ]);
 
     // €100 and ¥790 are the same €100: level, not two bars each reading 100%.
-    expect(await screen.findByText(/€200(\.00)? logged so far/)).toBeInTheDocument();
+    expect(await screen.findByText(/€200(\.00)? shared so far/)).toBeInTheDocument();
   });
 
   it('restates the whole total when another currency is picked', async () => {
@@ -384,10 +384,10 @@ describe('the spending page across currencies', () => {
       expenseRow({ currency: 'EUR', amount_cents: 10_000, fx: eurFx }),
     ]);
 
-    await screen.findByText(/€100(\.00)? logged so far/);
+    await screen.findByText(/€100(\.00)? shared so far/);
     await user.click(screen.getByRole('button', { name: 'BRL' }));
 
-    expect(await screen.findByText(/R\$\s?620(\.00)? logged so far/)).toBeInTheDocument();
+    expect(await screen.findByText(/R\$\s?620(\.00)? shared so far/)).toBeInTheDocument();
   });
 
   it('uses the rate the expense was written down at, not a newer one', async () => {
@@ -401,10 +401,10 @@ describe('the spending page across currencies', () => {
     ]);
 
     const user = userEvent.setup();
-    await screen.findByText(/€100(\.00)? logged so far/);
+    await screen.findByText(/€100(\.00)? shared so far/);
     await user.click(screen.getByRole('button', { name: 'BRL' }));
 
-    expect(await screen.findByText(/R\$\s?500(\.00)? logged so far/)).toBeInTheDocument();
+    expect(await screen.findByText(/R\$\s?500(\.00)? shared so far/)).toBeInTheDocument();
   });
 
   /**
@@ -421,7 +421,7 @@ describe('the spending page across currencies', () => {
     ]);
 
     // ¥790 is €100 at 7.9. The old answer here was €100 and an apology.
-    expect(await screen.findByText(/€200(\.00)? logged so far/)).toBeInTheDocument();
+    expect(await screen.findByText(/€200(\.00)? shared so far/)).toBeInTheDocument();
   });
 
   it('leaves it out only when there is no rate to be had anywhere', async () => {
@@ -431,7 +431,7 @@ describe('the spending page across currencies', () => {
       expenseRow({ currency: 'CNY', amount_cents: 79_000, fx: null }),
     ]);
 
-    expect(await screen.findByText(/€100(\.00)? logged so far/)).toBeInTheDocument();
+    expect(await screen.findByText(/€100(\.00)? shared so far/)).toBeInTheDocument();
     expect(
       await screen.findByText(/1 expense is in another currency/),
     ).toBeInTheDocument();
@@ -441,7 +441,7 @@ describe('the spending page across currencies', () => {
     rates.reachable = false;
     mountSpendingWith([expenseRow({ currency: 'EUR', amount_cents: 10_000, fx: null })]);
 
-    expect(await screen.findByText(/€100(\.00)? logged so far/)).toBeInTheDocument();
+    expect(await screen.findByText(/€100(\.00)? shared so far/)).toBeInTheDocument();
     expect(screen.queryByText(/isn’t in this total/)).not.toBeInTheDocument();
   });
 });

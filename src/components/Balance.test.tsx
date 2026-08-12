@@ -131,14 +131,48 @@ describe('ShareBar', () => {
 
     // Otherwise somebody adds the list up by hand, gets €70, and stops
     // believing the page.
-    expect(screen.getByText(/€40 logged so far/)).toBeInTheDocument();
-    expect(screen.getByText(/A further €30 was given as treats/)).toBeInTheDocument();
+    expect(screen.getByText(/€40 shared so far/)).toBeInTheDocument();
+    expect(screen.getByText(/with €30 of treats kept out of it/)).toBeInTheDocument();
+  });
+
+  it('names personal spending apart, never inside the split', () => {
+    const balance = computeBalance(
+      [
+        expense(10000, 'partner_a', { kind: 'mine' }),
+        expense(949, 'partner_b', { kind: '50_50' }),
+      ],
+      'EUR',
+    );
+    render(<ShareBar balance={balance} names={names} />);
+
+    // €4.74 and €4.75 — the shared pool, split as agreed. The €100 of his
+    // own is said out loud and kept out of every percentage on the bar.
+    expect(screen.getByText('€4.74')).toBeInTheDocument();
+    expect(screen.getByText('€4.75')).toBeInTheDocument();
+    expect(
+      screen.getByText(/€9\.49 shared so far, with €100 of personal spending kept out of it/),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('95.7%')).not.toBeInTheDocument();
+  });
+
+  it('says nothing was shared rather than nothing was logged', () => {
+    const balance = computeBalance(
+      [
+        expense(10000, 'partner_a', { kind: 'mine' }),
+        expense(5000, 'partner_b', { kind: 'mine' }),
+      ],
+      'EUR',
+    );
+    render(<ShareBar balance={balance} names={names} />);
+
+    expect(screen.getByText(/nothing shared yet/i)).toBeInTheDocument();
+    expect(screen.getByText(/€150 logged, all of it each of your own/i)).toBeInTheDocument();
   });
 
   it('keeps the total plain when there are no treats', () => {
     const balance = computeBalance([expense(4000, 'partner_a')], 'EUR');
     render(<ShareBar balance={balance} names={names} />);
-    expect(screen.getByText('€40 logged so far')).toBeInTheDocument();
+    expect(screen.getByText('€40 shared so far')).toBeInTheDocument();
     expect(screen.queryByText(/treats/i)).not.toBeInTheDocument();
   });
 

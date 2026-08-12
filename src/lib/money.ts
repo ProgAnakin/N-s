@@ -1,14 +1,20 @@
 /**
  * Money.
  *
- * Two rules govern this file.
+ * Three rules govern this file.
  *
  * 1. **No floats, ever.** Every amount is an integer number of minor units
  *    (cents, centavos, fēn). Floats are introduced exactly once, at the edge,
  *    when parsing what a human typed — and immediately rounded away. This is
  *    why the UI never does arithmetic inline.
  *
- * 2. **No debt.** There is no `owed` value in this module and there never
+ * 2. **Nothing here compares the two of them.** `contributed` and
+ *    `fairShare` decompose a pool they agreed to share; they do not rank
+ *    two people. Personal spending is deliberately outside all of it, and
+ *    `ownCents` exists so the screen can say so rather than quietly fold
+ *    one partner's shopping into a percentage beside the other's.
+ *
+ * 3. **No debt.** There is no `owed` value in this module and there never
  *    should be. We compute what each person has *contributed* and what each
  *    person's *fair share* was, and from the gap we derive a forward-looking
  *    suggestion: who could comfortably pick up the next one. Nobody is ever
@@ -212,8 +218,22 @@ export interface Balance {
   aheadPartner: PartnerRole | null;
   /** Treats given by each partner. Recorded, celebrated, never netted off. */
   treatedCents: PartnerTotals;
+  /**
+   * Spending each of them logged as their own.
+   *
+   * Kept out of every figure above, and the reason is not tidiness. A
+   * personal expense raises what one person has spent and their own share
+   * of it by the same amount, so it can never create drift — but left in
+   * the totals it dominates them. One partner buying €100 of tools and the
+   * other €4.75 of aspirin produced a bar reading 95.7% / 4.3% with a
+   * fairness nudge attached to it, which is both absurd on its face and a
+   * scoreboard of who spends more on themselves. This app does not compare
+   * the two of them, and that includes by accident.
+   */
+  ownCents: PartnerTotals;
   sharedCount: number;
   treatCount: number;
+  ownCount: number;
 }
 
 function emptyBalance(currency: CurrencyCode): Balance {
@@ -226,8 +246,10 @@ function emptyBalance(currency: CurrencyCode): Balance {
     differenceCents: 0,
     aheadPartner: null,
     treatedCents: emptyTotals(),
+    ownCents: emptyTotals(),
     sharedCount: 0,
     treatCount: 0,
+    ownCount: 0,
   };
 }
 
@@ -255,6 +277,15 @@ export function computeBalance(expenses: readonly Expense[], currency: CurrencyC
     if (expense.splitRule.kind === 'treat') {
       balance.treatedCents[expense.paidBy] += amount;
       balance.treatCount += 1;
+      continue;
+    }
+
+    // Somebody's own spending. Recorded, visible to both, and outside the
+    // balance entirely — there is nothing here to divide, and nothing that
+    // could ever put one of them ahead of the other.
+    if (expense.splitRule.kind === 'mine') {
+      balance.ownCents[expense.paidBy] += amount;
+      balance.ownCount += 1;
       continue;
     }
 
