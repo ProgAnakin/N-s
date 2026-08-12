@@ -434,8 +434,8 @@ describe('computeConvertedBalance', () => {
     expect(balance.contributionPercent.partner_a).toBe(50);
   });
 
-  it('keeps an expense written down offline out of the total, and says so', () => {
-    const { balance, unconvertible } = computeConvertedBalance(
+  it('leaves an expense out only when there is nothing at all to convert it with', () => {
+    const { balance, estimated, unconvertible } = computeConvertedBalance(
       [
         withFx(10_000, 'EUR', 'partner_a', eurRates),
         withFx(5_000, 'CNY', 'partner_b', null),
@@ -444,8 +444,43 @@ describe('computeConvertedBalance', () => {
     );
 
     expect(balance.totalCents).toBe(10_000);
+    expect(estimated).toEqual([]);
     expect(unconvertible).toHaveLength(1);
     expect(unconvertible[0]?.currency).toBe('CNY');
+  });
+
+  /**
+   * The behaviour that was asked for three times. Given anything to convert
+   * with, the total is the total — and the expenses that needed a stand-in
+   * come back named, so the page can say "about" rather than say nothing.
+   */
+  it('counts an expense written down offline, and names it as an estimate', () => {
+    const cnyToday = { EUR: 1 / 7.9, BRL: 6.2 / 7.9, CNY: 1, USD: 1.08 / 7.9 };
+    const { balance, estimated, unconvertible } = computeConvertedBalance(
+      [
+        withFx(10_000, 'EUR', 'partner_a', eurRates),
+        withFx(79_000, 'CNY', 'partner_b', null),
+      ],
+      'EUR',
+      { CNY: cnyToday },
+    );
+
+    expect(unconvertible).toEqual([]);
+    expect(balance.totalCents).toBe(20_000);
+    expect(estimated).toHaveLength(1);
+    expect(estimated[0]?.currency).toBe('CNY');
+  });
+
+  it('never lets a stand-in override a rate the expense already has', () => {
+    // Frozen at 5.0; today is 6.2. The frozen one wins, always.
+    const frozen = { EUR: 1, BRL: 5.0, CNY: 7.9, USD: 1.08 };
+    const { balance, estimated } = computeConvertedBalance(
+      [withFx(10_000, 'EUR', 'partner_a', frozen)],
+      'BRL',
+      { EUR: eurRates },
+    );
+    expect(balance.totalCents).toBe(50_000);
+    expect(estimated).toEqual([]);
   });
 
   it('needs no rate for an expense already in the display currency', () => {

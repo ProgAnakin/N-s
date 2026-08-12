@@ -556,19 +556,27 @@ export const en = {
        after the fact. Fixing a typo in the label is not flagged. */
     edited: 'edited',
     splitBadge: (pct: number) => `${pct}%`,
-    /* Shown when an expense was written down with no network, so it has no
-       frozen rate and cannot join the total. Naming the count matters: a
-       money page that quietly omits rows is worse than one that admits it. */
+    /* An expense written down offline has no frozen rate of its own yet. It
+       is *in* the total, at today's rate, and the app is quietly fetching
+       the rate of the day it actually happened to replace that. Said out
+       loud because an approximate figure that admits it beats a precise one
+       that is silently missing rows. */
+    estimatedNote: (n: number) =>
+      n === 1
+        ? '1 expense hasn’t got its own rate yet, so today’s is standing in. It’s counted here, and it’ll settle to the rate of the day it happened.'
+        : `${n} expenses haven’t got their own rate yet, so today’s is standing in. They’re counted here, and they’ll settle to the rate of the day each happened.`,
+    /* The rare remainder: no rate of its own, and none to be had either —
+       which takes a first visit with no network at all. */
     notConverted: (n: number) =>
       n === 1
-        ? '1 expense was recorded offline and has no exchange rate, so it isn’t in this total.'
-        : `${n} expenses were recorded offline and have no exchange rate, so they aren’t in this total.`,
-    convertNow: 'Use today’s rate for those',
+        ? '1 expense is in another currency and there are no rates to hand yet, so it isn’t in this total. It will be, next time you’re online.'
+        : `${n} expenses are in other currencies and there are no rates to hand yet, so they aren’t in this total. They will be, next time you’re online.`,
     /* On a row whose currency isn't the one being read. Both figures are
        shown because either alone answers half the question: what was
        handed over, and what it weighs in the shared total. */
     countsAs: (amount: string) => `counts as ${amount}`,
-    noRateRow: 'no rate — not in the total',
+    countsAsAbout: (amount: string) => `about ${amount} for now`,
+    noRateRow: 'not in the total yet',
     /* The rate is the one from the day the expense was written down, never
        today's. Said out loud once, near the switch, because a total that
        silently restated the past would be the same harm as a scoreboard. */

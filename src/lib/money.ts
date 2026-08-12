@@ -20,7 +20,7 @@
  */
 
 import type { CalendarDate } from './calendar';
-import { convertAll, type RateSnapshot } from './fx';
+import { convertAll, type RateBook, type RateSnapshot } from './fx';
 
 export type CurrencyCode = 'EUR' | 'BRL' | 'CNY' | 'USD';
 
@@ -259,8 +259,14 @@ export interface ConvertedBalance {
   /** The single balance, with everything expressed in `currency`. */
   balance: Balance;
   /**
-   * Expenses that could not be expressed in it, because they were written
-   * down with no rates available and are in a different currency.
+   * Expenses counted at today's rate because they carry no snapshot of
+   * their own. They *are* in the balance — this is how many of them the
+   * page should own up to, not a list of omissions.
+   */
+  estimated: Expense[];
+  /**
+   * The only expenses genuinely left out: no snapshot, and no rates at all
+   * to stand in with. That needs a first-ever visit while offline.
    *
    * They are handed back rather than dropped: a money page that quietly
    * omits rows is worse than one that admits it is incomplete.
@@ -274,26 +280,33 @@ export interface ConvertedBalance {
  * Each expense converts through its own frozen snapshot, so a year-old
  * dinner keeps the rate it had a year ago. Two people living one life across
  * two currencies get one answer to "how has this been going", which is the
- * question they were actually asking; the per-currency view above stays for
- * the expenses that cannot join in.
+ * question they were actually asking.
+ *
+ * `fallback` covers the expenses that never got a snapshot. Passing it means
+ * they join the total at today's rate instead of sitting outside it; the
+ * returned `estimated` list is what the page uses to say so.
  */
 export function computeConvertedBalance(
   expenses: readonly Expense[],
   currency: CurrencyCode,
+  fallback?: RateBook,
 ): ConvertedBalance {
   const { converted, unconvertible } = convertAll(
     expenses.map((expense) => ({ ...expense, fx: expense.fx ?? null })),
     currency,
+    fallback,
   );
 
-  const restated: Expense[] = converted.map(({ expense, cents }) => ({
-    ...(expense as Expense),
-    amountCents: cents,
-    currency,
-  }));
+  const restated: Expense[] = [];
+  const estimated: Expense[] = [];
+  for (const { expense, cents, basis } of converted) {
+    restated.push({ ...(expense as Expense), amountCents: cents, currency });
+    if (basis === 'estimated') estimated.push(expense as Expense);
+  }
 
   return {
     balance: computeBalance(restated, currency),
+    estimated,
     unconvertible: unconvertible as Expense[],
   };
 }

@@ -17,6 +17,41 @@ vi.mock('@/data/client', async (importOriginal) => {
   };
 });
 
+/**
+ * No network in here, on purpose.
+ *
+ * The spending page fetches rates for expenses that have none of their own.
+ * Left unmocked these tests would reach the real provider — slow, flaky, and
+ * a different answer every day — so this stands in for it. `offlineRates`
+ * flips it to the state where nothing can be fetched at all, which is the
+ * only remaining way for an expense to fall out of the total.
+ */
+const rates = vi.hoisted(() => ({ reachable: true }));
+const TODAY_PER_EUR: Record<string, number> = { EUR: 1, BRL: 6.2, CNY: 7.9, USD: 1.08 };
+
+vi.mock('@/data/rates', () => {
+  const snapshot = (from: string) =>
+    Object.fromEntries(
+      Object.entries(TODAY_PER_EUR).map(([code, rate]) => [
+        code,
+        rate / (TODAY_PER_EUR[from] ?? 1),
+      ]),
+    );
+  return {
+    captureRates: vi.fn(async (currency: string) =>
+      rates.reachable ? { fx: snapshot(currency), on: '2026-03-14' } : null,
+    ),
+    captureRatesOn: vi.fn(async (currency: string, date: string) =>
+      rates.reachable ? { fx: snapshot(currency), on: date } : null,
+    ),
+    rateBook: vi.fn(async () =>
+      rates.reachable
+        ? { EUR: snapshot('EUR'), BRL: snapshot('BRL'), CNY: snapshot('CNY'), USD: snapshot('USD') }
+        : {},
+    ),
+  };
+});
+
 const { VaultScreen } = await import('./VaultScreen');
 const { SpendingScreen } = await import('./SpendingScreen');
 const { CalendarScreen } = await import('./CalendarScreen');
@@ -36,6 +71,7 @@ const { OnboardingScreen } = await import('./OnboardingScreen');
 beforeEach(() => {
   resetWriteFailure();
   window.localStorage.clear();
+  rates.reachable = true;
 });
 
 // ---------------------------------------------------------------------------
@@ -371,7 +407,25 @@ describe('the spending page across currencies', () => {
     expect(await screen.findByText(/R\$\s?500(\.00)? shared so far/)).toBeInTheDocument();
   });
 
-  it('keeps an expense with no rate out of the total, and says how many', async () => {
+  /**
+   * Asked for three separate times, and each time the same sentence: the
+   * total should be everything, in whichever currency you're reading in.
+   * An expense with no rate of its own used to be *subtracted from the
+   * answer*. It is now counted at today's rate and repaired, in the
+   * background, to the rate of the day it actually happened.
+   */
+  it('counts an expense that has no rate of its own, rather than dropping it', async () => {
+    mountSpendingWith([
+      expenseRow({ currency: 'EUR', amount_cents: 10_000, fx: eurFx }),
+      expenseRow({ currency: 'CNY', amount_cents: 79_000, fx: null }),
+    ]);
+
+    // ¥790 is €100 at 7.9. The old answer here was €100 and an apology.
+    expect(await screen.findByText(/€200(\.00)? shared so far/)).toBeInTheDocument();
+  });
+
+  it('leaves it out only when there is no rate to be had anywhere', async () => {
+    rates.reachable = false;
     mountSpendingWith([
       expenseRow({ currency: 'EUR', amount_cents: 10_000, fx: eurFx }),
       expenseRow({ currency: 'CNY', amount_cents: 79_000, fx: null }),
@@ -379,15 +433,16 @@ describe('the spending page across currencies', () => {
 
     expect(await screen.findByText(/€100(\.00)? shared so far/)).toBeInTheDocument();
     expect(
-      await screen.findByText(/1 expense was recorded offline/),
+      await screen.findByText(/1 expense is in another currency/),
     ).toBeInTheDocument();
   });
 
   it('needs no rate at all when everything is already in the chosen currency', async () => {
+    rates.reachable = false;
     mountSpendingWith([expenseRow({ currency: 'EUR', amount_cents: 10_000, fx: null })]);
 
     expect(await screen.findByText(/€100(\.00)? shared so far/)).toBeInTheDocument();
-    expect(screen.queryByText(/recorded offline/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/isn’t in this total/)).not.toBeInTheDocument();
   });
 });
 

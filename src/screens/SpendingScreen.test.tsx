@@ -19,14 +19,39 @@ vi.mock('@/data/client', async (importOriginal) => {
 
 // Rates come from the network. Frozen here so the tests are about which
 // rate is used, never about what it happens to be today.
+//
+// Two tables, deliberately far apart: any test that confuses today's rate
+// for the rate of the day an expense happened gets a visibly wrong number
+// rather than one that is nearly right.
+const TODAY = { EUR: 1, BRL: 6.2, CNY: 7.9, USD: 1.1 } as Record<string, number>;
+const BACK_THEN = { EUR: 1, BRL: 5.1, CNY: 7.1, USD: 1.05 } as Record<string, number>;
+
+function snapshot(table: Record<string, number>, from: string) {
+  const base = table[from] ?? 1;
+  return Object.fromEntries(
+    Object.entries(table).map(([code, rate]) => [code, rate / base]),
+  ) as Record<string, number>;
+}
+
 vi.mock('@/data/rates', () => ({
   captureRates: vi.fn(async (currency: string) => ({
-    fx: { EUR: 1, BRL: 6.2, CNY: 7.9, USD: 1.1, [currency]: 1 },
+    fx: snapshot(TODAY, currency),
     on: '2026-08-14',
+  })),
+  captureRatesOn: vi.fn(async (currency: string, date: string) => ({
+    fx: snapshot(date < '2026-01-01' ? BACK_THEN : TODAY, currency),
+    on: date,
+  })),
+  rateBook: vi.fn(async () => ({
+    EUR: snapshot(TODAY, 'EUR'),
+    BRL: snapshot(TODAY, 'BRL'),
+    CNY: snapshot(TODAY, 'CNY'),
+    USD: snapshot(TODAY, 'USD'),
   })),
 }));
 
 const { SpendingScreen } = await import('./SpendingScreen');
+const { captureRatesOn, rateBook } = await import('@/data/rates');
 
 /**
  * The rate an expense is converted at.
@@ -81,6 +106,8 @@ function mount(rows: Record<string, unknown>[] = []) {
 beforeEach(() => {
   resetWriteFailure();
   window.localStorage.clear();
+  vi.mocked(captureRatesOn).mockClear();
+  vi.mocked(rateBook).mockClear();
 });
 
 describe('the rate is frozen the day it was written down', () => {
@@ -117,11 +144,14 @@ describe('the rate is frozen the day it was written down', () => {
     await user.click(await screen.findByRole('button', { name: 'Add' }));
     await user.type(await screen.findByLabelText(/What for/i), 'Coffee');
     await user.type(screen.getByLabelText(/How much/i), '4,50');
+    const dated = (screen.getByLabelText(/When/i) as HTMLInputElement).value;
     await user.click(screen.getByRole('button', { name: /^Save$/ }));
 
     await waitFor(() => {
       const values = lastWriteTo(db, 'expenses')?.values as Record<string, unknown>;
-      expect(values?.fx_on).toBe('2026-08-14');
+      // Dated today, so it gets today's rate — same request either way.
+      expect(values?.fx_on).toBe(dated);
+      expect((values?.fx as Record<string, number>).BRL).toBe(6.2);
     });
   });
 
@@ -136,12 +166,40 @@ describe('the rate is frozen the day it was written down', () => {
     await waitFor(() => {
       const values = lastWriteTo(db, 'expenses')?.values as Record<string, unknown>;
       expect(values?.currency).toBe('BRL');
-      // A snapshot for euros cannot convert reais; a new one is required.
-      expect(values?.fx_on).toBe('2026-08-14');
+      // A snapshot for euros cannot convert reais; a new one is required —
+      // and for the day the expense is dated, which is still 2025.
+      expect(values?.fx_on).toBe('2025-08-14');
+    });
+  });
+
+  /**
+   * Somebody catching up on the week's dinners on a Sunday evening types
+   * Tuesday's date. Tuesday's rate is the one that belongs on it, and it is
+   * a thing that can simply be asked for.
+   */
+  it('freezes a backdated expense at the rate of the day it is dated', async () => {
+    const user = userEvent.setup();
+    const { db } = mount([]);
+
+    await user.click(await screen.findByRole('button', { name: 'Add' }));
+    await user.type(await screen.findByLabelText(/What for/i), 'Tuesday’s dinner');
+    await user.type(screen.getByLabelText(/How much/i), '30');
+    const when = screen.getByLabelText(/When/i);
+    await user.clear(when);
+    await user.type(when, '2025-11-04');
+    await user.click(screen.getByRole('button', { name: /^Save$/ }));
+
+    await waitFor(() => {
+      const values = lastWriteTo(db, 'expenses')?.values as Record<string, unknown>;
+      expect(values?.fx_on).toBe('2025-11-04');
+      expect((values?.fx as Record<string, number>).BRL).toBe(5.1);
     });
   });
 
   it('fills in a rate for an expense that never got one', async () => {
+    // The silent repair can't reach the network, so the row is still
+    // missing a rate by the time the edit is saved.
+    vi.mocked(captureRatesOn).mockResolvedValueOnce(null);
     const user = userEvent.setup();
     const { db } = mount([expenseRow({ id: 'offline', fx: null, fx_on: null })]);
 
@@ -153,7 +211,7 @@ describe('the rate is frozen the day it was written down', () => {
 
     await waitFor(() => {
       const values = lastWriteTo(db, 'expenses')?.values as Record<string, unknown>;
-      expect(values?.fx_on).toBe('2026-08-14');
+      expect(values?.fx_on).toBe('2025-08-14');
     });
   });
 });
@@ -207,13 +265,105 @@ describe('what the page shows about currencies', () => {
     expect(screen.getByText(/€\s?100/)).toBeInTheDocument();
   });
 
-  it('says on the row itself when an expense has no rate', async () => {
+});
+
+/**
+ * The complaint this describe block exists for, asked three times: the
+ * total must be the total.
+ *
+ * An expense written down without a rate used to be *subtracted from the
+ * answer* — left out of the one number the page exists to give, with a line
+ * of grey text underneath and a button somebody had to find and press. A
+ * total that skips rows is not a total, however honestly it says so.
+ *
+ * Two things had to be true instead. Nothing may be excluded; and nothing
+ * may be quietly restated at today's rate either, because a dinner in March
+ * is worth what it was worth in March. Both hold now, because the rate for
+ * a past day is a thing you can simply ask for.
+ */
+describe('one total, with nothing left out of it', () => {
+  it('counts an expense that has no rate of its own', async () => {
+    // The repair can't reach the network; the stand-in has to hold.
+    vi.mocked(captureRatesOn).mockResolvedValueOnce(null);
+    const user = userEvent.setup();
+    mount([
+      expenseRow({ id: 'a', label: 'Rent', amount_cents: 10000, currency: 'EUR' }),
+      expenseRow({
+        id: 'b',
+        label: 'Noodles',
+        amount_cents: 7900,
+        currency: 'CNY',
+        fx: null,
+        fx_on: null,
+      }),
+    ]);
+
+    await screen.findByText('Noodles');
+    await user.click(screen.getByRole('button', { name: 'EUR' }));
+
+    // €100 plus ¥79, which at today's 7.9 is €10. The old behaviour showed
+    // €100 and an apology.
+    await waitFor(() => {
+      expect(screen.getAllByText(/€\s?110/).length).toBeGreaterThan(0);
+    });
+  });
+
+  it('marks a stood-in figure as approximate rather than settled', async () => {
+    vi.mocked(captureRatesOn).mockResolvedValueOnce(null);
     const user = userEvent.setup();
     mount([expenseRow({ label: 'Offline one', fx: null, fx_on: null })]);
 
     await screen.findByText('Offline one');
     await user.click(screen.getByRole('button', { name: 'BRL' }));
 
-    expect(await screen.findByText(/no rate/i)).toBeInTheDocument();
+    expect(await screen.findByText(/about\s+R\$\s?279/)).toBeInTheDocument();
+    expect(screen.getByText(/haven’t got|hasn’t got/i)).toBeInTheDocument();
+  });
+
+  /**
+   * The heart of it. A repair must use the rate of the day the expense
+   * happened — not today's, which is what the button it replaced offered.
+   */
+  it('repairs a missing rate at the rate of the day it happened', async () => {
+    const { db } = mount([
+      expenseRow({ id: 'offline', label: 'Old dinner', fx: null, fx_on: null }),
+    ]);
+
+    await screen.findByText('Old dinner');
+
+    await waitFor(() => {
+      expect(vi.mocked(captureRatesOn)).toHaveBeenCalledWith('EUR', '2025-08-14');
+    });
+    await waitFor(() => {
+      const values = lastWriteTo(db, 'expenses')?.values as Record<string, unknown>;
+      expect(values?.fx_on).toBe('2025-08-14');
+      // 2025's rate, not 2026's. Getting this wrong is the whole failure.
+      expect((values?.fx as Record<string, number>).BRL).toBe(5.1);
+    });
+  });
+
+  it('does not touch an expense that already has its own rate', async () => {
+    mount([expenseRow({ label: 'Rent' })]);
+    await screen.findByText('Rent');
+    await waitFor(() => {
+      expect(vi.mocked(rateBook)).toHaveBeenCalled();
+    });
+    expect(vi.mocked(captureRatesOn)).not.toHaveBeenCalled();
+  });
+
+  it('tries each expense once per visit, however many share a date', async () => {
+    mount([
+      expenseRow({ id: 'x', label: 'One', fx: null, fx_on: null }),
+      expenseRow({ id: 'y', label: 'Two', fx: null, fx_on: null }),
+    ]);
+
+    await screen.findByText('Two');
+    await waitFor(() => {
+      expect(vi.mocked(captureRatesOn)).toHaveBeenCalledTimes(2);
+    });
+    // Each row is updated by the repair, which changes `rows`, which reruns
+    // the effect. Without the guard that is an endless loop of writes.
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(vi.mocked(captureRatesOn)).toHaveBeenCalledTimes(2);
   });
 });

@@ -112,16 +112,51 @@ describe('convertExpense', () => {
     // A couple who never leaves one currency must never be told their total
     // is incomplete because a rate fetch failed.
     const result = convertExpense({ amountCents: 500, currency: 'EUR', fx: null }, 'EUR');
-    expect(result).toEqual({ cents: 500, exact: true });
+    expect(result).toEqual({ cents: 500, basis: 'same' });
   });
 
   it('converts with the snapshot frozen on the expense', () => {
     const result = convertExpense({ amountCents: 1000, currency: 'EUR', fx: EUR_SNAPSHOT }, 'BRL');
-    expect(result).toEqual({ cents: 6200, exact: false });
+    expect(result).toEqual({ cents: 6200, basis: 'frozen' });
   });
 
-  it('returns null rather than guessing when there is no snapshot', () => {
+  it('returns null rather than guessing when there is nothing to guess with', () => {
     expect(convertExpense({ amountCents: 1000, currency: 'EUR', fx: null }, 'BRL')).toBeNull();
+  });
+
+  /**
+   * The third tier, and the reason it exists: an expense with no snapshot
+   * used to be left out of the total. Approximately right and saying so
+   * beats exactly incomplete, on a page whose whole job is one number.
+   */
+  it('falls back to a stand-in rate, and admits that it did', () => {
+    const result = convertExpense(
+      { amountCents: 1000, currency: 'EUR', fx: null },
+      'BRL',
+      { EUR: EUR_SNAPSHOT },
+    );
+    expect(result).toEqual({ cents: 6200, basis: 'estimated' });
+  });
+
+  it('prefers the expense’s own frozen rate over the stand-in', () => {
+    const then: RateSnapshot = { EUR: 1, BRL: 5.0, CNY: 7.9, USD: 1.08 };
+    const result = convertExpense(
+      { amountCents: 10_000, currency: 'EUR', fx: then },
+      'BRL',
+      { EUR: EUR_SNAPSHOT },
+    );
+    // 5.0, not today's 6.2. A stand-in is for expenses that have nothing,
+    // never a second opinion about one that does.
+    expect(result).toEqual({ cents: 50_000, basis: 'frozen' });
+  });
+
+  it('has no stand-in for a currency the book does not cover', () => {
+    const result = convertExpense(
+      { amountCents: 1000, currency: 'CNY', fx: null },
+      'BRL',
+      { EUR: EUR_SNAPSHOT },
+    );
+    expect(result).toBeNull();
   });
 
   // The whole point of freezing: an old expense keeps its old rate even
@@ -154,6 +189,24 @@ describe('convertAll', () => {
     // Silently omitting the third would make the total quietly wrong, which
     // is the one thing a money page cannot do.
     expect(unconvertible[0]?.currency).toBe('CNY');
+  });
+
+  it('leaves nothing out once there is a book to fall back on', () => {
+    const cnySnapshot = snapshotFrom('EUR', { BRL: 6.2, CNY: 7.9, USD: 1.08 }, 'CNY')!;
+    const { converted, unconvertible } = convertAll(
+      [
+        { amountCents: 1000, currency: 'EUR', fx: EUR_SNAPSHOT },
+        { amountCents: 790, currency: 'CNY', fx: null },
+      ],
+      'EUR',
+      { CNY: cnySnapshot },
+    );
+
+    expect(unconvertible).toHaveLength(0);
+    // The euro one needs no conversion at all; the yuan one needs the book.
+    expect(converted.map((row) => row.basis)).toEqual(['same', 'estimated']);
+    // €10 plus ¥7.90, which at 7.9 to the euro is €1.
+    expect(converted.reduce((sum, row) => sum + row.cents, 0)).toBe(1100);
   });
 
   it('adds up to the right total in the target currency', () => {

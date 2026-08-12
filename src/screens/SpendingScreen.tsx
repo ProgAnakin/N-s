@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Plus, Scale } from 'lucide-react';
 import { BalanceBar, RebalanceNote, TreatsNote } from '@/components/BalanceBar';
 import { Button } from '@/components/ui/Button';
@@ -27,8 +27,8 @@ import {
   totalsByCategory,
   type Expense,
 } from '@/lib/money';
-import { convertAll, convertExpense } from '@/lib/fx';
-import { captureRates } from '@/data/rates';
+import { convertAll, convertExpense, type ConversionBasis, type RateBook } from '@/lib/fx';
+import { captureRatesOn, rateBook } from '@/data/rates';
 import { useI18n, useStrings } from '@/i18n';
 import { RecordActions, useCoupleTable, useMoney, usePartnerNames, useToday } from './shared';
 import { cn } from '@/utils/cn';
@@ -60,7 +60,14 @@ interface Draft {
  *     a euro rent and a yuan dinner are the same shared life, and two bars
  *     reading "100% one of you" and "100% the other" answer no question.
  *     What is never done is recomputing an old expense at today's rate —
- *     see fx.ts. Anything with no rate stays out of the total and is named.
+ *     see fx.ts.
+ *   - **Nothing is left out of the total.** An expense with no snapshot used
+ *     to sit outside it behind a button somebody had to find and press, and
+ *     the page said so in small grey text under the one number it exists to
+ *     give. That is a total that isn't the total. Now the rate for the day
+ *     it actually happened is fetched quietly in the background, and until
+ *     it lands the expense counts at today's rate and every place it appears
+ *     says "about".
  *   - Every figure comes from a tested function in /src/lib/money.ts. This
  *     file does no arithmetic of its own.
  */
@@ -87,13 +94,17 @@ function writeViewCurrency(currency: CurrencyColumn): void {
  * Expenses restated in one currency, for the category breakdown.
  *
  * `totalsByCategory` filters by currency the way the rest of the old model
- * did, so it needs everything already speaking the same one. Anything with
- * no rate simply is not in the list — the balance above says how many.
+ * did, so it needs everything already speaking the same one.
  */
-function convertedForCategories(expenses: readonly Expense[], to: CurrencyColumn): Expense[] {
+function convertedForCategories(
+  expenses: readonly Expense[],
+  to: CurrencyColumn,
+  fallback: RateBook,
+): Expense[] {
   return convertAll(
     expenses.map((expense) => ({ ...expense, fx: expense.fx ?? null })),
     to,
+    fallback,
   ).converted.map(({ expense, cents }) => ({
     ...(expense as Expense),
     amountCents: cents,
@@ -116,6 +127,48 @@ export function SpendingScreen() {
   });
   const trips = useCoupleTable('trips', { coupleId: couple.id, orderBy: 'start_date' });
 
+  /**
+   * Gives every expense the rate it should have had, quietly.
+   *
+   * This used to be a button reading "use today's rate for those", which was
+   * wrong twice over. It asked somebody to notice a line of grey text and
+   * act on it before their own total meant anything; and what it offered was
+   * today's rate for a dinner three months ago, which is not that dinner's
+   * value in any sense a person would recognise.
+   *
+   * The provider answers for a date, so the right rate is available and was
+   * simply never asked for. An expense from March gets March's rate, and
+   * nobody has to know that any of this happened.
+   *
+   * Ids are marked before the fetch, not after: one attempt each per visit.
+   * A failure means the network is down, so the loop stops rather than
+   * grinding through fifty rows to fail fifty times — the next visit picks
+   * up where it left off, and meanwhile `book` keeps them all in the total.
+   */
+  const repaired = useRef(new Set<string>());
+  useEffect(() => {
+    const missing = expenses.rows.filter(
+      (row) => !row.fx && !repaired.current.has(row.id),
+    );
+    if (missing.length === 0) return;
+
+    let live = true;
+    void (async () => {
+      for (const row of missing) {
+        if (!live) return;
+        repaired.current.add(row.id);
+        const captured = await captureRatesOn(row.currency, row.date);
+        if (!live) return;
+        if (!captured) return;
+        await expenses.update(row.id, { fx: captured.fx, fx_on: captured.on });
+      }
+    })();
+
+    return () => {
+      live = false;
+    };
+  }, [expenses.rows, expenses.update]);
+
   const [draft, setDraft] = useState<Draft | null>(null);
   const [saving, setSaving] = useState(false);
   const [amountError, setAmountError] = useState<string | null>(null);
@@ -131,16 +184,33 @@ export function SpendingScreen() {
     writeViewCurrency(viewCurrency);
   }, [viewCurrency]);
 
-  const [backfilling, setBackfilling] = useState(false);
+  /**
+   * Today's rates, for expenses that have none of their own.
+   *
+   * Fetched once when the page opens, and used only as a stand-in. It is the
+   * difference between a total that is approximately right about everything
+   * and one that is exactly right about some of it — and on a page whose
+   * entire job is a single number, the first is the honest one.
+   */
+  const [book, setBook] = useState<RateBook>({});
+  useEffect(() => {
+    let live = true;
+    void rateBook().then((fetched) => {
+      if (live) setBook(fetched);
+    });
+    return () => {
+      live = false;
+    };
+  }, []);
 
   const domain = useMemo(() => toExpenses(expenses.rows), [expenses.rows]);
-  const { balance, unconvertible } = useMemo(
-    () => computeConvertedBalance(domain, viewCurrency),
-    [domain, viewCurrency],
+  const { balance, estimated, unconvertible } = useMemo(
+    () => computeConvertedBalance(domain, viewCurrency, book),
+    [domain, viewCurrency, book],
   );
   const categories = useMemo(
-    () => totalsByCategory(convertedForCategories(domain, viewCurrency), viewCurrency),
-    [domain, viewCurrency],
+    () => totalsByCategory(convertedForCategories(domain, viewCurrency, book), viewCurrency),
+    [domain, viewCurrency, book],
   );
 
   /**
@@ -155,18 +225,14 @@ export function SpendingScreen() {
    * with nothing on its own row to admit it.
    */
   const inViewCurrency = useMemo(() => {
-    const byId = new Map<string, number | null>();
+    const byId = new Map<string, { cents: number; basis: ConversionBasis } | null>();
     for (const expense of domain) {
-      const result = convertExpense({ ...expense, fx: expense.fx ?? null }, viewCurrency);
-      byId.set(expense.id, result && !result.exact ? result.cents : null);
+      const result = convertExpense({ ...expense, fx: expense.fx ?? null }, viewCurrency, book);
+      byId.set(expense.id, result && result.basis !== 'same' ? result : null);
     }
     return byId;
-  }, [domain, viewCurrency]);
+  }, [domain, viewCurrency, book]);
 
-  const unconvertibleIds = useMemo(
-    () => new Set(unconvertible.map((expense) => expense.id)),
-    [unconvertible],
-  );
   const categoryTotal = categories.reduce((sum, entry) => sum + entry.totalCents, 0);
 
   function startNew() {
@@ -227,7 +293,7 @@ export function SpendingScreen() {
       note: draft.note.trim() || null,
     };
     /**
-     * Frozen once, at the moment it is written down.
+     * Frozen once, at the rate of the day the expense is dated.
      *
      * The `needsRates` test is the whole point. Re-capturing on every save
      * meant that correcting a typo in a year-old label quietly restated it
@@ -236,15 +302,20 @@ export function SpendingScreen() {
      * captured for a new expense, for one that never got a rate, and for
      * one whose currency has actually changed. Nothing else.
      *
+     * `draft.date`, not today: somebody catching up on last week's dinners
+     * on a Sunday evening should get each dinner's own rate, and the date
+     * they typed is the only thing that knows which day that was. For an
+     * expense dated today the two are the same request anyway.
+     *
      * A capture that fails is an ordinary state rather than a failure to
-     * report: the expense saves either way, and the balance says how many
-     * it could not fold in.
+     * report: the expense saves either way, the stand-in keeps it in the
+     * total, and the repair upstairs tries again on the next visit.
      */
     const existing = draft.id ? expenses.rows.find((row) => row.id === draft.id) : undefined;
     const needsRates =
       !draft.id || !existing?.fx || existing.currency !== draft.currency;
 
-    const captured = needsRates ? await captureRates(draft.currency) : null;
+    const captured = needsRates ? await captureRatesOn(draft.currency, draft.date) : null;
     const withRates = captured
       ? { ...values, fx: captured.fx, fx_on: captured.on }
       : values;
@@ -253,27 +324,6 @@ export function SpendingScreen() {
     else await expenses.create({ ...withRates, couple_id: couple.id });
     setSaving(false);
     setDraft(null);
-  }
-
-  /**
-   * Fills in rates for expenses written down offline.
-   *
-   * Today's rate, not the rate of the day it happened — which is why it is a
-   * button the reader presses rather than something that happens quietly.
-   * `fx_on` records which day was actually used, so the approximation is
-   * visible rather than pretending to be the real thing.
-   */
-  async function backfillRates() {
-    setBackfilling(true);
-    try {
-      for (const expense of unconvertible) {
-        const captured = await captureRates(expense.currency);
-        if (!captured) break;
-        await expenses.update(expense.id, { fx: captured.fx, fx_on: captured.on });
-      }
-    } finally {
-      setBackfilling(false);
-    }
   }
 
   return (
@@ -337,17 +387,15 @@ export function SpendingScreen() {
             {s.spending.frozenNote}
           </p>
 
+          {estimated.length > 0 && (
+            <p className="mt-3 text-xs leading-relaxed text-ink-faint">
+              {s.spending.estimatedNote(estimated.length)}
+            </p>
+          )}
+
           {unconvertible.length > 0 && (
             <p className="mt-3 text-xs leading-relaxed text-ink-faint">
-              {s.spending.notConverted(unconvertible.length)}{' '}
-              <button
-                type="button"
-                onClick={() => void backfillRates()}
-                disabled={backfilling}
-                className="rounded-sm text-cinnabar underline-offset-4 hover:underline disabled:opacity-60"
-              >
-                {backfilling ? s.common.saving : s.spending.convertNow}
-              </button>
+              {s.spending.notConverted(unconvertible.length)}
             </p>
           )}
 
@@ -452,21 +500,31 @@ export function SpendingScreen() {
                     <span className="block text-base tabular-nums text-ink">
                       {money(row.amount_cents, row.currency)}
                     </span>
+                    {/* Three outcomes, and the row says which. A frozen rate
+                        reads plainly; a stand-in says "about", because a
+                        number that hedges is worth more than one that looks
+                        settled and isn't; and the rare row with no rate at
+                        all says it is still waiting rather than pretending
+                        to be excluded on purpose. */}
                     {row.currency !== viewCurrency &&
-                      (unconvertibleIds.has(row.id) ? (
-                        <span className="block text-[11px] text-cinnabar">
-                          {s.spending.noRateRow}
-                        </span>
-                      ) : (
-                        inViewCurrency.get(row.id) !== null &&
-                        inViewCurrency.get(row.id) !== undefined && (
+                      (() => {
+                        const shown = inViewCurrency.get(row.id);
+                        if (!shown) {
+                          return (
+                            <span className="block text-[11px] text-cinnabar">
+                              {s.spending.noRateRow}
+                            </span>
+                          );
+                        }
+                        const amount = money(shown.cents, viewCurrency);
+                        return (
                           <span className="block text-[11px] tabular-nums text-ink-faint">
-                            {s.spending.countsAs(
-                              money(inViewCurrency.get(row.id)!, viewCurrency),
-                            )}
+                            {shown.basis === 'estimated'
+                              ? s.spending.countsAsAbout(amount)
+                              : s.spending.countsAs(amount)}
                           </span>
-                        )
-                      ))}
+                        );
+                      })()}
                   </span>
                   <RecordActions
                     onEdit={() => startEdit(row)}

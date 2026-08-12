@@ -16,6 +16,13 @@ import { CURRENCIES } from './money';
  * a multiplication with no lookup, no network, and no drift. Four numbers is
  * a small price for a total that still means the same thing in a year.
  *
+ * When an expense has no snapshot — written down offline, or before the app
+ * knew how to take one — today's rate stands in so the expense still counts,
+ * and every place it appears says that it is an estimate. It is replaced by
+ * the real rate for its own date as soon as one can be fetched. What is
+ * never done is quietly leaving it out: a total that skips rows answers the
+ * reader's question with a number that isn't the answer.
+ *
  * Everything here is integer minor units in and integer minor units out.
  * Floats exist only inside the multiplication.
  */
@@ -95,15 +102,37 @@ export interface ConvertibleExpense {
   fx: RateSnapshot | null;
 }
 
+/**
+ * Where the number in front of you came from.
+ *
+ * - `same`      — no conversion happened; it is the amount as it was paid.
+ * - `frozen`    — the expense's own snapshot, from the day it was written
+ *                 down. The one this module exists to protect.
+ * - `estimated` — no snapshot existed, so today's rate stood in. Counted,
+ *                 and *said out loud* wherever it appears.
+ *
+ * The third tier is the whole reason this type exists. An expense with no
+ * snapshot used to be left out of the total, which is defensible in the
+ * abstract and useless in the hand: it means the one number the page exists
+ * to give you silently isn't the answer. Being approximately right and
+ * saying so beats being exactly incomplete.
+ */
+export type ConversionBasis = 'same' | 'frozen' | 'estimated';
+
 export interface ConversionResult {
   /** The amount in the requested currency, in minor units. */
   cents: number;
-  /**
-   * True when the expense was already in the requested currency, so no
-   * conversion happened and no rate was needed.
-   */
-  exact: boolean;
+  basis: ConversionBasis;
 }
+
+/**
+ * Today's rates, one snapshot per currency, for expenses that have none.
+ *
+ * A stand-in, never a replacement: the moment the real rate for the day an
+ * expense happened can be fetched, it is written onto the expense and this
+ * stops being consulted for it.
+ */
+export type RateBook = Partial<Record<CurrencyCode, RateSnapshot>>;
 
 /**
  * One expense in the currency being displayed, or null if it cannot be.
@@ -111,21 +140,37 @@ export interface ConversionResult {
  * An expense already in the target currency needs no snapshot at all, which
  * matters: a couple who never leaves one currency should never be told a
  * total is incomplete because a rate fetch failed.
+ *
+ * Null is now genuinely rare — it needs an expense with no snapshot *and* no
+ * rates available at all, i.e. the first ever visit while offline.
  */
 export function convertExpense(
   expense: ConvertibleExpense,
   to: CurrencyCode,
+  fallback?: RateBook,
 ): ConversionResult | null {
-  if (expense.currency === to) return { cents: expense.amountCents, exact: true };
-  if (!expense.fx) return null;
-  return { cents: convertCents(expense.amountCents, expense.fx, to), exact: false };
+  if (expense.currency === to) return { cents: expense.amountCents, basis: 'same' };
+  if (expense.fx) {
+    return { cents: convertCents(expense.amountCents, expense.fx, to), basis: 'frozen' };
+  }
+  const standIn = fallback?.[expense.currency];
+  if (standIn) {
+    return { cents: convertCents(expense.amountCents, standIn, to), basis: 'estimated' };
+  }
+  return null;
+}
+
+export interface ConvertedEntry<T> {
+  expense: T;
+  cents: number;
+  basis: ConversionBasis;
 }
 
 export interface ConvertedSet<T> {
   /** Expenses that could be expressed in the target currency. */
-  converted: { expense: T; cents: number }[];
+  converted: ConvertedEntry<T>[];
   /**
-   * Expenses with no usable rate, kept apart rather than dropped.
+   * Expenses with no usable rate at all, kept apart rather than dropped.
    *
    * Silently omitting them would make the total quietly wrong, which is the
    * one thing a money page cannot do.
@@ -136,14 +181,15 @@ export interface ConvertedSet<T> {
 export function convertAll<T extends ConvertibleExpense>(
   expenses: readonly T[],
   to: CurrencyCode,
+  fallback?: RateBook,
 ): ConvertedSet<T> {
-  const converted: { expense: T; cents: number }[] = [];
+  const converted: ConvertedEntry<T>[] = [];
   const unconvertible: T[] = [];
 
   for (const expense of expenses) {
-    const result = convertExpense(expense, to);
+    const result = convertExpense(expense, to, fallback);
     if (result === null) unconvertible.push(expense);
-    else converted.push({ expense, cents: result.cents });
+    else converted.push({ expense, cents: result.cents, basis: result.basis });
   }
 
   return { converted, unconvertible };
