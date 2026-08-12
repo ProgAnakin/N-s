@@ -1326,6 +1326,41 @@ export const en = {
       'Your private notes, gift ideas and wishes stay yours — you keep them wherever you go next. What you shared stays with the space.',
   },
 
+  find: {
+    title: 'Find',
+    placeholder: 'A word either of you wrote…',
+    /* Said before anything is typed, because the useful thing to know is
+       what it reaches — people search narrowly when they don't know. */
+    hint: 'Everything you’ve both written down: memories, letters, notes, phrases, family, places, spending.',
+    nothing: (query: string) => `Nothing with “${query}” in it.`,
+    stillLooking: 'Still gathering…',
+    /* On a result only the person searching can see. Said on the row rather
+       than left to be inferred from which page it came from. */
+    onlyYou: 'only you',
+    kinds: {
+      memory: 'Memories',
+      letter: 'Letters',
+      note: 'The vault',
+      phrase: 'Phrasebook',
+      culture: 'Culture',
+      person: 'Family',
+      idea: 'Things to do',
+      place: 'Places',
+      expense: 'Spending',
+      date: 'Dates',
+      trip: 'Trips',
+    } as Record<string, string>,
+  },
+
+  onThisDay: {
+    title: 'This time last year',
+    /* Never "N months ago" — half a year is not an anniversary of anything,
+       and saying it is would be the app manufacturing an occasion. */
+    yearsAgo: (n: number) => (n === 1 ? 'a year ago today' : `${n} years ago today`),
+    yearsAgoNear: (n: number) =>
+      n === 1 ? 'a year ago, around now' : `${n} years ago, around now`,
+  },
+
   clocks: {
     title: 'Two clocks',
     you: 'You',

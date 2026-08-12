@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { AnimatePresence, m } from 'framer-motion';
 import { MoreHorizontal, X, type LucideIcon } from 'lucide-react';
 import { primaryItems, visibleGroups, type FeatureFlags } from './nav-items';
+import { FindButton } from '@/components/Find';
 import { FlowerCounter, FlowerOffer } from '@/components/Flowers';
 import { Seal } from '@/components/ui/Seal';
 import { WriteFailureBanner } from '@/components/WriteFailureBanner';
@@ -68,6 +69,10 @@ export function AppShell() {
             <FlowerCounter className="ml-auto" />
           </div>
 
+          {/* Above the sections rather than inside one: it is not a
+              destination, it is how you get to any of them. */}
+          <FindButton className="mx-2 w-[calc(100%-1rem)] justify-start" />
+
           {groups.map((group) => (
             <div key={group.id}>
               <p className="label-kicker mb-2 px-2">{group.label(s)}</p>
@@ -90,8 +95,11 @@ export function AppShell() {
 
         {/* Content */}
         <main id="main" className="min-w-0 flex-1 pb-28 pt-6 lg:pb-16 lg:pt-8">
-          {/* On a phone there is no rail to hang it from. */}
-          <div className="mb-2 flex justify-end lg:hidden">
+          {/* On a phone there is no rail to hang these from. The bottom bar
+              is full at five, and a sixth would make every one of them
+              narrower than a thumb. */}
+          <div className="mb-2 flex items-center justify-between gap-3 lg:hidden">
+            <FindButton />
             <FlowerCounter />
           </div>
           <div className="mx-auto w-full max-w-page">

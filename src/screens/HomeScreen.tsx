@@ -6,6 +6,7 @@ import { ArrivalCard } from '@/components/ArrivalCard';
 import { TwoClocks } from '@/components/TwoClocks';
 import { LettersCard } from '@/components/LettersCard';
 import { MetricsSection } from '@/components/MetricsSection';
+import { OnThisDay } from '@/components/OnThisDay';
 import { BalanceBar } from '@/components/BalanceBar';
 import { ButtonLink } from '@/components/ui/Button';
 import { LoadingBlock } from '@/components/ui/Bits';
@@ -195,6 +196,12 @@ export function HomeScreen() {
           <TwoClocks />
           <ArrivalCard />
           <LettersCard />
+
+          {/* --- What happened around now, in an earlier year ---------------- */}
+          {/* High on the page on purpose. It is the one section that is
+              nice rather than useful, and burying the nice thing under
+              five useful ones is how an app stops being worth opening. */}
+          <OnThisDay />
 
           {/* --- The dates each of them grew up with ------------------------- */}
           <HolidaysSection today={today} countries={countries} />
