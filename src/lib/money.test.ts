@@ -720,3 +720,93 @@ describe('how a row should be coloured', () => {
     expect(costRatio(0, { kind: '50_50' }, 'partner_a')).toBe(100);
   });
 });
+
+/**
+ * An expense that is simply one person's own.
+ *
+ * The app had three rules and none of them was "I bought this for myself".
+ * The default was `50_50`, so a solo coffee logged without a thought put
+ * half its cost on somebody who never saw it.
+ */
+describe('an expense that belongs to one person', () => {
+  it('counts in full to whoever spent it', () => {
+    expect(shareOf(10000, { kind: 'mine' }, 'partner_a')).toEqual({
+      partner_a: 10000,
+      partner_b: 0,
+    });
+    expect(shareOf(10000, { kind: 'mine' }, 'partner_b')).toEqual({
+      partner_a: 0,
+      partner_b: 10000,
+    });
+  });
+
+  it('leaves nothing to rebalance', () => {
+    // He spends €100 of his own, she spends €100 of hers. Two different
+    // purchases, and nobody is behind on anything.
+    const balance = computeBalance(
+      [
+        expense(10000, 'partner_a', { kind: 'mine' }),
+        expense(10000, 'partner_b', { kind: 'mine' }),
+      ],
+      'EUR',
+    );
+
+    expect(balance.fairShare).toEqual({ partner_a: 10000, partner_b: 10000 });
+    expect(balance.contributed).toEqual({ partner_a: 10000, partner_b: 10000 });
+    expect(balance.totalCents).toBe(20000);
+    expect(balance.aheadPartner).toBeNull();
+    expect(rebalanceSuggestion(balance)).toBeNull();
+  });
+
+  it('never moves anything between them, however lopsided', () => {
+    // One of them logs a great deal more of their own spending than the
+    // other. That is a fact about their week, not a debt, and the page
+    // must not turn it into a suggestion.
+    const balance = computeBalance(
+      [
+        expense(500000, 'partner_a', { kind: 'mine' }),
+        expense(1000, 'partner_b', { kind: 'mine' }),
+      ],
+      'EUR',
+    );
+
+    expect(balance.differenceCents).toBe(0);
+    expect(rebalanceSuggestion(balance)).toBeNull();
+  });
+
+  it('is counted in the total, unlike a treat', () => {
+    const mine = computeBalance([expense(5000, 'partner_a', { kind: 'mine' })], 'EUR');
+    const gift = computeBalance([expense(5000, 'partner_a', { kind: 'treat' })], 'EUR');
+
+    expect(mine.totalCents).toBe(5000);
+    expect(mine.treatedCents.partner_a).toBe(0);
+
+    // A gift is in neither total. Counting it would turn a present into a
+    // claim, which is the one thing this module refuses to do.
+    expect(gift.totalCents).toBe(0);
+    expect(gift.treatedCents.partner_a).toBe(5000);
+  });
+
+  it('mixes with divided expenses without disturbing them', () => {
+    const balance = computeBalance(
+      [
+        expense(10000, 'partner_a', { kind: 'mine' }),
+        expense(4000, 'partner_a', { kind: '50_50' }),
+      ],
+      'EUR',
+    );
+
+    // His own €100, plus his half of the shared €40.
+    expect(balance.fairShare.partner_a).toBe(12000);
+    expect(balance.fairShare.partner_b).toBe(2000);
+    // He fronted all €140, so he is €20 ahead — from the shared one alone.
+    expect(balance.contributed.partner_a).toBe(14000);
+    expect(balance.differenceCents).toBe(2000);
+    expect(rebalanceSuggestion(balance)?.amountCents).toBe(4000);
+  });
+
+  it('is drawn solid, in the colour of whoever spent it', () => {
+    expect(costRatio(10000, { kind: 'mine' }, 'partner_a')).toBe(100);
+    expect(costRatio(10000, { kind: 'mine' }, 'partner_b')).toBe(0);
+  });
+});

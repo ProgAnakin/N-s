@@ -42,17 +42,28 @@ export function otherPartner(role: PartnerRole): PartnerRole {
   return role === 'partner_a' ? 'partner_b' : 'partner_a';
 }
 
-export type SplitRuleKind = '50_50' | 'custom_pct' | 'treat';
+export type SplitRuleKind = 'mine' | '50_50' | 'custom_pct' | 'treat';
 
 /**
  * How a cost is carried.
  *
+ * - `mine`    — one person's own expense. It counts in full toward what
+ *   they have spent, it is visible to both, and it moves nothing between
+ *   them. This is the default, and the default matters ethically: logging
+ *   an expense is a unilateral act, and the version of it that assigns no
+ *   cost to the other person is the only one safe to do by accident.
  * - `50_50`   — down the middle.
  * - `custom_pct` — partner A carries `partnerAPercent`, B carries the rest.
  *   Used when incomes differ, which is the honest case here.
- * - `treat`   — intentionally one-sided. A gift is a gift: it is recorded,
- *   it is visible, and it is *excluded* from the rebalance maths entirely.
- *   Nothing given freely should quietly turn into leverage.
+ * - `treat`   — intentionally one-sided *toward the other person*. A gift
+ *   is a gift: it is recorded, it is visible, and it is *excluded* from
+ *   the rebalance maths entirely. Nothing given freely should quietly turn
+ *   into leverage.
+ *
+ * `mine` and `treat` both put the whole amount on one person and are not
+ * the same thing. `mine` is money spent on yourself and belongs in your
+ * total; `treat` is money spent on them and belongs in neither, because
+ * counting it would turn a present into a claim.
  */
 export interface SplitRule {
   kind: SplitRuleKind;
@@ -133,6 +144,12 @@ export function shareOf(
   const amount = Math.max(0, Math.round(amountCents));
   if (rule.kind === 'treat' || amount === 0) return emptyTotals();
 
+  if (rule.kind === 'mine') {
+    const totals = emptyTotals();
+    totals[paidBy] = amount;
+    return totals;
+  }
+
   const percentForA =
     rule.kind === 'custom_pct' ? normalisePercent(rule.partnerAPercent ?? 50) : 50;
 
@@ -166,7 +183,8 @@ export function costRatio(
   paidBy: PartnerRole,
 ): number {
   const solo = paidBy === 'partner_a' ? 100 : 0;
-  if (rule.kind === 'treat') return solo;
+  // Neither of these is divided, so neither is drawn in two colours.
+  if (rule.kind === 'treat' || rule.kind === 'mine') return solo;
 
   const share = shareOf(amountCents, rule, paidBy);
   const total = share.partner_a + share.partner_b;

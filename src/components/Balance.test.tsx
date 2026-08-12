@@ -131,14 +131,14 @@ describe('ShareBar', () => {
 
     // Otherwise somebody adds the list up by hand, gets €70, and stops
     // believing the page.
-    expect(screen.getByText(/€40 shared so far/)).toBeInTheDocument();
+    expect(screen.getByText(/€40 logged so far/)).toBeInTheDocument();
     expect(screen.getByText(/A further €30 was given as treats/)).toBeInTheDocument();
   });
 
   it('keeps the total plain when there are no treats', () => {
     const balance = computeBalance([expense(4000, 'partner_a')], 'EUR');
     render(<ShareBar balance={balance} names={names} />);
-    expect(screen.getByText('€40 shared so far')).toBeInTheDocument();
+    expect(screen.getByText('€40 logged so far')).toBeInTheDocument();
     expect(screen.queryByText(/treats/i)).not.toBeInTheDocument();
   });
 

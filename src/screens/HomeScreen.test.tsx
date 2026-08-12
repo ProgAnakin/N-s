@@ -280,7 +280,7 @@ describe('the balance on the front page', () => {
       ],
     });
 
-    await screen.findByText(/€200(\.00)? shared so far/);
+    await screen.findByText(/€200(\.00)? logged so far/);
     // The rule the whole money model is built on, asserted where a
     // careless copy change would land first.
     expect(document.body.textContent).not.toMatch(/\bowes?\b/i);
@@ -289,7 +289,7 @@ describe('the balance on the front page', () => {
 
   it('links through to the whole history', async () => {
     mountHome({ expenses: [expenseRow()] });
-    await screen.findByText(/shared so far/);
+    await screen.findByText(/logged so far/);
     const section = screen.getByLabelText(/Spending/i, { selector: 'section' });
     expect(within(section).getByRole('link')).toHaveAttribute('href', '/spending');
   });

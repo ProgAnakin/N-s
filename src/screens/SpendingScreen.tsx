@@ -32,7 +32,14 @@ import {
 import { convertAll, convertExpense, type ConversionBasis, type RateBook } from '@/lib/fx';
 import { captureRatesOn, rateBook } from '@/data/rates';
 import { useI18n, useStrings } from '@/i18n';
-import { RecordActions, useCoupleTable, useMoney, usePartnerNames, useToday } from './shared';
+import {
+  RecordActions,
+  useCoupleTable,
+  useMoney,
+  usePartnerNames,
+  useRoleOf,
+  useToday,
+} from './shared';
 import { cn } from '@/utils/cn';
 
 interface Draft {
@@ -121,6 +128,7 @@ export function SpendingScreen() {
   const names = usePartnerNames();
   const money = useMoney();
   const today = useToday();
+  const roleOf = useRoleOf();
 
   const expenses = useCoupleTable('expenses', {
     coupleId: couple.id,
@@ -246,7 +254,10 @@ export function SpendingScreen() {
       paidBy: role,
       date: toISODate(today),
       category: 'food',
-      splitRule: '50_50',
+      // Not '50_50'. Logging is unilateral — one tap records a cost against
+      // somebody who is not looking — so the rule that applies when nobody
+      // chose one has to be the one that assigns nothing to anybody else.
+      splitRule: 'mine',
       partnerAPercent: 50,
       tripId: '',
       note: '',
@@ -508,7 +519,7 @@ export function SpendingScreen() {
                           row already knows the amount — leaving the reader
                           to halve it themselves was work for nothing. In
                           money, never a bare percentage. */}
-                      {row.split_rule !== 'treat' &&
+                      {row.split_rule !== 'treat' && row.split_rule !== 'mine' &&
                         (() => {
                           const share = shareOf(
                             row.amount_cents,
@@ -540,6 +551,21 @@ export function SpendingScreen() {
                       {row.edited_at && (
                         <span className="text-ink-faint/80">{s.spending.edited}</span>
                       )}
+                      {/* Only when they differ. Dividing an expense puts
+                          part of its cost on somebody who was not there
+                          when the form was filled in — legitimate, and
+                          something they are entitled to see the author of.
+                          On the ordinary row, where you logged your own
+                          spending, this would be noise and stays hidden. */}
+                      {(() => {
+                        const author = roleOf(row.created_by);
+                        if (!author || author === row.paid_by) return null;
+                        return (
+                          <span className="text-ink-faint/80">
+                            {s.spending.loggedBy(names[author])}
+                          </span>
+                        );
+                      })()}
                     </p>
                   </div>
                   <span className="shrink-0 text-right">
@@ -655,6 +681,11 @@ export function SpendingScreen() {
               value={draft.splitRule}
               onChange={(splitRule) => setDraft({ ...draft, splitRule })}
               options={[
+                {
+                  value: 'mine' as SplitRuleColumn,
+                  label: s.splitRules.mine,
+                  hint: s.splitRules.mineHint,
+                },
                 {
                   value: '50_50' as SplitRuleColumn,
                   label: s.splitRules['50_50'],

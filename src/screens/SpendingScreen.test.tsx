@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { COUPLE_ID, lastWriteTo, mountSignedIn } from '@/test/harness';
+import { COUPLE_ID, HIM_ID, lastWriteTo, mountSignedIn } from '@/test/harness';
 import { resetWriteFailure } from '@/data/write-status';
 
 vi.mock('@/data/client', async (importOriginal) => {
@@ -479,5 +479,107 @@ describe('a 50/50 expense, from the row up to the summary', () => {
     // A gift really is one-sided, so it stays solid in the giver's colour.
     expect(solid.style.height).toBe('100%');
     expect(within(gift).queryByText(/each/)).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * The default, and the one rule that was missing.
+ *
+ * Reported as "you've made everything fifty-fifty". Everything *was*
+ * fifty-fifty, because that was the default and there was no way to say an
+ * expense was simply your own. Dividing is the deliberate act now, not the
+ * accidental one.
+ */
+describe('logging something that is just yours', () => {
+  it('opens on “just mine”, not on a division', async () => {
+    const user = userEvent.setup();
+    mount([]);
+
+    await user.click(await screen.findByRole('button', { name: 'Add' }));
+    const mine = await screen.findByRole('button', { name: /just mine/i });
+    expect(mine).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: /down the middle/i })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+  });
+
+  it('writes it as one person’s own', async () => {
+    const user = userEvent.setup();
+    const { db } = mount([]);
+
+    await user.click(await screen.findByRole('button', { name: 'Add' }));
+    await user.type(await screen.findByLabelText(/What for/i), 'Coffee');
+    await user.type(screen.getByLabelText(/How much/i), '4,50');
+    await user.click(screen.getByRole('button', { name: /^Save$/ }));
+
+    await waitFor(() => {
+      const values = lastWriteTo(db, 'expenses')?.values as Record<string, unknown>;
+      expect(values?.split_rule).toBe('mine');
+      expect(values?.partner_a_percent).toBeNull();
+    });
+  });
+
+  it('carries no per-person figure, because there is nothing to divide', async () => {
+    mount([expenseRow({ label: 'Coffee', amount_cents: 450, split_rule: 'mine' })]);
+    const row = (await screen.findByText('Coffee')).closest('li')!;
+    expect(within(row).queryByText(/each/)).not.toBeInTheDocument();
+  });
+
+  it('counts to one of them and leaves nothing to even out', async () => {
+    mount([
+      expenseRow({ id: 'his', label: 'His', amount_cents: 10000, paid_by: 'partner_a', split_rule: 'mine' }),
+      expenseRow({ id: 'hers', label: 'Hers', amount_cents: 10000, paid_by: 'partner_b', split_rule: 'mine' }),
+    ]);
+
+    await screen.findByText('Hers');
+    const spent = (await screen.findByText(/what each of you has spent/i)).closest('div')!;
+    await waitFor(() => {
+      expect(within(spent).getAllByText('€100.00')).toHaveLength(2);
+    });
+    // Two people spending their own money are not out of balance.
+    expect(await screen.findByText(/you’re even/i)).toBeInTheDocument();
+  });
+});
+
+/**
+ * Who typed the row in.
+ *
+ * Dividing an expense assigns part of its cost to somebody who was not
+ * there when the form was filled in. That is a legitimate thing to do —
+ * it is the whole point of "one of you can log it for both" — and it is
+ * also something the other person is entitled to see the author of.
+ */
+describe('authorship, where it changes what somebody is shown', () => {
+  it('names the author when the row is attributed to the other one', async () => {
+    mount([
+      expenseRow({
+        label: 'Dinner',
+        paid_by: 'partner_b',
+        split_rule: '50_50',
+        created_by: HIM_ID,
+      }),
+    ]);
+
+    const row = (await screen.findByText('Dinner')).closest('li')!;
+    expect(within(row).getByText(/logged by Léo/i)).toBeInTheDocument();
+  });
+
+  it('stays quiet on the ordinary row, where you logged your own', async () => {
+    mount([
+      expenseRow({ label: 'Coffee', paid_by: 'partner_a', created_by: HIM_ID }),
+    ]);
+
+    const row = (await screen.findByText('Coffee')).closest('li')!;
+    expect(within(row).queryByText(/logged by/i)).not.toBeInTheDocument();
+  });
+
+  it('says nothing at all rather than guessing, on a row with no author', async () => {
+    mount([
+      expenseRow({ label: 'Old one', paid_by: 'partner_b', created_by: null }),
+    ]);
+
+    const row = (await screen.findByText('Old one')).closest('li')!;
+    expect(within(row).queryByText(/logged by/i)).not.toBeInTheDocument();
   });
 });

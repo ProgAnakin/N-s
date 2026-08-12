@@ -513,7 +513,7 @@ export const en = {
     title: 'Spending',
     subtitle: 'How it’s been carried, between the two of you.',
     philosophy:
-      'No tab, no debt, no score. Just how the total has been shared so far, and a nudge when it drifts.',
+      'No tab, no debt, no score. Just how the total has been logged so far, and a nudge when it drifts.',
     philosophyMore:
       'Treats are left out of the maths on purpose. Something you gave freely shouldn’t come back later as leverage.',
     add: 'Log an expense',
@@ -526,7 +526,7 @@ export const en = {
     date: 'When',
     category: 'Kind',
     splitRule: 'How it’s split',
-    customPercent: 'Their share',
+    customPercent: 'How it divides',
     customPercentHint: (a: string, aPct: number, b: string, bPct: number) =>
       `${a} carries ${aPct}%, ${b} carries ${bPct}%.`,
     trip: 'Part of a trip',
@@ -535,9 +535,12 @@ export const en = {
     balanceTitle: 'Where things stand',
     shareTitle: 'What each of you has spent',
     shareBody:
-      'Every shared expense counts to both of you, whoever paid for it — down the middle unless you said otherwise. In the list below, a row carried together is drawn in both colours.',
+      'An expense marked as just yours counts to you alone. One you divided counts to both, in whatever proportion you chose, whoever actually paid — so either of you can log something for the two of you without the other having to enter it again. In the list below, a row carried together is drawn in both colours.',
     balanceEven: 'You’re even',
-    balanceEvenBody: 'Nothing to think about. It’s been shared fairly.',
+    /* Not "it's been shared fairly" — with personal expenses in the list
+       most of it was never shared at all, and the sentence was quietly
+       wrong on the commonest page there is. */
+    balanceEvenBody: 'Nothing to think about. It’s come out fair.',
     balanceNothing: 'Nothing logged yet',
     balanceNothingBody: 'Once you log a few things, you’ll see how it’s been shared.',
     rebalanceTitle: 'To even it out naturally',
@@ -560,12 +563,12 @@ export const en = {
     // Deliberately does not reach for the word "owed", even to deny it.
     // Naming the idea in order to dismiss it still puts it in the room.
     rebalanceHint: 'No rush. It’s just the number that would bring the split back level.',
-    totalShared: (amount: string) => `${amount} shared so far`,
+    totalShared: (amount: string) => `${amount} logged so far`,
     /* The same line when treats exist. Without it the total silently omits
        them and anybody who adds the list up by hand gets a different
        number, which is how a page stops being believed. */
     totalSharedPlusTreats: (amount: string, treats: string) =>
-      `${amount} shared so far. A further ${treats} was given as treats, kept out of this.`,
+      `${amount} logged so far. A further ${treats} was given as treats, kept out of this.`,
     treatsTitle: 'Treats',
     treatsBody: 'Given freely, and kept out of the maths.',
     treatsBy: (name: string, amount: string) => `${name} gave ${amount}`,
@@ -578,6 +581,12 @@ export const en = {
     /* Shown when the amount, the currency, who paid or the split changed
        after the fact. Fixing a typo in the label is not flagged. */
     edited: 'edited',
+    /* Shown only when the person who typed the row in is not the person it
+       is attributed to. Dividing an expense assigns part of its cost to
+       somebody who was not there when the form was filled in; that is a
+       legitimate thing to do and a thing they are entitled to see the
+       author of. Same row, same numbers, one more fact. */
+    loggedBy: (name: string) => `logged by ${name}`,
     /* In money, not percent. "Costanzo 50%" is true and tells you nothing
        you wanted: the question a split raises is how much of this one was
        mine, and the answer to that is a figure with a currency on it. */
@@ -621,12 +630,16 @@ export const en = {
   },
 
   splitRules: {
+    mine: 'Just mine',
     '50_50': 'Down the middle',
     custom_pct: 'A share each',
     treat: 'My treat',
-    '50_50Hint': 'Split evenly.',
-    custom_pctHint: 'For when your incomes aren’t the same.',
-    treatHint: 'A gift. Left out of the balance entirely.',
+    mineHint: 'Counts to you alone. Nothing to divide.',
+    '50_50Hint': 'Half of it to each of you, whoever paid.',
+    /* Names the direction, because the slider decides how much of this
+       lands on somebody who is not in the room while you fill the form. */
+    custom_pctHint: 'You choose how much falls to each. For when your incomes aren’t the same.',
+    treatHint: 'A gift for them. Left out of the balance entirely.',
   },
 
   ideas: {

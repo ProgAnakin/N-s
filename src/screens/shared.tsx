@@ -59,6 +59,25 @@ export function usePartnerNames(): PartnerNames {
   return { ...byRole, me, myName, partnerName, hasPartner: Boolean(partner) };
 }
 
+/**
+ * Which of the two wrote a row, by their user id.
+ *
+ * Rows carry `created_by` as a bare uuid, which is useless on screen. This
+ * resolves it against the two profiles the session already holds, and
+ * returns null for anything it cannot place — a row written before the
+ * column existed, or by an account no longer in the couple. Null means
+ * "say nothing", never "it was the other one".
+ */
+export function useRoleOf(): (userId: string | null | undefined) => PartnerRole | null {
+  const { profile, partner } = useSession();
+  return (userId) => {
+    if (!userId) return null;
+    if (profile && userId === profile.id) return profile.role;
+    if (partner && userId === partner.id) return partner.role;
+    return null;
+  };
+}
+
 /** Money formatted in the reader's locale. */
 export function useMoney(): (cents: number, currency: CurrencyColumn, compactWhole?: boolean) => string {
   const { intlLocale } = useI18n();

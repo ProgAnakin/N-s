@@ -12,7 +12,7 @@
 export type PartnerRoleColumn = 'partner_a' | 'partner_b';
 export type CurrencyColumn = 'EUR' | 'BRL' | 'CNY' | 'USD';
 export type VisibilityColumn = 'shared' | 'private';
-export type SplitRuleColumn = '50_50' | 'custom_pct' | 'treat';
+export type SplitRuleColumn = 'mine' | '50_50' | 'custom_pct' | 'treat';
 export type FactCategoryColumn =
   | 'communication'
   | 'love_language'
