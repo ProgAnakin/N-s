@@ -135,8 +135,18 @@ export class FakeSupabase {
    * Signed URLs come back as data URIs so an `<img>` in jsdom has a
    * plausible `src` without a network anywhere near it.
    */
+  /** Every object path handed to `remove`, in order. */
+  removedPaths: string[] = [];
+  /** Every object path uploaded, in order. */
+  uploadedPaths: string[] = [];
+
   storage = {
     from: (bucket: string) => ({
+      createSignedUrl: (path: string) =>
+        Promise.resolve({
+          data: { signedUrl: `data:image/gif;base64,R0lGODlhAQABAAAAACw=#${bucket}/${path}` },
+          error: null,
+        }),
       createSignedUrls: (paths: string[]) =>
         Promise.resolve({
           data: paths.map((path) => ({
@@ -146,8 +156,17 @@ export class FakeSupabase {
           })),
           error: null,
         }),
-      upload: vi.fn((path: string) => Promise.resolve({ data: { path }, error: null })),
-      remove: vi.fn(() => Promise.resolve({ data: [], error: null })),
+      // Recorded on the instance rather than on a per-call spy: `from()`
+      // hands back a new object every time, so a `vi.fn` on it is a
+      // different function by the time a test tries to read it.
+      upload: (path: string) => {
+        this.uploadedPaths.push(path);
+        return Promise.resolve({ data: { path }, error: null });
+      },
+      remove: (paths: string[]) => {
+        this.removedPaths.push(...paths);
+        return Promise.resolve({ data: [], error: null });
+      },
     }),
   };
 
