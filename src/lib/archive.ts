@@ -62,6 +62,16 @@ export interface ArchiveExpense {
   paidBy: string;
   date: string;
   category: string;
+  /**
+   * How it was divided, in words.
+   *
+   * The keepsake left this out, which made it lossy about the one thing
+   * this app is actually for: €100 one of them spent alone and €100 they
+   * split down the middle exported as the same row. This is the file you
+   * are left holding after erasing everything, so a column it does not
+   * have is a fact nobody can ever recover.
+   */
+  split: string;
 }
 
 export interface ArchiveIdea {
@@ -159,12 +169,12 @@ export function toHtml(archive: Archive): string {
     .join('\n');
 
   const expenses = `<table>
-<thead><tr><th>When</th><th>What</th><th>Who</th><th class="num">How much</th></tr></thead>
+<thead><tr><th>When</th><th>What</th><th>Who</th><th>How it was split</th><th class="num">How much</th></tr></thead>
 <tbody>
 ${archive.expenses
   .map(
     (expense) =>
-      `<tr><td>${escapeHtml(expense.date)}</td><td>${escapeHtml(expense.label)}</td><td>${escapeHtml(expense.paidBy)}</td><td class="num">${escapeHtml(expense.amount)}</td></tr>`,
+      `<tr><td>${escapeHtml(expense.date)}</td><td>${escapeHtml(expense.label)}</td><td>${escapeHtml(expense.paidBy)}</td><td>${escapeHtml(expense.split)}</td><td class="num">${escapeHtml(expense.amount)}</td></tr>`,
   )
   .join('\n')}
 </tbody></table>`;

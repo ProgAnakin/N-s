@@ -65,7 +65,7 @@ const ICONS: Record<ResultKind, LucideIcon> = {
 /** How many to draw. Beyond this nobody is reading, they are re-typing. */
 const SHOWN = 30;
 
-export function FindOverlay({ open, onClose }: { open: boolean; onClose: () => void }) {
+function FindOverlay({ open, onClose }: { open: boolean; onClose: () => void }) {
   const s = useStrings();
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);

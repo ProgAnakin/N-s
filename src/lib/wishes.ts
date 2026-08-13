@@ -27,7 +27,7 @@ import { daysBetween } from './calendar';
  */
 
 export const MAX_WISHES = 3;
-export const SLOTS = [1, 2, 3] as const;
+const SLOTS = [1, 2, 3] as const;
 export type Slot = (typeof SLOTS)[number];
 
 export interface Wish {

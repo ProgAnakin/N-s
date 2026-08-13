@@ -88,7 +88,7 @@ export async function readPdfText(buffer: ArrayBuffer): Promise<PdfTextResult | 
  * emits the spaces a document contains as their own items — inserting more
  * puts a gap inside every word that happens to be kerned.
  */
-export function joinTextItems(items: readonly TextItemLike[]): string {
+function joinTextItems(items: readonly TextItemLike[]): string {
   let text = '';
   let previousY: number | null = null;
 

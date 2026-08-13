@@ -364,7 +364,9 @@ export function SettingsScreen() {
         {/* Above the ending, deliberately. Somebody reading their way down
             to the hardest decision on this page should pass the way to
             keep everything before they reach the way to close it. */}
-        <ArchiveSection />
+        <div id="keepsake" className="scroll-mt-6">
+          <ArchiveSection />
+        </div>
 
         {/* --- Ending it -------------------------------------------------------- */}
         <EndingSection />

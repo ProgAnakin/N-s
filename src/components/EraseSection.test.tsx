@@ -102,6 +102,19 @@ describe('what it tells you before you decide', () => {
     expect(screen.getByText(/The whole space/)).toBeInTheDocument();
     expect(screen.queryByText(/is still here/)).not.toBeInTheDocument();
   });
+
+  /**
+   * The way out, offered before the way through.
+   *
+   * Found by sweeping for i18n keys nothing referenced: the copy for this
+   * had been written and wired to nothing, so the only irreversible action
+   * in the app sat here with no mention of the keepsake at all.
+   */
+  it('offers the keepsake before the button that destroys it', async () => {
+    mount();
+    const link = await screen.findByRole('link', { name: /download the keepsake first/i });
+    expect(link).toHaveAttribute('href', '#keepsake');
+  });
 });
 
 describe('it does not happen on one tap', () => {

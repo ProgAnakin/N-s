@@ -21,7 +21,7 @@ interface FieldShellProps {
   className?: string;
 }
 
-export function Field({
+function Field({
   label,
   hint,
   error,

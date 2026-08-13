@@ -136,7 +136,14 @@ describe('nothing is quietly dropped', () => {
           { question: 'Favourite tea', answer: 'Pu-erh', visibility: 'shared', author: 'Léo' },
         ],
         expenses: [
-          { label: 'Dinner', amount: '€45,00', paidBy: 'Léo', date: '2026-04-01', category: 'food' },
+          {
+            label: 'Dinner',
+            amount: '€45,00',
+            paidBy: 'Léo',
+            date: '2026-04-01',
+            category: 'food',
+            split: 'Down the middle',
+          },
         ],
         ideas: [{ title: 'The rooftop', note: 'Go before eight' }],
       }),
@@ -145,6 +152,13 @@ describe('nothing is quietly dropped', () => {
     for (const words of ['The rain', 'For the soup.', 'Pu-erh', 'Dinner', 'The rooftop']) {
       expect(html).toContain(words);
     }
+
+    // How it was divided, which the keepsake used to drop. Without it a
+    // dinner they split and a dinner one of them bought alone come out of
+    // the export as the same row, and this is the file you are left
+    // holding after erasing the account.
+    expect(html).toContain('How it was split');
+    expect(html).toContain('Down the middle');
   });
 
   /**

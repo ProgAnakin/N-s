@@ -12,7 +12,6 @@ import type { WishRow } from '@/data/database.types';
 import { parseISODate } from '@/lib/calendar';
 import { formatDate } from '@/lib/dates';
 import {
-  MAX_WISHES,
   grantValues,
   grantedWishes,
   liveWishes,
@@ -706,4 +705,3 @@ function GrantedChip({
   );
 }
 
-export { MAX_WISHES };

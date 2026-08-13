@@ -1645,7 +1645,12 @@ export const en = {
       'The database is missing something this needs. Run the migrations in supabase/migrations/ that you haven’t run yet, in order, in the Supabase SQL editor — then try again.',
     writeNotAllowed:
       'The database refused it. If this is something you should be able to change, it’s a bug worth reporting.',
-    writeRejected: 'The database wouldn’t accept that value.',
+    /* Usually a migration that has not been run: the app knows about a
+       value the database's constraints do not. Saying only "wouldn't
+       accept that value" leaves somebody staring at a form that looks
+       perfectly filled in. */
+    writeRejected:
+      'The database wouldn’t accept that value. If this used to work, a migration in supabase/migrations/ is probably still waiting to be run.',
     writeOffline: 'Couldn’t reach the server. It’ll need another go once you’re back online.',
     writeUnknown: 'Something went wrong on the way to the server.',
     writeDismiss: 'Dismiss',

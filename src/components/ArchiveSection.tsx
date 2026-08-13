@@ -140,6 +140,12 @@ export function ArchiveSection() {
         paidBy: expense.paid_by === profile.role ? names.myName : names.partnerName,
         date: expense.date,
         category: expense.category,
+        // Without this the keepsake could not tell a €100 dinner they
+        // split from €100 one of them spent alone.
+        split:
+          expense.split_rule === 'custom_pct'
+            ? s.splitRules.custom_pct + ` (${expense.partner_a_percent ?? 50}/${100 - (expense.partner_a_percent ?? 50)})`
+            : s.splitRules[expense.split_rule],
       })),
       ideas: (ideas.data ?? []).map((idea) => ({ title: idea.idea, note: idea.note })),
     };

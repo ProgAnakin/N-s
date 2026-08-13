@@ -130,7 +130,19 @@ export function EraseSection() {
 
         {error && <ErrorNote>{error}</ErrorNote>}
 
-        <div className="border-t border-rule pt-4">
+        <div className="flex flex-col gap-3 border-t border-rule pt-4">
+          {/* The way out, before the way through. This is the only
+              irreversible action in the app and it used to sit here with
+              no mention of the keepsake at all — the copy for offering it
+              had been written and never wired to anything. Somebody about
+              to delete four years of letters should not have to already
+              know that downloading them first was an option. */}
+          <a
+            href="#keepsake"
+            className="self-start text-sm text-cinnabar underline underline-offset-4"
+          >
+            {s.erase.exportFirst}
+          </a>
           <Button onClick={() => setConfirming(true)} disabled={busy}>
             <Trash2 className="h-4 w-4" />
             {busy ? s.common.saving : s.erase.action}

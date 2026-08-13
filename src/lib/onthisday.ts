@@ -52,7 +52,7 @@ export interface Recollection<T extends DatedThing> {
 }
 
 /** How far either side of the exact date still counts as "around now". */
-export const WINDOW_DAYS = 2;
+const WINDOW_DAYS = 2;
 
 /**
  * The same day of the year as `date`, in the year that puts it nearest today.
