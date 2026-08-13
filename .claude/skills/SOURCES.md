@@ -28,3 +28,21 @@ server config it expects.
 
 These files are untracked in git. Say the word if you want them committed —
 otherwise they live only in this working copy.
+
+## cc-polymath (rand/cc-polymath)
+
+Installed with `npx openskills install rand/cc-polymath -y` — 26 skills.
+
+Two of them earned their place on this repo:
+
+- **anti-slop** — a runnable detector, not a checklist. Scored the spending
+  copy and its three source files 0–1/100.
+- **elegant-design** — its "document the states" step (empty, loading,
+  error, extreme data) found a real bug: a page with only a treat logged
+  rendered two €0.00 cards, so a gift looked like it had been dropped.
+
+The `discover-*` skills are gateways that `Read ../<category>/INDEX.md`,
+and the installer does not bring those categories down. The math category
+was copied out of the installer's temp clone into `_categories/` before it
+was cleaned up — though its contents are ZFC, ordinals and cardinals, and
+nothing in it applies to partitioning a list of expenses.

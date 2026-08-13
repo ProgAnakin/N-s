@@ -51,17 +51,19 @@ export function SpentTotals({
   const s = useStrings();
   const money = useMoney();
 
-  const logged =
-    balance.spentCents.partner_a +
-    balance.spentCents.partner_b +
-    balance.treatedCents.partner_a +
-    balance.treatedCents.partner_b;
+  const spent = balance.spentCents.partner_a + balance.spentCents.partner_b;
+  const treated = balance.treatedCents.partner_a + balance.treatedCents.partner_b;
 
-  if (logged === 0) {
+  // Nobody has spent anything on themselves or together. Two cards reading
+  // "€0.00 · €0 split" is worse than saying so — and worse still when a
+  // gift *has* been logged, because the page then looks like it lost it.
+  if (spent === 0) {
     return (
       <div className={cn('flex flex-col gap-2', className)}>
         <div className="h-3 w-full rounded-sm bg-sunk" aria-hidden="true" />
-        <p className="text-sm text-ink-faint">{s.spending.balanceNothing}</p>
+        <p className="text-sm text-ink-faint">
+          {treated > 0 ? s.spending.nothingSpentYet : s.spending.balanceNothing}
+        </p>
       </div>
     );
   }
@@ -88,7 +90,7 @@ export function SpentTotals({
                 />
                 <span className="truncate text-sm text-ink">{names[role]}</span>
               </span>
-              <span className="font-display text-xl tabular-nums text-ink">
+              <span className="font-display text-lg tabular-nums text-ink sm:text-xl">
                 {money(balance.spentCents[role], balance.currency)}
               </span>
               {/* Where it came from, because the sum of two things is not

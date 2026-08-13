@@ -222,6 +222,37 @@ describe('SpentTotals', () => {
     render(<SpentTotals balance={computeBalance([], 'EUR')} names={names} />);
     expect(screen.getByText(/nothing logged yet/i)).toBeInTheDocument();
   });
+
+  it('does not report a gift as two people having spent nothing', () => {
+    // Found by walking the empty/loading/extreme checklist rather than by
+    // anybody hitting it. A treat is logged, so the page is not empty —
+    // but nobody has spent anything, and two cards reading "€0.00 · €0
+    // split" made it look as though the gift had been dropped.
+    const balance = computeBalance([expense(3000, 'partner_a', { kind: 'treat' })], 'EUR');
+    render(<SpentTotals balance={balance} names={names} />);
+
+    expect(screen.getByText(/nothing spent yet/i)).toBeInTheDocument();
+    expect(screen.queryByText('€0.00')).not.toBeInTheDocument();
+    expect(screen.queryByText(/nothing logged yet/i)).not.toBeInTheDocument();
+  });
+
+  it('holds at a phone width with long names and seven-figure amounts', () => {
+    const big = (cents: number, by: PartnerRole, kind: SplitRule): Expense => ({
+      ...expense(cents, by, kind),
+      currency: 'CNY',
+    });
+    const balance = computeBalance(
+      [big(123_456_789, 'partner_a', { kind: 'mine' }), big(98_765_432, 'partner_b', { kind: '50_50' })],
+      'CNY',
+    );
+    render(<SpentTotals balance={balance} names={names} />);
+
+    // The figures are the ones that must survive: ¥1,234,567.89 of his own
+    // plus his ¥493,827.16 half. Names truncate; amounts never do.
+    expect(balance.spentCents.partner_a).toBe(123_456_789 + 49_382_716);
+    expect(screen.getByText('CN¥1,728,395.05')).toBeInTheDocument();
+    expect(screen.getByText('CN¥493,827.16')).toBeInTheDocument();
+  });
 });
 
 describe('RebalanceNote', () => {

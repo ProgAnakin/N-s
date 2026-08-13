@@ -550,6 +550,10 @@ export const en = {
        wrong on the commonest page there is. */
     balanceEvenBody: 'Nothing to think about. It’s come out fair.',
     balanceNothing: 'Nothing logged yet',
+    /* A gift is logged but nobody has spent anything on themselves or on
+       each other yet. Not the same as an empty page, and two cards reading
+       "€0.00 · €0 split" would make the page look like it lost the gift. */
+    nothingSpentYet: 'Nothing spent yet — only the treats below.',
     rebalanceTitle: 'To even it out naturally',
     rebalanceBody: (name: string, amount: string) => `The next ${amount} is on ${name}.`,
     /* The working, shown because the answer alone is not believable: the
