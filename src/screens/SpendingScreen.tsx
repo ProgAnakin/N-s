@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Plus, Scale } from 'lucide-react';
-import { RebalanceNote, ShareBar, TreatsNote } from '@/components/Balance';
+import { RebalanceNote, ShareBar, SpentTotals, TreatsNote } from '@/components/Balance';
 import { Button } from '@/components/ui/Button';
 import { Tag } from '@/components/ui/Bits';
 import { ChoiceField, SelectField, TextAreaField, TextField } from '@/components/ui/Field';
@@ -394,7 +394,13 @@ export function SpendingScreen() {
               ))}
             </div>
           </div>
-          <ShareBar balance={balance} names={names} />
+          {/* Three blocks, in the order somebody actually asks about
+              them: what have we each spent, how did the divided part
+              fall, and what was given. Every expense logged is in exactly
+              one of the three and in no other. */}
+          <SpentTotals balance={balance} names={names} />
+
+          <ShareBar balance={balance} names={names} className="mt-6" />
 
           <p className="mt-5 text-xs leading-relaxed text-ink-faint">
             {s.spending.frozenNote}

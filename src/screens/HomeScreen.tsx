@@ -7,7 +7,7 @@ import { TwoClocks } from '@/components/TwoClocks';
 import { LettersCard } from '@/components/LettersCard';
 import { MetricsSection } from '@/components/MetricsSection';
 import { OnThisDay } from '@/components/OnThisDay';
-import { ShareBar } from '@/components/Balance';
+import { SpentTotals } from '@/components/Balance';
 import { ButtonLink } from '@/components/ui/Button';
 import { LoadingBlock } from '@/components/ui/Bits';
 import { Curve } from '@/components/ui/Curve';
@@ -285,7 +285,7 @@ export function HomeScreen() {
               </Link>
             </div>
             <Sheet>
-              <ShareBar balance={balance} names={names} />
+              <SpentTotals balance={balance} names={names} />
             </Sheet>
           </section>
 

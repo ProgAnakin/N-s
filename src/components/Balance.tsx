@@ -24,6 +24,95 @@ import { cn } from '@/utils/cn';
  */
 
 /**
+ * What each of them has spent.
+ *
+ * Deliberately not a bar. A bar takes one quantity and divides it between
+ * two people, which is a comparison however gently it is drawn — and a
+ * personal expense is nobody's business but the person who made it. These
+ * are two facts placed side by side, each with its own composition
+ * underneath, sharing no axis and summing to nothing in particular.
+ *
+ * The comparison apparatus — percentages, one bar, a nudge — lives below
+ * on the pool they agreed to divide, where comparing is the entire point.
+ *
+ * The figure exists because it was missing and its absence was reported
+ * within the hour: logging €100 of your own and watching every number on
+ * the page hold still is indistinguishable from the app dropping it.
+ */
+export function SpentTotals({
+  balance,
+  names,
+  className,
+}: {
+  balance: Balance;
+  names: PartnerNames;
+  className?: string;
+}) {
+  const s = useStrings();
+  const money = useMoney();
+
+  const logged =
+    balance.spentCents.partner_a +
+    balance.spentCents.partner_b +
+    balance.treatedCents.partner_a +
+    balance.treatedCents.partner_b;
+
+  if (logged === 0) {
+    return (
+      <div className={cn('flex flex-col gap-2', className)}>
+        <div className="h-3 w-full rounded-sm bg-sunk" aria-hidden="true" />
+        <p className="text-sm text-ink-faint">{s.spending.balanceNothing}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className={cn('flex flex-col gap-3', className)}>
+      <p className="text-xs font-medium text-ink-soft">{s.spending.spentTitle}</p>
+      <div className="grid grid-cols-2 gap-3">
+        {(['partner_a', 'partner_b'] as const).map((role) => {
+          const own = balance.ownCents[role];
+          const share = balance.fairShare[role];
+          return (
+            <div
+              key={role}
+              className="flex flex-col gap-1 rounded-sm border border-rule bg-sunk/40 p-3"
+            >
+              <span className="flex min-w-0 items-baseline gap-1.5">
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    'h-2 w-2 shrink-0 translate-y-[-1px] rounded-sm',
+                    role === 'partner_a' ? 'bg-cinnabar' : 'bg-jade',
+                  )}
+                />
+                <span className="truncate text-sm text-ink">{names[role]}</span>
+              </span>
+              <span className="font-display text-xl tabular-nums text-ink">
+                {money(balance.spentCents[role], balance.currency)}
+              </span>
+              {/* Where it came from, because the sum of two things is not
+                  believable until you can see the two things — and only
+                  the terms that are actually there. */}
+              <span className="text-xs leading-relaxed text-ink-faint">
+                {own > 0 && share > 0
+                  ? s.spending.spentFrom(
+                      money(own, balance.currency, true),
+                      money(share, balance.currency, true),
+                    )
+                  : own > 0
+                    ? s.spending.spentFromOwn(money(own, balance.currency, true))
+                    : s.spending.spentFromSplit(money(share, balance.currency, true))}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/**
  * The shared total, and how it falls between the two of them.
  *
  * This is the only bar on the page, and getting to one took three tries.
@@ -57,32 +146,12 @@ export function ShareBar({
   const { intlLocale } = useI18n();
   const money = useMoney();
 
-  const own = balance.ownCents.partner_a + balance.ownCents.partner_b;
-  const treated = balance.treatedCents.partner_a + balance.treatedCents.partner_b;
-
-  if (balance.totalCents === 0) {
-    // Two different empty states. Somebody a fortnight into logging their
-    // own coffees has not logged nothing, and saying so reads as though
-    // the app mislaid it.
-    return (
-      <div className={cn('flex flex-col gap-2', className)}>
-        <div className="h-3 w-full rounded-sm bg-sunk" aria-hidden="true" />
-        {own > 0 ? (
-          <>
-            <p className="text-sm text-ink-faint">{s.spending.nothingShared}</p>
-            <p className="text-xs leading-relaxed text-ink-faint">
-              {s.spending.nothingSharedBody(money(own, balance.currency, true))}
-            </p>
-          </>
-        ) : (
-          <p className="text-sm text-ink-faint">{s.spending.balanceNothing}</p>
-        )}
-      </div>
-    );
-  }
+  // Nothing divided means no pool to draw, and an empty bar with two
+  // zeroes under it says less than nothing. The totals above have already
+  // told the reader what they logged.
+  if (balance.totalCents === 0) return null;
 
   const percent = percentSplit(balance.fairShare);
-  const total = money(balance.totalCents, balance.currency, true);
 
   return (
     <div className={cn('flex flex-col gap-3', className)}>
@@ -141,23 +210,8 @@ export function ShareBar({
         </span>
       </div>
 
-      {/* Says what is *not* in the figure whenever something isn't. A
-          total that silently omits €100 of one person's tools is a total
-          somebody will add up by hand, fail to reproduce, and stop
-          believing — and the omission is the whole point here, so it had
-          better be the thing said out loud. */}
       <p className="text-xs leading-relaxed text-ink-faint">
-        {own > 0 && treated > 0
-          ? s.spending.totalPlusBoth(
-              total,
-              money(own, balance.currency, true),
-              money(treated, balance.currency, true),
-            )
-          : own > 0
-            ? s.spending.totalPlusOwn(total, money(own, balance.currency, true))
-            : treated > 0
-              ? s.spending.totalPlusTreats(total, money(treated, balance.currency, true))
-              : s.spending.totalShared(total)}
+        {s.spending.totalShared(money(balance.totalCents, balance.currency, true))}
       </p>
 
       <p className="text-xs leading-relaxed text-ink-faint">{s.spending.shareBody}</p>
@@ -182,13 +236,10 @@ export function RebalanceNote({
   const money = useMoney();
   const suggestion = rebalanceSuggestion(balance);
 
-  if (balance.totalCents === 0) {
-    return (
-      <p className={cn('text-sm leading-relaxed text-ink-soft', className)}>
-        {s.spending.balanceNothingBody}
-      </p>
-    );
-  }
+  // Nothing divided, nothing that could be uneven. Two people spending
+  // their own money are not out of balance, and inventing a nudge from
+  // that would be the scoreboard arriving by the back door.
+  if (balance.totalCents === 0) return null;
 
   if (!suggestion || isLevel(balance)) {
     return (

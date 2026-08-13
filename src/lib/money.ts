@@ -200,7 +200,30 @@ export function costRatio(
 
 /* ------------------------------------------------------------------ *
  * Balance
- * ------------------------------------------------------------------ */
+ * ------------------------------------------------------------------ *
+ *
+ * Every expense lands in exactly one of three pools, and the three are
+ * disjoint and exhaustive. That is the property the whole screen rests on,
+ * and `conserves` below is a test of it rather than a hope.
+ *
+ *   own    `mine`                    → ownCents[payer]
+ *   split  `50_50` | `custom_pct`    → fairShare, contributed, totalCents
+ *   gift   `treat`                   → treatedCents[giver]
+ *
+ * From those:
+ *
+ *   spent(X)  = own(X) + share(X)          what X has spent
+ *   drift(X)  = paid(X) − share(X)         only ever from the split pool
+ *
+ * and two identities that must hold for any history at all:
+ *
+ *   share(A) + share(B) = totalCents = paid(A) + paid(B)
+ *   drift(A) + drift(B) = 0
+ *   spent(A) + spent(B) + given(A) + given(B) = every cent logged
+ *
+ * The last one is the one that matters to a reader: no amount they typed
+ * in is anywhere other than exactly one of the figures on screen.
+ */
 
 export interface Balance {
   currency: CurrencyCode;
@@ -231,6 +254,23 @@ export interface Balance {
    * the two of them, and that includes by accident.
    */
   ownCents: PartnerTotals;
+  /**
+   * What each of them has actually spent: their own, plus their share of
+   * what the two of you divided.
+   *
+   * The number a person means when they ask "how much have I spent". It
+   * had no home for one release and the omission was reported within the
+   * hour, which is fair: logging €100 of your own and watching every
+   * figure on the page stay still is indistinguishable from the app
+   * losing it.
+   *
+   * It is deliberately *not* what the bar is drawn from. A bar divides one
+   * quantity between two people, which is a comparison; these are two
+   * separate facts about two people, and they are shown as two facts. The
+   * comparison — percentages, a shared axis, a nudge — stays on the pool
+   * they agreed to share, where comparing is the whole point.
+   */
+  spentCents: PartnerTotals;
   sharedCount: number;
   treatCount: number;
   ownCount: number;
@@ -247,6 +287,7 @@ function emptyBalance(currency: CurrencyCode): Balance {
     aheadPartner: null,
     treatedCents: emptyTotals(),
     ownCents: emptyTotals(),
+    spentCents: emptyTotals(),
     sharedCount: 0,
     treatCount: 0,
     ownCount: 0,
@@ -298,6 +339,14 @@ export function computeBalance(expenses: readonly Expense[], currency: CurrencyC
   }
 
   balance.contributionPercent = percentSplit(balance.contributed);
+
+  // Their own, plus their share of what was divided. Gifts are in neither:
+  // a treat is money spent *on them*, and counting it as your spending is
+  // the first step toward counting it as theirs.
+  balance.spentCents = {
+    partner_a: balance.ownCents.partner_a + balance.fairShare.partner_a,
+    partner_b: balance.ownCents.partner_b + balance.fairShare.partner_b,
+  };
 
   const gap = balance.contributed.partner_a - balance.fairShare.partner_a;
   balance.differenceCents = Math.abs(gap);

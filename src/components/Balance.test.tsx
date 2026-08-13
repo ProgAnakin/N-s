@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { RebalanceNote, ShareBar, TreatsNote } from './Balance';
+import { RebalanceNote, ShareBar, SpentTotals, TreatsNote } from './Balance';
 import { computeBalance, type Expense, type PartnerRole, type SplitRule } from '@/lib/money';
 import type { PartnerNames } from '@/screens/shared';
 
@@ -108,10 +108,6 @@ describe('ShareBar', () => {
     expect(screen.queryByText(/45\.00/)).not.toBeInTheDocument();
   });
 
-  it('says nothing has been logged rather than showing a zeroed bar', () => {
-    render(<ShareBar balance={computeBalance([], 'EUR')} names={names} />);
-    expect(screen.getByText(/nothing logged yet/i)).toBeInTheDocument();
-  });
 
   it('describes the split for screen readers without naming a creditor', () => {
     const balance = computeBalance([expense(10000, 'partner_a')], 'EUR');
@@ -122,20 +118,19 @@ describe('ShareBar', () => {
     expectNoDebtLanguage(label);
   });
 
-  it('owns up to the treats the total leaves out', () => {
-    const balance = computeBalance(
-      [expense(4000, 'partner_a'), expense(3000, 'partner_b', { kind: 'treat' })],
-      'EUR',
-    );
-    render(<ShareBar balance={balance} names={names} />);
 
-    // Otherwise somebody adds the list up by hand, gets €70, and stops
-    // believing the page.
-    expect(screen.getByText(/€40 shared so far/)).toBeInTheDocument();
-    expect(screen.getByText(/with €30 of treats kept out of it/)).toBeInTheDocument();
+
+
+
+  it('draws nothing at all when nothing was divided', () => {
+    // An empty bar with two zeroes under it says less than nothing, and
+    // the totals above have already reported what was logged.
+    const balance = computeBalance([expense(10000, 'partner_a', { kind: 'mine' })], 'EUR');
+    const { container } = render(<ShareBar balance={balance} names={names} />);
+    expect(container).toBeEmptyDOMElement();
   });
 
-  it('names personal spending apart, never inside the split', () => {
+  it('shows only the divided pool, never the personal one', () => {
     const balance = computeBalance(
       [
         expense(10000, 'partner_a', { kind: 'mine' }),
@@ -145,35 +140,13 @@ describe('ShareBar', () => {
     );
     render(<ShareBar balance={balance} names={names} />);
 
-    // €4.74 and €4.75 — the shared pool, split as agreed. The €100 of his
-    // own is said out loud and kept out of every percentage on the bar.
+    // €4.74 and €4.75 — the pool they agreed to divide, split as agreed.
+    // The €100 of his own is nowhere near any percentage here.
     expect(screen.getByText('€4.74')).toBeInTheDocument();
     expect(screen.getByText('€4.75')).toBeInTheDocument();
-    expect(
-      screen.getByText(/€9\.49 shared so far, with €100 of personal spending kept out of it/),
-    ).toBeInTheDocument();
+    expect(screen.getByText('€9.49 shared so far')).toBeInTheDocument();
     expect(screen.queryByText('95.7%')).not.toBeInTheDocument();
-  });
-
-  it('says nothing was shared rather than nothing was logged', () => {
-    const balance = computeBalance(
-      [
-        expense(10000, 'partner_a', { kind: 'mine' }),
-        expense(5000, 'partner_b', { kind: 'mine' }),
-      ],
-      'EUR',
-    );
-    render(<ShareBar balance={balance} names={names} />);
-
-    expect(screen.getByText(/nothing shared yet/i)).toBeInTheDocument();
-    expect(screen.getByText(/€150 logged, all of it each of your own/i)).toBeInTheDocument();
-  });
-
-  it('keeps the total plain when there are no treats', () => {
-    const balance = computeBalance([expense(4000, 'partner_a')], 'EUR');
-    render(<ShareBar balance={balance} names={names} />);
-    expect(screen.getByText('€40 shared so far')).toBeInTheDocument();
-    expect(screen.queryByText(/treats/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/€100/)).not.toBeInTheDocument();
   });
 
   it('never uses debt language either', () => {
@@ -183,6 +156,71 @@ describe('ShareBar', () => {
     );
     const { container } = render(<ShareBar balance={balance} names={names} />);
     expectNoDebtLanguage(container.textContent ?? '');
+  });
+});
+
+/**
+ * The figure a person means when they ask "how much have I spent".
+ *
+ * Reported as: "the value added in just mine doesn't increase my spent
+ * value." It didn't — personal spending had been moved out of the balance
+ * to stop it swamping the bar, and moved clean out of sight with it.
+ */
+describe('SpentTotals', () => {
+  it('counts a personal expense toward the person who made it', () => {
+    const balance = computeBalance([expense(10000, 'partner_a', { kind: 'mine' })], 'EUR');
+    render(<SpentTotals balance={balance} names={names} />);
+    expect(screen.getByText('€100.00')).toBeInTheDocument();
+  });
+
+  it('adds their own to their share of what was divided', () => {
+    const balance = computeBalance(
+      [
+        expense(10000, 'partner_a', { kind: 'mine' }),
+        expense(949, 'partner_b', { kind: '50_50' }),
+      ],
+      'EUR',
+    );
+    render(<SpentTotals balance={balance} names={names} />);
+
+    // €100 of his own plus €4.74 of the medicine they split.
+    expect(balance.spentCents).toEqual({ partner_a: 10474, partner_b: 475 });
+    expect(screen.getByText('€104.74')).toBeInTheDocument();
+    expect(screen.getByText('€4.75')).toBeInTheDocument();
+    // And the composition, so the sum is checkable rather than asserted.
+    expect(screen.getByText('€100 personal · €4.74 split')).toBeInTheDocument();
+  });
+
+  it('leaves a gift out of the giver’s spending', () => {
+    // The whole difference between "just mine" and "my treat", and it was
+    // asked as a question, which means the app had not answered it.
+    const mine = computeBalance([expense(3000, 'partner_a', { kind: 'mine' })], 'EUR');
+    const gift = computeBalance([expense(3000, 'partner_a', { kind: 'treat' })], 'EUR');
+
+    expect(mine.spentCents.partner_a).toBe(3000);
+    expect(gift.spentCents.partner_a).toBe(0);
+    expect(gift.treatedCents.partner_a).toBe(3000);
+  });
+
+  it('sets no percentage and no shared axis between the two', () => {
+    const balance = computeBalance(
+      [
+        expense(500000, 'partner_a', { kind: 'mine' }),
+        expense(1000, 'partner_b', { kind: 'mine' }),
+      ],
+      'EUR',
+    );
+    const { container } = render(<SpentTotals balance={balance} names={names} />);
+
+    // Two facts, not one quantity divided. A bar here would rank them.
+    expect(container.textContent).not.toMatch(/%/);
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
+    expectNoDebtLanguage(container.textContent ?? '');
+  });
+
+  it('says nothing has been logged rather than showing two zeroes', () => {
+    render(<SpentTotals balance={computeBalance([], 'EUR')} names={names} />);
+    expect(screen.getByText(/nothing logged yet/i)).toBeInTheDocument();
   });
 });
 

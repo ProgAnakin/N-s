@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   costRatio,
+  type SplitRuleKind,
   BALANCE_TOLERANCE_PERCENT,
   centsToInputValue,
   computeBalance,
@@ -854,5 +855,122 @@ describe('an expense that belongs to one person', () => {
   it('is drawn solid, in the colour of whoever spent it', () => {
     expect(costRatio(10000, { kind: 'mine' }, 'partner_a')).toBe(100);
     expect(costRatio(10000, { kind: 'mine' }, 'partner_b')).toBe(0);
+  });
+});
+
+/**
+ * Conservation.
+ *
+ * The property the whole screen rests on: every expense lands in exactly
+ * one of three pools, and the three are disjoint and exhaustive. If that
+ * holds, then no amount anybody typed in is anywhere other than exactly
+ * one of the figures on the page — which is the only reason a person has
+ * to believe a total they did not compute themselves.
+ *
+ * Asserted over random histories rather than a handful of examples,
+ * because the ways to lose a cent are all in the corners: an odd amount,
+ * a 0% or 100% custom split, a treat by the partner who paid for nothing
+ * else, a rounding remainder that goes to the wrong side.
+ */
+describe('every cent is in exactly one place', () => {
+  function seeded(seed: number) {
+    let state = seed >>> 0;
+    return () => {
+      state = (state * 1664525 + 1013904223) >>> 0;
+      return state / 0x100000000;
+    };
+  }
+
+  it('accounts for every amount logged, across thousands of histories', () => {
+    const rand = seeded(20260813);
+    const kinds: SplitRuleKind[] = ['mine', '50_50', 'custom_pct', 'treat'];
+    let checked = 0;
+
+    for (let run = 0; run < 3000; run += 1) {
+      const history: Expense[] = [];
+      let typedIn = 0;
+
+      const count = 1 + Math.floor(rand() * 6);
+      for (let i = 0; i < count; i += 1) {
+        const amount = Math.floor(rand() * 50_000) + 1;
+        const kind = kinds[Math.floor(rand() * kinds.length)]!;
+        const rule: SplitRule =
+          kind === 'custom_pct'
+            ? { kind, partnerAPercent: Math.floor(rand() * 101) }
+            : { kind };
+        history.push(expense(amount, rand() < 0.5 ? 'partner_a' : 'partner_b', rule));
+        typedIn += amount;
+      }
+
+      const b = computeBalance(history, 'EUR');
+
+      // Nothing lost, nothing counted twice.
+      const accounted =
+        b.spentCents.partner_a +
+        b.spentCents.partner_b +
+        b.treatedCents.partner_a +
+        b.treatedCents.partner_b;
+      expect(accounted).toBe(typedIn);
+
+      // The split pool closes on itself from both directions.
+      expect(b.fairShare.partner_a + b.fairShare.partner_b).toBe(b.totalCents);
+      expect(b.contributed.partner_a + b.contributed.partner_b).toBe(b.totalCents);
+
+      // Drift is a property of the split pool alone and always sums to nil.
+      const driftA = b.contributed.partner_a - b.fairShare.partner_a;
+      const driftB = b.contributed.partner_b - b.fairShare.partner_b;
+      expect(driftA + driftB).toBe(0);
+      expect(b.differenceCents).toBe(Math.abs(driftA));
+
+      // Every row landed somewhere, and in one place only.
+      expect(b.sharedCount + b.treatCount + b.ownCount).toBe(history.length);
+
+      checked += 1;
+    }
+
+    expect(checked).toBe(3000);
+  });
+
+  it('holds when a custom split gives one of them nothing', () => {
+    // 0% and 100% are where an off-by-one hides: one share is the whole
+    // amount and the other is zero, and the remainder rule still has to
+    // make them sum back.
+    for (const percent of [0, 100]) {
+      for (const paidBy of ['partner_a', 'partner_b'] as const) {
+        const balance = computeBalance(
+          [expense(999, paidBy, { kind: 'custom_pct', partnerAPercent: percent })],
+          'EUR',
+        );
+        expect(balance.fairShare.partner_a + balance.fairShare.partner_b).toBe(999);
+        expect(balance.spentCents.partner_a + balance.spentCents.partner_b).toBe(999);
+      }
+    }
+  });
+
+  it('survives the journey through a currency conversion', () => {
+    // The screen never totals raw amounts — it totals converted ones. The
+    // invariant has to hold on the far side of that too, or the page is
+    // exact about numbers nobody is reading.
+    const fx = { EUR: 1, BRL: 6.2, CNY: 7.9, USD: 1.1 };
+    const cny = { CNY: 1, EUR: 1 / 7.9, BRL: 6.2 / 7.9, USD: 1.1 / 7.9 };
+
+    const { balance } = computeConvertedBalance(
+      [
+        { ...expense(10_000, 'partner_a', { kind: 'mine' }), currency: 'EUR', fx },
+        { ...expense(7_500, 'partner_b', { kind: '50_50' }), currency: 'CNY', fx: cny },
+        { ...expense(3_000, 'partner_a', { kind: 'treat' }), currency: 'EUR', fx },
+      ],
+      'EUR',
+    );
+
+    const accounted =
+      balance.spentCents.partner_a +
+      balance.spentCents.partner_b +
+      balance.treatedCents.partner_a +
+      balance.treatedCents.partner_b;
+
+    // €100 + ¥75 at 7.9 (€9.49, rounded once at conversion) + €30.
+    expect(accounted).toBe(10_000 + 949 + 3_000);
+    expect(balance.fairShare.partner_a + balance.fairShare.partner_b).toBe(balance.totalCents);
   });
 });

@@ -280,7 +280,10 @@ describe('the balance on the front page', () => {
       ],
     });
 
-    await screen.findByText(/€200(\.00)? shared so far/);
+    // The home card is the two spent totals now: €100 each, from a
+    // €200 pool split down the middle.
+    await screen.findByText(/what each of you has spent/i);
+    expect(await screen.findAllByText('€100.00')).toHaveLength(2);
     // The rule the whole money model is built on, asserted where a
     // careless copy change would land first.
     expect(document.body.textContent).not.toMatch(/\bowes?\b/i);
@@ -289,7 +292,7 @@ describe('the balance on the front page', () => {
 
   it('links through to the whole history', async () => {
     mountHome({ expenses: [expenseRow()] });
-    await screen.findByText(/shared so far/);
+    await screen.findByText(/what each of you has spent/i);
     const section = screen.getByLabelText(/Spending/i, { selector: 'section' });
     expect(within(section).getByRole('link')).toHaveAttribute('href', '/spending');
   });

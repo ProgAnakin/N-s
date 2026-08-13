@@ -533,22 +533,23 @@ export const en = {
     noTrip: 'Not part of a trip',
     note: 'Note',
     balanceTitle: 'Where things stand',
-    shareTitle: 'What each of you carries',
+    spentTitle: 'What each of you has spent',
+    /* The composition, because a sum of two things is not believable until
+       you can see the two things — and three phrasings, because "€0 of
+       your own" is noise and "your own" is plainly wrong on the card with
+       the other person's name at the top of it. */
+    spentFrom: (own: string, share: string) => `${own} personal · ${share} split`,
+    spentFromOwn: (own: string) => `${own} personal`,
+    spentFromSplit: (share: string) => `${share} split`,
+    shareTitle: 'What you’ve split together',
     shareBody:
-      'This is only what you divided. An expense you split counts to both of you, in whatever proportion you chose and whoever actually paid — so either of you can log something for the two of you without the other entering it again. In the list below, a row carried together is drawn in both colours.',
+      'Only the expenses you divided. Each counts to both of you, in whatever proportion you chose and whoever actually paid — so either of you can log something for the two of you without the other entering it again. In the list below, a row carried together is drawn in both colours.',
     balanceEven: 'You’re even',
     /* Not "it's been shared fairly" — with personal expenses in the list
        most of it was never shared at all, and the sentence was quietly
        wrong on the commonest page there is. */
     balanceEvenBody: 'Nothing to think about. It’s come out fair.',
     balanceNothing: 'Nothing logged yet',
-    /* Distinct from the above, and worth the extra string. Somebody who
-       has logged a fortnight of their own coffees has not "logged
-       nothing", and telling them so reads as though the app lost it. */
-    nothingShared: 'Nothing shared yet',
-    nothingSharedBody: (own: string) =>
-      `${own} logged, all of it each of your own. Split something between you and it'll show up here.`,
-    balanceNothingBody: 'Once you log a few things, you’ll see how it’s been shared.',
     rebalanceTitle: 'To even it out naturally',
     rebalanceBody: (name: string, amount: string) => `The next ${amount} is on ${name}.`,
     /* The working, shown because the answer alone is not believable: the
@@ -570,22 +571,8 @@ export const en = {
     // Naming the idea in order to dismiss it still puts it in the room.
     rebalanceHint: 'No rush. It’s just the number that would bring the split back level.',
     totalShared: (amount: string) => `${amount} shared so far`,
-    /* What the figure leaves out, said in the same breath as the figure.
-       Personal spending and treats are both deliberately outside it, and a
-       total that omits them in silence is one anybody adding the list up
-       by hand will fail to reproduce and stop believing.
-
-       Three phrasings rather than one assembled from fragments, because
-       "and" between two clauses is not the same word in every language
-       this app will one day speak. */
-    totalPlusOwn: (amount: string, own: string) =>
-      `${amount} shared so far, with ${own} of personal spending kept out of it.`,
-    totalPlusTreats: (amount: string, treats: string) =>
-      `${amount} shared so far, with ${treats} of treats kept out of it.`,
-    totalPlusBoth: (amount: string, own: string, treats: string) =>
-      `${amount} shared so far, with ${own} of personal spending and ${treats} of treats kept out of it.`,
     treatsTitle: 'Treats',
-    treatsBody: 'Given freely, and kept out of the maths.',
+    treatsBody: 'Given freely. Counted only here, never as anybody’s spending.',
     treatsBy: (name: string, amount: string) => `${name} gave ${amount}`,
     history: 'Everything logged',
     emptyTitle: 'Nothing logged yet',
@@ -649,12 +636,12 @@ export const en = {
     '50_50': 'Down the middle',
     custom_pct: 'A share each',
     treat: 'My treat',
-    mineHint: 'Counts to you alone. Nothing to divide.',
+    mineHint: 'Yours alone. Counts toward what you’ve spent.',
     '50_50Hint': 'Half of it to each of you, whoever paid.',
     /* Names the direction, because the slider decides how much of this
        lands on somebody who is not in the room while you fill the form. */
     custom_pctHint: 'You choose how much falls to each. For when your incomes aren’t the same.',
-    treatHint: 'A gift for them. Left out of the balance entirely.',
+    treatHint: 'A gift for them. Kept out of what you’ve spent, and counted on its own below.',
   },
 
   ideas: {
