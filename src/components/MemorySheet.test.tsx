@@ -122,7 +122,7 @@ describe('the contact sheet', () => {
 
     const tiles = screen.getAllByRole('button', { name: 'Look at this one' });
     expect(tiles).toHaveLength(2);
-    await user.click(tiles[1]!);
+    await user.click(tiles[1]);
     expect(onOpenPhoto).toHaveBeenCalledWith(second);
   });
 

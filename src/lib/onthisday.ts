@@ -68,7 +68,7 @@ export function anniversaryNear(date: CalendarDate, today: CalendarDate): Calend
     normalise({ year, month: date.month, day: date.day }),
   );
 
-  let best = candidates[0]!;
+  let best = candidates[0];
   let bestDistance = Math.abs(daysBetween(today, best));
   for (const candidate of candidates.slice(1)) {
     const distance = Math.abs(daysBetween(today, candidate));

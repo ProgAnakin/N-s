@@ -81,7 +81,7 @@ describe('when it does predict', () => {
 
   it('does not mind what order the records arrive in', () => {
     const ordered = starts(28, 4);
-    const shuffled = [ordered[2]!, ordered[0]!, ordered[3]!, ordered[1]!];
+    const shuffled = [ordered[2], ordered[0], ordered[3], ordered[1]];
     expect(summariseCycle(shuffled, TODAY)).toEqual(summariseCycle(ordered, TODAY));
   });
 

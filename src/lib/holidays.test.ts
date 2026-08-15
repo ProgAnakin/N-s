@@ -175,7 +175,7 @@ describe('upcomingHolidays', () => {
   it('finds what is close', () => {
     const list = upcomingHolidays(march, BR_CN, { withinDays: 120 });
     expect(list.length).toBeGreaterThan(0);
-    expect(list[0]!.daysUntil).toBeGreaterThanOrEqual(0);
+    expect(list[0].daysUntil).toBeGreaterThanOrEqual(0);
   });
 
   it('looks across the year boundary', () => {

@@ -227,8 +227,17 @@ export function ArchiveSection() {
 function blobToDataUrl(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(reader.error);
+    reader.onload = () => {
+      // `readAsDataURL` always yields a string, but the type does not say
+      // so, and `String(anArrayBuffer)` is the silent "[object
+      // ArrayBuffer]" that ends up embedded in somebody's keepsake as a
+      // broken image. Checked rather than coerced.
+      if (typeof reader.result === 'string') resolve(reader.result);
+      else reject(new Error('Could not read the file as a data URL.'));
+    };
+    // `reader.error` is nullable; rejecting with null loses the stack and
+    // gives the catch nothing to report.
+    reader.onerror = () => reject(reader.error ?? new Error('Could not read the file.'));
     reader.readAsDataURL(blob);
   });
 }

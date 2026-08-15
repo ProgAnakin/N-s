@@ -58,7 +58,8 @@ export function PlacesSection() {
     setError(null);
   }
 
-  async function useHere() {
+  // A plain async handler, not a hook — see the note in ClockSection.
+  async function fillInCurrentLocation() {
     if (!draft) return;
     setError(null);
     const position = await request();
@@ -159,7 +160,7 @@ export function PlacesSection() {
             />
 
             <div className="flex flex-col gap-2">
-              <Button onClick={() => void useHere()} disabled={status === 'locating'}>
+              <Button onClick={() => void fillInCurrentLocation()} disabled={status === 'locating'}>
                 {status === 'locating' ? <Spinner /> : <Crosshair className="h-4 w-4" />}
                 {status === 'locating' ? s.arrivals.locating : s.arrivals.useCurrentLocation}
               </Button>

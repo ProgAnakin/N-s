@@ -72,7 +72,7 @@ export function CalendarScreen() {
     () =>
       weekStartsOn === 1
         ? s.calendar.weekdays
-        : [s.calendar.weekdays[6]!, ...s.calendar.weekdays.slice(0, 6)],
+        : [s.calendar.weekdays[6], ...s.calendar.weekdays.slice(0, 6)],
     [s.calendar.weekdays, weekStartsOn],
   );
 

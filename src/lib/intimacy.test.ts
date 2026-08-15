@@ -79,7 +79,7 @@ describe('summarise', () => {
       TODAY,
     );
     expect(summary.byMonth.map((m) => m.key)).toEqual(['2026-01', '2026-02', '2026-03']);
-    expect(summary.byMonth[0]!.count).toBe(2);
+    expect(summary.byMonth[0].count).toBe(2);
   });
 
   it('counts distinct days, not entries', () => {

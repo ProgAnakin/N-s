@@ -153,7 +153,7 @@ export function suggestQuestions(
   const start = Math.abs(Math.trunc(seed)) % open.length;
   const picked: BankQuestion[] = [];
   for (let i = 0; i < Math.min(count, open.length); i += 1) {
-    picked.push(open[(start + i) % open.length]!);
+    picked.push(open[(start + i) % open.length]);
   }
   return picked;
 }

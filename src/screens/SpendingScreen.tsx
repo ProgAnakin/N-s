@@ -177,6 +177,11 @@ export function SpendingScreen() {
     return () => {
       live = false;
     };
+    // Narrowed to the two members it uses. `expenses` is a fresh object on
+    // every render, so depending on it would restart the repair loop
+    // continuously — which is the bug this effect's own guard exists to
+    // prevent, arrived at from the other direction.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [expenses.rows, expenses.update]);
 
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -677,8 +682,8 @@ export function SpendingScreen() {
               value={draft.paidBy}
               onChange={(paidBy) => setDraft({ ...draft, paidBy })}
               options={[
-                { value: 'partner_a' as PartnerRoleColumn, label: names.partner_a },
-                { value: 'partner_b' as PartnerRoleColumn, label: names.partner_b },
+                { value: 'partner_a', label: names.partner_a },
+                { value: 'partner_b', label: names.partner_b },
               ]}
             />
 
@@ -688,22 +693,22 @@ export function SpendingScreen() {
               onChange={(splitRule) => setDraft({ ...draft, splitRule })}
               options={[
                 {
-                  value: 'mine' as SplitRuleColumn,
+                  value: 'mine',
                   label: s.splitRules.mine,
                   hint: s.splitRules.mineHint,
                 },
                 {
-                  value: '50_50' as SplitRuleColumn,
+                  value: '50_50',
                   label: s.splitRules['50_50'],
                   hint: s.splitRules['50_50Hint'],
                 },
                 {
-                  value: 'custom_pct' as SplitRuleColumn,
+                  value: 'custom_pct',
                   label: s.splitRules.custom_pct,
                   hint: s.splitRules.custom_pctHint,
                 },
                 {
-                  value: 'treat' as SplitRuleColumn,
+                  value: 'treat',
                   label: s.splitRules.treat,
                   hint: s.splitRules.treatHint,
                 },

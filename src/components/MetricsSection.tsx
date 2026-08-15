@@ -3,7 +3,7 @@ import { Sheet } from '@/components/ui/Surface';
 import { useCouple } from '@/data/session';
 import { parseISODate } from '@/lib/calendar';
 import { QUESTION_BANK } from '@/lib/questions';
-import { computeMetrics, metricsWorthShowing, type MetricId } from '@/lib/metrics';
+import { computeMetrics, metricsWorthShowing } from '@/lib/metrics';
 import { useStrings } from '@/i18n';
 import { useCoupleTable, useToday } from '@/screens/shared';
 
@@ -86,7 +86,7 @@ export function MetricsSection({ className }: { className?: string }) {
 
       <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {metrics.map((metric) => {
-          const copy = s.metrics.ids[metric.id as MetricId];
+          const copy = s.metrics.ids[metric.id];
           if (!copy) return null;
           return (
             <li key={metric.id}>

@@ -180,5 +180,5 @@ export type WeekdayName = (typeof WEEKDAY_NAMES)[number];
 export function weekdayOf(date: CalendarDate): WeekdayName {
   // 1970-01-01 was a Thursday (index 4).
   const index = (((toEpochDay(date) + 4) % 7) + 7) % 7;
-  return WEEKDAY_NAMES[index]!;
+  return WEEKDAY_NAMES[index];
 }

@@ -104,7 +104,7 @@ describe('setting it', () => {
     const { db } = mount({ reunion_date: null });
 
     // Two of them: the page header's, and the empty state's.
-    await user.click((await screen.findAllByRole('button', { name: 'Add' }))[0]!);
+    await user.click((await screen.findAllByRole('button', { name: 'Add' }))[0]);
     await user.type(
       await screen.findByLabelText(/Next time you see each other/),
       '2026-12-24',

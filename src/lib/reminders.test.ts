@@ -164,7 +164,7 @@ describe('buildReminders', () => {
         trips: [{ id: 't1', destination: 'Lisbon', startDate: d(2026, 3, 28), openItemCount: 2 }],
       }),
     );
-    expect(reminders[0]!.kind).toBe('upcoming_date');
+    expect(reminders[0].kind).toBe('upcoming_date');
   });
 
   it('keeps the list short', () => {

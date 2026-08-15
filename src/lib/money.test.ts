@@ -411,14 +411,14 @@ describe('computeBalancesByCurrency', () => {
       'EUR',
     );
     expect(balances.map((b) => b.currency)).toEqual(['EUR', 'CNY']);
-    expect(balances[0]!.totalCents).toBe(10000);
-    expect(balances[1]!.totalCents).toBe(70000);
+    expect(balances[0].totalCents).toBe(10000);
+    expect(balances[1].totalCents).toBe(70000);
   });
 
   it('always includes the primary currency, even with no expenses in it', () => {
     const balances = computeBalancesByCurrency([expense(500, 'partner_a', { kind: '50_50' }, 'USD')], 'EUR');
-    expect(balances[0]!.currency).toBe('EUR');
-    expect(balances[0]!.totalCents).toBe(0);
+    expect(balances[0].currency).toBe('EUR');
+    expect(balances[0].totalCents).toBe(0);
   });
 });
 
@@ -893,7 +893,7 @@ describe('every cent is in exactly one place', () => {
       const count = 1 + Math.floor(rand() * 6);
       for (let i = 0; i < count; i += 1) {
         const amount = Math.floor(rand() * 50_000) + 1;
-        const kind = kinds[Math.floor(rand() * kinds.length)]!;
+        const kind = kinds[Math.floor(rand() * kinds.length)];
         const rule: SplitRule =
           kind === 'custom_pct'
             ? { kind, partnerAPercent: Math.floor(rand() * 101) }

@@ -425,13 +425,13 @@ export function computeConvertedBalance(
   const estimated: Expense[] = [];
   for (const { expense, cents, basis } of converted) {
     restated.push({ ...(expense as Expense), amountCents: cents, currency });
-    if (basis === 'estimated') estimated.push(expense as Expense);
+    if (basis === 'estimated') estimated.push(expense);
   }
 
   return {
     balance: computeBalance(restated, currency),
     estimated,
-    unconvertible: unconvertible as Expense[],
+    unconvertible: unconvertible,
   };
 }
 

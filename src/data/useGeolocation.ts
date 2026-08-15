@@ -90,7 +90,7 @@ export function useGeolocationGranted(): boolean | null {
       return;
     }
     navigator.permissions
-      .query({ name: 'geolocation' as PermissionName })
+      .query({ name: 'geolocation' })
       .then((result) => {
         if (active) setGranted(result.state === 'granted');
       })

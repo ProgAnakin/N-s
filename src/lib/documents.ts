@@ -102,7 +102,7 @@ export function documentKind(fileName: string, mimeType = ''): DocumentKind | nu
 
 /** UTF-8, with the byte-order mark dropped if one is present. */
 export function readPlainText(buffer: ArrayBuffer): string {
-  return new TextDecoder('utf-8').decode(buffer).replace(/^﻿/, '');
+  return new TextDecoder('utf-8').decode(buffer).replace(/^\uFEFF/, '');
 }
 
 /**
@@ -340,7 +340,7 @@ export async function readZipEntry(
       const data = bytes.subarray(start, start + compressedSize);
 
       if (method === 0) return data;
-      if (method === 8) return inflateRaw(data as Uint8Array<ArrayBuffer>);
+      if (method === 8) return inflateRaw(data);
       return null;
     }
 
@@ -427,7 +427,7 @@ async function inflateRaw(data: Uint8Array<ArrayBuffer>): Promise<Uint8Array | n
 export function tidy(text: string): string {
   return text
     .replace(/\r\n?/g, '\n')
-    .replace(/ /g, ' ')
+    .replace(/\u00A0/g, ' ')
     .replace(/[ \t]+\n/g, '\n')
     .replace(/\n{3,}/g, '\n\n')
     .replace(/[ \t]{2,}/g, ' ')

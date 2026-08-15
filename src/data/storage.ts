@@ -25,7 +25,7 @@ export class UploadError extends Error {
 
 function extensionOf(fileName: string): string {
   const match = /\.([a-z0-9]{1,8})$/i.exec(fileName);
-  return match ? match[1]!.toLowerCase() : 'bin';
+  return match ? match[1].toLowerCase() : 'bin';
 }
 
 /**

@@ -21,7 +21,7 @@ import {
  */
 
 function utf8(value: string): ArrayBuffer {
-  return new TextEncoder().encode(value).buffer as ArrayBuffer;
+  return new TextEncoder().encode(value).buffer;
 }
 
 describe('working out what a file is', () => {

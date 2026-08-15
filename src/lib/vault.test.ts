@@ -130,6 +130,6 @@ describe('question bank', () => {
 
   it('copes with an empty or nearly empty pool', () => {
     expect(suggestQuestions([], 1, 3)).toEqual([]);
-    expect(suggestQuestions([QUESTION_BANK[0]!], 5, 3)).toHaveLength(1);
+    expect(suggestQuestions([QUESTION_BANK[0]], 5, 3)).toHaveLength(1);
   });
 });

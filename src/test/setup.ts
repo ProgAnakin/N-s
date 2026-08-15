@@ -26,7 +26,7 @@ if (!window.matchMedia) {
  * jsdom has no layout engine, so `scrollTo` throws "not implemented" rather
  * than quietly doing nothing. The app calls it on every route change.
  */
-window.scrollTo = (() => {}) as typeof window.scrollTo;
+window.scrollTo = (() => {});
 
 /**
  * jsdom has no `IntersectionObserver`, and framer-motion's `whileInView`
@@ -56,7 +56,7 @@ if (!('IntersectionObserver' in window)) {
     observe(target: Element): void {
       this.callback(
         [{ isIntersecting: true, target } as IntersectionObserverEntry],
-        this as IntersectionObserver,
+        this,
       );
     }
 

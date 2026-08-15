@@ -31,7 +31,11 @@ export function ClockSection() {
   // Intl knows every zone; offering all of them in a select would be a
   // 400-entry list, so the device's own zone is the one-tap answer and the
   // field stays free text for the traveller.
-  async function useDevice() {
+  // Not a hook, despite where it lives. It was called `useDevice`, which
+  // made every reader and every linter treat it as one — including the
+  // rules-of-hooks check, which flagged the perfectly ordinary click
+  // handler below as a hook called inside a callback.
+  async function applyDeviceTimeZone() {
     setSaving(true);
     await updateProfile({ time_zone: deviceTimeZone() });
     setSaving(false);
@@ -53,7 +57,7 @@ export function ClockSection() {
         />
 
         <div>
-          <Button size="sm" onClick={() => void useDevice()} disabled={saving}>
+          <Button size="sm" onClick={() => void applyDeviceTimeZone()} disabled={saving}>
             {s.clocks.useDevice}
           </Button>
         </div>

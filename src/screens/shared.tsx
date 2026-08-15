@@ -7,7 +7,7 @@ import { useTable, type Table, type UseTableOptions } from '@/data/useTable';
 import type { CurrencyColumn, TableName } from '@/data/database.types';
 import { today, type CalendarDate } from '@/lib/calendar';
 import { describeCountdown } from '@/lib/dates';
-import { formatMoney, type CurrencyCode, type PartnerRole } from '@/lib/money';
+import { formatMoney, type PartnerRole } from '@/lib/money';
 import { useI18n, useStrings } from '@/i18n';
 
 /** Everything shared is scoped by couple. This saves repeating that everywhere. */
@@ -22,6 +22,12 @@ export function useCoupleTable<T extends TableName>(
 /** Today, recomputed only when the calendar day actually changes. */
 export function useToday(): CalendarDate {
   const iso = new Date().toDateString();
+  // `iso` is the cache key, not an input — that is the entire trick. It
+  // changes at midnight and at no other time, so `today()` is recomputed
+  // exactly when the answer can have changed and never on an ordinary
+  // re-render. The rule cannot see a dependency that is deliberately not
+  // read, so it is told here rather than obeyed.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   return useMemo(() => today(), [iso]);
 }
 
@@ -82,7 +88,7 @@ export function useRoleOf(): (userId: string | null | undefined) => PartnerRole 
 export function useMoney(): (cents: number, currency: CurrencyColumn, compactWhole?: boolean) => string {
   const { intlLocale } = useI18n();
   return (cents, currency, compactWhole = false) =>
-    formatMoney(cents, currency as CurrencyCode, { locale: intlLocale, compactWhole });
+    formatMoney(cents, currency, { locale: intlLocale, compactWhole });
 }
 
 /**

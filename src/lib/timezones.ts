@@ -123,7 +123,7 @@ export function callWindows(input: {
   let runStart: number | null = null;
   for (let step = 0; step <= 24; step += 1) {
     const utcHour = (firstGap + step) % 24;
-    const active = step < 24 && shared[utcHour]!;
+    const active = step < 24 && shared[utcHour];
 
     if (active && runStart === null) runStart = utcHour;
 

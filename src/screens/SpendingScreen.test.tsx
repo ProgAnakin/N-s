@@ -144,7 +144,7 @@ describe('the rate is frozen the day it was written down', () => {
     await user.click(await screen.findByRole('button', { name: 'Add' }));
     await user.type(await screen.findByLabelText(/What for/i), 'Coffee');
     await user.type(screen.getByLabelText(/How much/i), '4,50');
-    const dated = (screen.getByLabelText(/When/i) as HTMLInputElement).value;
+    const dated = screen.getByLabelText<HTMLInputElement>(/When/i).value;
     await user.click(screen.getByRole('button', { name: /^Save$/ }));
 
     await waitFor(() => {

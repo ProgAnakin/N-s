@@ -50,8 +50,8 @@ beforeEach(() => {
   URL.createObjectURL = ((blob: Blob) => {
     savedBlob = blob;
     return 'blob:archive';
-  }) as typeof URL.createObjectURL;
-  URL.revokeObjectURL = (() => {}) as typeof URL.revokeObjectURL;
+  });
+  URL.revokeObjectURL = (() => {});
 
   // Left alone, the anchor click asks jsdom to navigate to blob:archive.
   vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
@@ -105,8 +105,11 @@ function mount(seed: Record<string, Record<string, unknown>[]> = {}) {
 function blobText(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(reader.error);
+    reader.onload = () => {
+      if (typeof reader.result === 'string') resolve(reader.result);
+      else reject(new Error('FileReader returned something other than text.'));
+    };
+    reader.onerror = () => reject(reader.error ?? new Error('FileReader failed.'));
     reader.readAsText(blob);
   });
 }

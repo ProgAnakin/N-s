@@ -6,7 +6,6 @@ import { Sheet } from '@/components/ui/Surface';
 import { Seal } from '@/components/ui/Seal';
 import { allItems, MAX_PINNED, type FeatureFlags } from '@/components/layout/nav-items';
 import { useCouple, useSession } from '@/data/session';
-import type { AccentColumn } from '@/data/database.types';
 import { ACCENTS } from '@/theme';
 import { useStrings } from '@/i18n';
 import { cn } from '@/utils/cn';
@@ -74,7 +73,7 @@ export function YoursSection() {
                   key={accent}
                   type="button"
                   aria-pressed={selected}
-                  onClick={() => void updateCouple({ accent: accent as AccentColumn })}
+                  onClick={() => void updateCouple({ accent: accent })}
                   className={cn(
                     'inline-flex items-center gap-2 rounded-sm border px-3 py-2 text-sm transition-colors',
                     selected

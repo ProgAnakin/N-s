@@ -99,7 +99,7 @@ describe('callWindows', () => {
       yourOffsetMinutes: SAO_PAULO,
       theirOffsetMinutes: SHANGHAI,
     });
-    expect(window!.yourStart).not.toBe(window!.theirStart);
+    expect(window.yourStart).not.toBe(window.theirStart);
   });
 
   it('gives a full day when both are in the same zone', () => {
@@ -127,7 +127,7 @@ describe('callWindows', () => {
       theirAwake: { start: 22, end: 4 },
     });
     expect(windows).toHaveLength(1);
-    expect(windows[0]!.hours).toBe(6);
+    expect(windows[0].hours).toBe(6);
   });
 
   it('collapses a permanent overlap into one window rather than 24', () => {
@@ -138,7 +138,7 @@ describe('callWindows', () => {
       theirAwake: { start: 0, end: 0 },
     });
     expect(windows).toHaveLength(1);
-    expect(windows[0]!.hours).toBe(24);
+    expect(windows[0].hours).toBe(24);
   });
 
   it('is symmetric in total overlap', () => {

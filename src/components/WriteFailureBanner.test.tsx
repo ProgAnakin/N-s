@@ -44,7 +44,9 @@ describe('when nothing has gone wrong', () => {
 describe('when a write fails', () => {
   it('appears as an alert, so it is announced and not just drawn', () => {
     mount();
-    act(() => reportWriteFailure({ code: '42501', message: 'refused' }));
+    act(() => {
+      reportWriteFailure({ code: '42501', message: 'refused' });
+    });
     expect(screen.getByRole('alert')).toBeInTheDocument();
   });
 
@@ -55,7 +57,9 @@ describe('when a write fails', () => {
    */
   it('says what to do when the database is behind the app', () => {
     mount();
-    act(() => reportWriteFailure({ code: 'PGRST204', message: "Could not find the 'accent' column" }));
+    act(() => {
+      reportWriteFailure({ code: 'PGRST204', message: "Could not find the 'accent' column" });
+    });
 
     const alert = screen.getByRole('alert');
     expect(alert.textContent).toMatch(/migration/i);
@@ -68,7 +72,9 @@ describe('when a write fails', () => {
    */
   it('says something different when the rules refused it', () => {
     mount();
-    act(() => reportWriteFailure({ code: '42501', message: 'row-level security' }));
+    act(() => {
+      reportWriteFailure({ code: '42501', message: 'row-level security' });
+    });
 
     const alert = screen.getByRole('alert').textContent ?? '';
     expect(alert).toMatch(/The database refused it/);
@@ -78,7 +84,9 @@ describe('when a write fails', () => {
   it('can be dismissed, and stays dismissed', async () => {
     const user = userEvent.setup();
     mount();
-    act(() => reportWriteFailure({ code: '42501', message: 'refused' }));
+    act(() => {
+      reportWriteFailure({ code: '42501', message: 'refused' });
+    });
 
     await user.click(screen.getByRole('button', { name: /dismiss/i }));
     await waitFor(() => {
@@ -93,7 +101,9 @@ describe('when a write fails', () => {
    */
   it('is fixed to the viewport rather than to the top of a long page', () => {
     mount();
-    act(() => reportWriteFailure({ code: '42501', message: 'refused' }));
+    act(() => {
+      reportWriteFailure({ code: '42501', message: 'refused' });
+    });
     expect(screen.getByRole('alert').className).toContain('fixed');
   });
 });

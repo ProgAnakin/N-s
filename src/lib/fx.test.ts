@@ -64,7 +64,7 @@ describe('convertCents', () => {
   });
 
   it('refuses to invent a number from a broken rate', () => {
-    const broken = { ...EUR_SNAPSHOT, USD: 0 } as RateSnapshot;
+    const broken = { ...EUR_SNAPSHOT, USD: 0 };
     expect(convertCents(1000, broken, 'USD')).toBe(0);
   });
 });

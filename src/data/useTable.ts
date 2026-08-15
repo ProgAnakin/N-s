@@ -225,7 +225,7 @@ export function useTable<T extends TableName>(table: T, options: UseTableOptions
     // inference, so the filter and order arguments are handed over as plain
     // strings. Everything coming back out is still typed as RowOf<T>.
     const query = client.from(table).select(columns);
-    const filtered = query.eq(column as never, value as never);
+    const filtered = query.eq(column as never, value);
     const ordered = thenBy
       ? filtered.order(orderBy, { ascending }).order(thenBy, { ascending: thenAscending })
       : filtered.order(orderBy, { ascending });
@@ -339,7 +339,7 @@ export function useTable<T extends TableName>(table: T, options: UseTableOptions
       const { error: deleteError } = await client
         .from(table)
         .delete()
-        .eq('id' as never, id as never);
+        .eq('id' as never, id);
       if (deleteError) {
         reportWriteFailure(deleteError);
         return false;

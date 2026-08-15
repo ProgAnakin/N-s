@@ -35,6 +35,28 @@ export interface RecordedWrite {
 
 type Row = Record<string, unknown>;
 
+/**
+ * Orders two column values the way Postgres would, near enough.
+ *
+ * It used to be `String(x ?? '')` on both sides, which is right for text
+ * and dates and silently wrong for everything else: two rows ordered by a
+ * jsonb column both stringify to "[object Object]", compare equal, and the
+ * sort becomes a no-op that no test would ever notice. Numbers were worse
+ * than useless — "10" sorts before "9".
+ */
+function compareValues(a: unknown, b: unknown): number {
+  if (a === b) return 0;
+  // Postgres puts nulls last by default on ascending order.
+  if (a === null || a === undefined) return 1;
+  if (b === null || b === undefined) return -1;
+  if (typeof a === 'number' && typeof b === 'number') return a - b;
+  if (typeof a === 'boolean' && typeof b === 'boolean') return Number(a) - Number(b);
+  if (typeof a === 'string' && typeof b === 'string') return a.localeCompare(b);
+  // Anything else — jsonb, arrays — is not meaningfully orderable here, and
+  // saying so beats pretending every row is equal.
+  return JSON.stringify(a).localeCompare(JSON.stringify(b));
+}
+
 export class FakeSupabase {
   /** Seeded rows, by table. Mutated by writes so reads stay consistent. */
   tables = new Map<string, Row[]>();
@@ -340,9 +362,8 @@ class FakeQuery implements PromiseLike<{ data: unknown; error: FakeError | null 
         let found = rows.filter((row) => this.matches(row));
         for (const { column, ascending } of [...this.orders].reverse()) {
           found = [...found].sort((a, b) => {
-            const left = String(a[column] ?? '');
-            const right = String(b[column] ?? '');
-            return ascending ? left.localeCompare(right) : right.localeCompare(left);
+            const order = compareValues(a[column], b[column]);
+            return ascending ? order : -order;
           });
         }
         if (this.rowLimit !== undefined) found = found.slice(0, this.rowLimit);

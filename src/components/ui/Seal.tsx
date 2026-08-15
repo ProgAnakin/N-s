@@ -31,8 +31,8 @@ function initialsOf(name: string): string {
   const parts = trimmed.split(/\s+/);
   // A Chinese name is written without spaces, so the first character is the
   // right initial; a Western name gives first and last.
-  if (parts.length === 1) return [...parts[0]!][0]!.toUpperCase();
-  return `${[...parts[0]!][0]!}${[...parts[parts.length - 1]!][0]!}`.toUpperCase();
+  if (parts.length === 1) return [...parts[0]][0].toUpperCase();
+  return `${[...parts[0]][0]}${[...parts[parts.length - 1]][0]}`.toUpperCase();
 }
 
 /** Stable tilt in [-3, 3] degrees, derived from the name. */

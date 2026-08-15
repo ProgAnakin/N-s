@@ -78,7 +78,7 @@ export function summariseCycle(
 
   const gaps: number[] = [];
   for (let i = 1; i < starts.length; i += 1) {
-    const gap = daysBetween(starts[i - 1]!, starts[i]!);
+    const gap = daysBetween(starts[i - 1], starts[i]);
     if (gap >= MIN_PLAUSIBLE_GAP && gap <= MAX_PLAUSIBLE_GAP) gaps.push(gap);
   }
 

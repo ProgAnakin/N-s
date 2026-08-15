@@ -3,7 +3,6 @@ import { BookmarkPlus, CalendarHeart, Check, Gift, RotateCcw, ShieldAlert } from
 import { Sheet } from '@/components/ui/Surface';
 import { Tag } from '@/components/ui/Bits';
 import { useCouple } from '@/data/session';
-import type { RememberFactRow } from '@/data/database.types';
 import { parseISODate } from '@/lib/calendar';
 import { occurrenceFor } from '@/lib/dates';
 import { toImportantDates } from '@/data/mappers';
@@ -103,7 +102,7 @@ export function SuggestionList({
   const suggestions = useMemo(
     () =>
       buildSuggestions({
-        facts: (facts.rows as RememberFactRow[]).map((row) => ({
+        facts: (facts.rows).map((row) => ({
           id: row.id,
           answer: row.answer,
           question: row.question,

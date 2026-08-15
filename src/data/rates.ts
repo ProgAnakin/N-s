@@ -329,7 +329,7 @@ export interface CapturedRates {
 
 function capture(rates: CachedRates | null, currency: CurrencyCode): CapturedRates | null {
   if (!rates) return null;
-  const fx = snapshotFrom(BASE, rates.perBase as Partial<Record<CurrencyCode, number>>, currency);
+  const fx = snapshotFrom(BASE, rates.perBase, currency);
   return fx ? { fx, on: rates.date } : null;
 }
 
@@ -381,7 +381,7 @@ export async function rateBook(): Promise<RateBook> {
 
   const book: RateBook = {};
   for (const code of CURRENCIES) {
-    const fx = snapshotFrom(BASE, perBase as Partial<Record<CurrencyCode, number>>, code);
+    const fx = snapshotFrom(BASE, perBase, code);
     if (fx) book[code] = fx;
   }
   return book;

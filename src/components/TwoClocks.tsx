@@ -43,13 +43,18 @@ export function TwoClocks() {
   const yourZone = profile.time_zone || deviceTimeZone();
   const theirZone = partner?.time_zone || null;
 
-  const yourAwake: AwakeWindow = { start: profile.awake_start, end: profile.awake_end };
-  const theirAwake: AwakeWindow = {
-    start: partner?.awake_start ?? 8,
-    end: partner?.awake_end ?? 23,
-  };
+  // The four numbers, not the two objects. `isAwakeAt` reads nothing but
+  // `start` and `end`, so these are the real dependencies — and the objects
+  // are rebuilt on every render, which would make the memo below recompute
+  // every time if it depended on them.
+  const yourStart = profile.awake_start;
+  const yourEnd = profile.awake_end;
+  const theirStart = partner?.awake_start ?? 8;
+  const theirEnd = partner?.awake_end ?? 23;
 
   const view = useMemo(() => {
+    const yourAwake: AwakeWindow = { start: yourStart, end: yourEnd };
+    const theirAwake: AwakeWindow = { start: theirStart, end: theirEnd };
     const utcNow = utcMinutesOfDay(now);
     const yourOffset = zoneOffsetMinutes(yourZone, now);
     const theirOffset = theirZone ? zoneOffsetMinutes(theirZone, now) : yourOffset;
@@ -84,7 +89,7 @@ export function TwoClocks() {
       windows,
       strip,
     };
-  }, [now, yourZone, theirZone, yourAwake.start, yourAwake.end, theirAwake.start, theirAwake.end]);
+  }, [now, yourZone, theirZone, yourStart, yourEnd, theirStart, theirEnd]);
 
   // Nothing to compare against until the second person joins.
   if (!partner) return null;
