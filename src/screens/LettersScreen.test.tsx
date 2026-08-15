@@ -199,6 +199,24 @@ describe('receiving one', () => {
     await screen.findByText('For the soup.');
     expect(screen.queryByRole('button', { name: /^Delete$/ })).not.toBeInTheDocument();
   });
+
+  /**
+   * The rule was always enforced. What was missing is the sentence: the
+   * controls simply vanished the moment the letter was read, leaving the
+   * author to wonder whether they had imagined them.
+   */
+  it('says why the controls are gone once your letter has been read', async () => {
+    mount({
+      seed: (d) =>
+        d.seed('letters', [
+          letterRow({ from_profile: HIM_ID, to_profile: HER_ID, read_at: '2026-03-02T10:00:00.000Z' }),
+        ]),
+    });
+
+    await screen.findByText('For the soup.');
+    expect(screen.queryByRole('button', { name: /^Delete$/ })).not.toBeInTheDocument();
+    expect(await screen.findByText(/already opened/i)).toBeInTheDocument();
+  });
 });
 
 describe('taking one back', () => {

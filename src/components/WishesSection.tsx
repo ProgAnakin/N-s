@@ -168,7 +168,14 @@ export function MyWishesSection() {
 
       {/* --- What happened --------------------------------------------- */}
       <div className="mt-8">
-        <h3 className="label-kicker mb-1">{s.wishes.historyTitle}</h3>
+        <h3 className="label-kicker mb-1 flex items-baseline gap-2">
+          {s.wishes.historyTitle}
+          {history.length > 0 && (
+            <span className="font-normal normal-case tracking-normal text-ink-faint">
+              {s.wishes.historyCount(history.length)}
+            </span>
+          )}
+        </h3>
         <p className="mb-3 max-w-prose text-pretty text-sm leading-relaxed text-ink-soft">
           {s.wishes.historyBody}
         </p>
@@ -679,15 +686,26 @@ function GrantedChip({
   onUndo: () => void;
 }) {
   const s = useStrings();
+  // Why the undo is missing, when it is. The rule was already enforced —
+  // `ungrantValues` refuses rather than overwriting a live wish — but the
+  // button simply vanished, which reads as a bug rather than as a full
+  // list.
+  const note = canUndo ? undefined : s.wishes.ungrantFull;
+
   return (
     <span
       className={cn(
         'inline-flex items-center gap-1.5 rounded-sm border border-rule px-2 py-1 text-[11px]',
         byYou ? 'text-jade' : 'text-ink-faint',
       )}
+      title={note}
     >
       <Check className="h-3 w-3" />
       {wish.title}
+      {/* The jade said "you granted this one" and said it in colour alone,
+          which is no use to a screen reader or to anybody who cannot tell
+          these two greens apart. */}
+      {byYou && <span className="sr-only">{s.wishes.grantedByYou}</span>}
       <span className="text-ink-faint">· {label}</span>
       {/* Marking the wrong wish granted is one mis-tap; without this the
           only way back is deleting somebody's wish. */}

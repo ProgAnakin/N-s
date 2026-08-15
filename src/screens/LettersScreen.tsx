@@ -346,6 +346,15 @@ function LetterCard({
               </IconButton>
             </>
           )}
+          {/* The rule was already enforced — the controls simply vanished
+              the moment they read it, with nothing to say why. Once a
+              letter has been read it stops being a draft you can revise
+              and becomes a thing that happened to somebody. Worth one
+              line, rather than leaving the author to wonder whether they
+              imagined the buttons. */}
+          {mine && letter.read_at !== null && (
+            <span className="text-xs text-ink-faint">{s.letters.cannotDelete}</span>
+          )}
         </span>
       </div>
 

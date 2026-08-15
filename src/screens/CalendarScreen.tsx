@@ -200,6 +200,25 @@ export function CalendarScreen() {
           </IconButton>
         </div>
 
+        {/* Only when you have wandered off. Two arrows and no way home is
+            fine until somebody steps into 2029 to check an anniversary and
+            has to press back thirty-six times — and a permanent button for
+            a thing you rarely need is furniture. */}
+        {(cursor.year !== today.year || cursor.month !== today.month) && (
+          <div className="-mt-2 mb-4 flex justify-center">
+            <button
+              type="button"
+              onClick={() => {
+                setCursor({ year: today.year, month: today.month });
+                setSelected(today);
+              }}
+              className="rounded-sm px-2 py-1 text-xs text-cinnabar underline-offset-4 hover:underline"
+            >
+              {s.calendar.backToToday}
+            </button>
+          </div>
+        )}
+
         <div className="grid grid-cols-7 gap-1">
           {weekdayLabels.map((day) => (
             <div key={day} className="pb-1 text-center text-xs text-ink-faint">
