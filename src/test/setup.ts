@@ -71,3 +71,28 @@ if (!('IntersectionObserver' in window)) {
   (globalThis as Record<string, unknown>).IntersectionObserver =
     ImmediateIntersectionObserver;
 }
+
+/**
+ * One known-benign warning, filtered by name so the rest still shout.
+ *
+ * `SessionProvider` loads the profile and couple asynchronously on mount.
+ * Its state lands after the synchronous render every test starts with, and
+ * React says so — twenty-two times in a full run, which is exactly the
+ * volume at which nobody reads warnings any more. The provider is not
+ * wrong: it guards every write with a token and an `active` flag, and
+ * every test that depends on the loaded state already waits with `findBy*`.
+ *
+ * Filtering *this one message* rather than silencing `console.error` is the
+ * whole point. Any other act warning — a real one, from a component
+ * updating state outside a transition — comes through untouched, and now
+ * against a quiet background where it can be seen.
+ */
+const realConsoleError = console.error.bind(console);
+console.error = (...args: unknown[]) => {
+  // React passes its warnings as a `%s` format string plus the component
+  // name, so the test has to be against the whole call rather than the
+  // first argument — which is what the first attempt at this got wrong.
+  const whole = args.map((arg) => (typeof arg === 'string' ? arg : '')).join(' ');
+  if (whole.includes('not wrapped in act') && whole.includes('SessionProvider')) return;
+  realConsoleError(...args);
+};

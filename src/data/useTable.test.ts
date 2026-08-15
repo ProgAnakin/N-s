@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { FakeSupabase } from '@/test/fake-supabase';
 import { setFakeClient } from '@/test/client-mock';
 
@@ -60,7 +60,13 @@ describe('what gets cached on the device', () => {
     );
 
     await waitFor(() => expect(result.current.loading).toBe(false));
-    await result.current.create({ couple_id: 'c1', author_id: 'a', idea: 'a scarf' });
+    // Wrapped, because `create` refreshes the hook's rows when it resolves
+    // and that lands as a state update outside React's control otherwise.
+    // The warning it produced was the only genuine one in the suite once
+    // the known-benign SessionProvider noise was filtered out.
+    await act(async () => {
+      await result.current.create({ couple_id: 'c1', author_id: 'a', idea: 'a scarf' });
+    });
 
     await waitFor(() => expect(db.rowsOf('gift_ideas')).toHaveLength(1));
     expect(cachedKeys()).toEqual([]);
