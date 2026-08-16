@@ -31,17 +31,37 @@ anything, but that check runs in the browser and the browser belongs to
 whoever is using it. Set the server minimum to match, so the rule is
 actually a rule.
 
-While you are there: leaked-password protection, if the plan has it. It
-costs nothing and catches the single most common real-world compromise.
+Leaked-password protection is the other half of this, and Supabase only
+sells it on Pro. **Leave it alone — the app does that job itself now.**
+`src/lib/password.ts` refuses, at sign-up, anything on the list attackers
+work through first, any straight run or repeat or bare date, and anything
+built from the person's own name or email. It normalises before it looks,
+so "Password123!" and "p@ssw0rd" reduce to the entry they are hiding
+behind, and it carries the Portuguese, Italian and Chinese entries a list
+compiled from English-language breaches would miss.
+
+It is a compiled-in list rather than a call to Have I Been Pwned on
+purpose: an app whose whole argument is that little leaves the device
+should not send even a hash prefix of somebody's password to a third
+party in order to prove it is careful — and it has to work on the train.
+
+It runs at sign-up only. Checking at sign-in would tell somebody their
+existing password is weak at the moment they cannot change it, and would
+refuse an account that already exists, which is a lockout wearing a
+security badge.
 
 ## 3. Backups, and how far back they go
 
 **Database → Backups**
 
 On the free plan there is no point-in-time recovery — only daily
-snapshots, kept briefly. For an app whose entire purpose is holding years
-of somebody's memories, this is the most expensive line on this page if
-it ever matters.
+snapshots, kept briefly, and no setting to change. For an app whose
+entire purpose is holding years of somebody's memories, this is the most
+expensive line on this page if it ever matters.
+
+Staying free is a legitimate choice; the mitigation is to know what it
+costs and to take the keepsake export from Settings now and then, so
+there is a copy that does not live in one company's database.
 
 Two questions worth answering out loud:
 

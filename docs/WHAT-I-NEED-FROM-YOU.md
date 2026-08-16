@@ -68,11 +68,13 @@ ok | 0016_mine | check | expenses|mine | the default split rule — without this
 These live where no test can reach them. About five minutes together, and
 the full reasoning for each is in `docs/SUPABASE-CHECKLIST.md`.
 
+**All five are free.** Nothing on this list needs a paid plan.
+
 | # | Where | What |
 |---|---|---|
 | 1 | Authentication → Rate Limits | Confirm sign-in attempts per hour is a number you would be happy to explain. The app has no other defence against someone working through passwords. |
-| 2 | Authentication → Providers → Email | Set the server-side minimum password length to 8. The app checks this in the browser, and the browser belongs to whoever is using it. Turn on leaked-password protection if your plan has it. |
-| 3 | Database → Backups | Answer one question honestly: if the database were lost on a Wednesday afternoon, how much would be gone — and is that acceptable for photographs that cannot be retaken? If not, point-in-time recovery is the first paid feature worth buying. |
+| 2 | Authentication → Providers → Email | Set **Minimum password length** to 8. Free on every plan. The app checks this in the browser too, and the browser belongs to whoever is using it — this makes the rule an actual rule. **Leave "Prevent use of leaked passwords" alone**: it is Pro-only, and the app now does that job itself at sign-up. See `src/lib/password.ts`. |
+| 3 | Database → Backups | Nothing to press on the free plan — daily snapshots are what you get. Worth knowing rather than doing: if the database were lost on a Wednesday afternoon, the day's writing is gone. The keepsake export in Settings is the free mitigation; take one now and then. |
 | 4 | Account → Security | **Turn on two-factor authentication.** Whoever signs into that dashboard reads everything, for every couple, bypassing every privacy rule in this repository. It is the master key. |
 | 5 | Authentication → URL Configuration | Your deployed address must be listed, or password-reset links come back to the wrong place. |
 

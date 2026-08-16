@@ -170,3 +170,93 @@ describe('creating an account', () => {
     expect(await screen.findByText(/Check your email/i)).toBeInTheDocument();
   });
 });
+
+/**
+ * The free-plan stand-in for Supabase's paid leaked-password check.
+ *
+ * The screen enforces this only on sign-up. Running it at sign-in would
+ * tell somebody their existing password is weak at the exact moment they
+ * cannot change it, and would refuse an account that already exists —
+ * which is a lockout wearing a security badge.
+ */
+describe('refusing a password somebody would guess first', () => {
+  async function startSignUp() {
+    const user = userEvent.setup();
+    const scene = mountSignedOut(<AuthScreen />);
+    await user.click(await screen.findByRole('button', { name: /No account yet/i }));
+    await user.type(await screen.findByLabelText(/Your name/i), 'Léo');
+    await user.type(screen.getByLabelText(/Email/i), 'leo@example.com');
+    return { user, ...scene };
+  }
+
+  it('refuses one off the list, dressed up to pass a meter', async () => {
+    const { user, db } = await startSignUp();
+
+    await user.type(screen.getByLabelText(/Password/i), 'Password123!');
+    await user.click(screen.getByRole('button', { name: /Create account/i }));
+
+    expect(await screen.findByText(/lists attackers try first/i)).toBeInTheDocument();
+    expect(db.auth.signUp).not.toHaveBeenCalled();
+  });
+
+  it('refuses a pattern rather than a password', async () => {
+    const { user, db } = await startSignUp();
+
+    await user.type(screen.getByLabelText(/Password/i), '12345678');
+    await user.click(screen.getByRole('button', { name: /Create account/i }));
+
+    expect(await screen.findByText(/pattern rather than a password/i)).toBeInTheDocument();
+    expect(db.auth.signUp).not.toHaveBeenCalled();
+  });
+
+  it('refuses one built from their own email', async () => {
+    const user = userEvent.setup();
+    const { db } = mountSignedOut(<AuthScreen />);
+
+    await user.click(await screen.findByRole('button', { name: /No account yet/i }));
+    await user.type(await screen.findByLabelText(/Your name/i), 'Costanzo');
+    await user.type(screen.getByLabelText(/Email/i), 'costatocb@gmail.com');
+    await user.type(screen.getByLabelText(/Password/i), 'costatocb-77');
+    await user.click(screen.getByRole('button', { name: /Create account/i }));
+
+    expect(await screen.findByText(/your own name or email/i)).toBeInTheDocument();
+    expect(db.auth.signUp).not.toHaveBeenCalled();
+  });
+
+  it('does not flag a short name that would match half the dictionary', async () => {
+    // "Léo" is three letters. Flagging every password containing them
+    // would refuse "delightful" and teach people to ignore the warning.
+    const { user, db } = await startSignUp();
+
+    await user.type(screen.getByLabelText(/Password/i), 'kaleidoscope leaf');
+    await user.click(screen.getByRole('button', { name: /Create account/i }));
+
+    await waitFor(() => expect(db.auth.signUp).toHaveBeenCalled());
+  });
+
+  it('lets a real one through', async () => {
+    const { user, db } = await startSignUp();
+
+    await user.type(screen.getByLabelText(/Password/i), 'quince and pear tart');
+    await user.click(screen.getByRole('button', { name: /Create account/i }));
+
+    await waitFor(() => expect(db.auth.signUp).toHaveBeenCalled());
+  });
+
+  /**
+   * The one that matters most. Somebody whose password predates this rule
+   * must still be able to get in — the check exists to stop a weak
+   * password being *chosen*, not to lock out an account that has one.
+   */
+  it('never applies any of it at sign-in', async () => {
+    const user = userEvent.setup();
+    const { db } = mountSignedOut(<AuthScreen />);
+
+    await user.type(await screen.findByLabelText(/Email/i), 'leo@example.com');
+    await user.type(screen.getByLabelText(/Password/i), 'Password123!');
+    await user.click(screen.getByRole('button', { name: /Sign in/i }));
+
+    await waitFor(() => expect(db.auth.signInWithPassword).toHaveBeenCalled());
+    expect(screen.queryByText(/lists attackers try first/i)).not.toBeInTheDocument();
+  });
+});

@@ -1622,6 +1622,16 @@ export const en = {
     signIn: 'That email and password didn’t match.',
     signUp: 'Couldn’t create that account.',
     weakPassword: 'Use at least 8 characters.',
+    /* One message per problem, and each one says what to do rather than
+       scoring the attempt. A meter that grades you is how people arrive at
+       "Password1!" — a string that satisfies every rule and is on every
+       list ever leaked. */
+    passwordTooSimple:
+      'That’s a pattern rather than a password — a run, a repeat or a date. Anything with a word in it is stronger.',
+    passwordTooCommon:
+      'That one is on the lists attackers try first, even dressed up with a capital and a number. Two unrelated words beat it easily.',
+    passwordLooksLikeYou:
+      'That’s built from your own name or email, which is the first thing somebody who knows you would try.',
     invalidEmail: 'That doesn’t look like an email address.',
     nameRequired: 'A name would help.',
     amountRequired: 'Enter an amount.',

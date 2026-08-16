@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { MIN_PASSWORD_LENGTH, passwordProblem } from '@/lib/password';
 import { Cover } from '@/components/layout/Cover';
 import { Button } from '@/components/ui/Button';
 import { ErrorNote } from '@/components/ui/Bits';
@@ -24,8 +25,28 @@ export function AuthScreen() {
 
   function validate(): string | null {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return s.errors.invalidEmail;
-    if (password.length < 8) return s.errors.weakPassword;
     if (isSignUp && !displayName.trim()) return s.errors.nameRequired;
+
+    /**
+     * The free-plan stand-in for "prevent use of leaked passwords", which
+     * Supabase only sells on Pro. See lib/password.ts for why it is a
+     * compiled-in list rather than a call to Have I Been Pwned.
+     *
+     * Only on sign-up. Running it at sign-in would tell somebody their
+     * existing password is weak at the exact moment they cannot change it,
+     * and would refuse an account that already exists — which is a lockout,
+     * not a security measure.
+     */
+    if (isSignUp) {
+      const problem = passwordProblem(password, { email, name: displayName });
+      if (problem === 'too_short') return s.errors.weakPassword;
+      if (problem === 'too_simple') return s.errors.passwordTooSimple;
+      if (problem === 'too_common') return s.errors.passwordTooCommon;
+      if (problem === 'looks_like_you') return s.errors.passwordLooksLikeYou;
+    } else if (password.length < MIN_PASSWORD_LENGTH) {
+      return s.errors.weakPassword;
+    }
+
     return null;
   }
 
