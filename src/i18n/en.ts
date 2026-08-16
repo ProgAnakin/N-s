@@ -716,7 +716,6 @@ export const en = {
     bookDaysAhead: 'How far ahead',
     bookDaysAheadHint: 'Days. Used to keep it off tonight’s list when it is already too late.',
     bookBy: (date: string) => `Book by ${date}`,
-    bookNow: 'Too late to book for that day',
 
     outdoorsShort: 'Outdoors',
     outdoors: 'Weather decides it',
@@ -730,6 +729,7 @@ export const en = {
     anyTime: 'Any time',
     anyFeeling: 'Any feeling',
     anyLength: 'However long',
+    upToMinutes: (n: number) => (n < 60 ? `Under ${n} min` : `Under ${n / 60} h`),
     wet: 'It’s raining',
     clearFilters: 'Show everything',
     forDay: 'For',
@@ -1107,7 +1107,6 @@ export const en = {
     imHome: 'I’m home',
     arrived: 'Sent',
     arrivedAt: (name: string, place: string) => `${name} arrived at ${place}`,
-    lastSeen: 'Recently',
     noneYet: 'No arrivals yet',
     noneYetBody:
       'One tap tells them you got in, so neither of you has to write the message.',
@@ -1127,7 +1126,6 @@ export const en = {
       'While the app is open, it can spot that you’ve reached a saved place and send the arrival for you.',
     autoCheckinLimit:
       'The web has no background location: this only works with the app open, and never records where you’ve been — only that you arrived.',
-    placesTitle: 'Your places',
     placesEmpty: 'No places saved. The button still works without them.',
     detectedAt: (place: string) => `Looks like you’re at ${place}.`,
     detectedSend: 'Let them know',
@@ -1216,9 +1214,7 @@ export const en = {
     receivedTitle: 'Flowers you’ve been given',
     receivedNone: 'None yet. They arrive when they arrive.',
     receivedTotal: (n: number) => (n === 1 ? '1 flower' : `${n} flowers`),
-    fromPartner: (name: string) => `from ${name}`,
     newOnes: (n: number) => (n === 1 ? '1 new' : `${n} new`),
-    meaningTitle: 'What it means',
     kinds: {
       rose: {
         name: 'Pink rose',

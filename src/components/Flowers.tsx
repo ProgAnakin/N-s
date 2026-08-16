@@ -114,7 +114,15 @@ export function FlowerCounter({ className }: { className?: string }) {
       <button
         type="button"
         onClick={() => void onOpen()}
-        aria-label={`${s.flowers.counter}: ${counts.total}`}
+        // The dot announcing new ones is two pixels and `aria-hidden`, so
+        // without this a screen reader is told the count and never told
+        // that any of it just arrived — which is the only part that is
+        // news.
+        aria-label={
+          counts.unseen > 0
+            ? `${s.flowers.counter}: ${counts.total}, ${s.flowers.newOnes(counts.unseen)}`
+            : `${s.flowers.counter}: ${counts.total}`
+        }
         className={cn(
           'relative inline-flex items-center gap-1.5 rounded-sm px-2 py-1 text-sm',
           'text-ink-soft transition-colors hover:bg-sunk hover:text-ink',

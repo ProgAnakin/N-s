@@ -560,6 +560,11 @@ export function PartnerWishesSection() {
           <p className="mt-1 max-w-prose text-pretty text-sm leading-relaxed text-ink-soft">
             {s.wishes.partnerEmptyBody}
           </p>
+          {/* The one thing you can actually do about it. The empty state
+              explained itself kindly and then left you looking at it. */}
+          <p className="mt-3 text-sm text-cinnabar">
+            {s.wishes.partnerNudge(names.partnerName)}
+          </p>
         </Sheet>
       ) : (
         <ul className="grid gap-3 sm:grid-cols-3">

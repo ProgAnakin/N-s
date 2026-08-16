@@ -18,7 +18,7 @@ import { parseISODate } from '@/lib/calendar';
 import { computeBalance } from '@/lib/money';
 import { daysTogether, formatDate, formatMonthShort, occurrenceFor } from '@/lib/dates';
 import { actionFor, buildReminders, type Reminder } from '@/lib/reminders';
-import { coupleCountries, upcomingHolidays } from '@/lib/holidays';
+import { coupleCountries, lunarTableCovers, upcomingHolidays } from '@/lib/holidays';
 import { useI18n, useStrings } from '@/i18n';
 import { useCoupleTable, useCountdown, usePartnerNames, useToday } from './shared';
 import { cn } from '@/utils/cn';
@@ -496,12 +496,43 @@ function HolidaysSection({
                   {copy.note && (
                     <p className="mt-1 text-sm leading-relaxed text-ink-soft">{copy.note}</p>
                   )}
+                  {/* The step, on a day that is one person's and not the
+                      other's. Written months ago and wired to nothing:
+                      "it's Brazil's day, not yours" is the entire reason a
+                      cross-cultural couple wants this list at all, and the
+                      list was showing dates with no idea what to do about
+                      them. Only on the near ones — a nudge six weeks out
+                      is not a nudge. */}
+                  {(() => {
+                    // One country only: a day both of them share needs no
+                    // "it's theirs, not yours". And only inside a week — a
+                    // nudge six weeks out is not a nudge.
+                    const only = holiday.countries.length === 1 ? holiday.countries[0] : null;
+                    if (!only || holiday.weight === 'romantic' || holiday.daysUntil > 7) {
+                      return null;
+                    }
+                    return (
+                      <p className="mt-1 text-sm leading-relaxed text-cinnabar">
+                        {s.reminders.actionHoliday(s.holidays.countries[only] ?? only)}
+                      </p>
+                    );
+                  })()}
                 </div>
               </Sheet>
             </li>
           );
         })}
       </ul>
+
+      {/* `lunarTableCovers` was written, exported and never called, so the
+          day the tables run out this list would simply stop showing Chinese
+          New Year with nothing said. A silent gap in a list somebody uses
+          to remember their partner's country is the worst kind. */}
+      {!lunarTableCovers(today.year) && (
+        <p className="mt-3 text-xs leading-relaxed text-ink-faint">
+          {s.holidays.tabulatedNote}
+        </p>
+      )}
     </section>
   );
 }

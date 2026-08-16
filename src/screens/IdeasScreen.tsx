@@ -26,6 +26,7 @@ import type {
   TimeOfDayColumn,
 } from '@/data/database.types';
 import { parseISODate, toISODate } from '@/lib/calendar';
+import { centsToInputValue, parseAmountToCents } from '@/lib/money';
 import { formatDate } from '@/lib/dates';
 import {
   BOOKINGS,
@@ -74,7 +75,17 @@ interface Draft {
   bookDaysAhead: string;
   outdoors: boolean;
   minutes: string;
+  typical: string;
 }
+
+/**
+ * The lengths worth offering, in minutes.
+ *
+ * Bands rather than a free number: nobody knows whether an evening is 75
+ * or 90 minutes, and the question being asked is "how much time have I
+ * got", which has about four honest answers.
+ */
+const LENGTH_BANDS = [30, 60, 120, 180] as const;
 
 function emptyDraft(): Draft {
   return {
@@ -89,6 +100,7 @@ function emptyDraft(): Draft {
     bookDaysAhead: '',
     outdoors: false,
     minutes: '',
+    typical: '',
   };
 }
 
@@ -136,6 +148,12 @@ export function IdeasScreen() {
   const [time, setTime] = useState<TimeOfDayColumn | ''>(() => timeOfDayAt(new Date().getHours()));
   const [feeling, setFeeling] = useState<FeelingColumn | ''>('');
   const [wet, setWet] = useState(false);
+  const [justDone, setJustDone] = useState<string | null>(null);
+  // The lib has filtered on this since it was written — `shortlist` checks
+  // `tonight.minutes` against each idea — and nothing ever passed it a
+  // value. "I have forty minutes" is the commonest thing anybody actually
+  // knows about an evening.
+  const [maxMinutes, setMaxMinutes] = useState('');
 
   const domain = useMemo(() => ideas.rows.map(toIdea), [ideas.rows]);
   const day = parseISODate(forDay) ?? today;
@@ -149,11 +167,12 @@ export function IdeasScreen() {
         time: time || null,
         feeling: feeling || null,
         wet,
+        minutes: maxMinutes ? Number(maxMinutes) : null,
       }),
-    [domain, day, today, budget, time, feeling, wet],
+    [domain, day, today, budget, time, feeling, wet, maxMinutes],
   );
 
-  const filtered = Boolean(budget || time || feeling || wet);
+  const filtered = Boolean(budget || time || feeling || wet || maxMinutes);
   const rowsById = useMemo(
     () => new Map(ideas.rows.map((row) => [row.id, row])),
     [ideas.rows],
@@ -179,6 +198,7 @@ export function IdeasScreen() {
       bookDaysAhead: row.book_days_ahead == null ? '' : String(row.book_days_ahead),
       outdoors: row.outdoors,
       minutes: row.minutes == null ? '' : String(row.minutes),
+      typical: row.typical_cents == null ? '' : centsToInputValue(row.typical_cents),
     });
   }
 
@@ -201,6 +221,10 @@ export function IdeasScreen() {
         draft.booking === 'none' ? null : numberOrNull(draft.bookDaysAhead, 0, 365),
       outdoors: draft.outdoors,
       minutes: numberOrNull(draft.minutes, 5, 2880),
+      // A column that existed in the schema, in the domain type and in
+      // nobody's reach: there was no field for it, so it could only ever
+      // be null. Parsed the way every other amount in this app is.
+      typical_cents: draft.typical.trim() ? parseAmountToCents(draft.typical) : null,
     };
 
     if (draft.id) await ideas.update(draft.id, values);
@@ -222,6 +246,11 @@ export function IdeasScreen() {
       done_count: row.done_count + 1,
       last_done_on: toISODate(today),
     });
+    // The card re-sorts itself down the shelf when the count goes up, so
+    // without this the only feedback for pressing the button is the thing
+    // you pressed moving away from your finger.
+    setJustDone(row.id);
+    window.setTimeout(() => setJustDone((current) => (current === row.id ? null : current)), 2500);
   }
 
   async function onPlan() {
@@ -325,6 +354,18 @@ export function IdeasScreen() {
                   </option>
                 ))}
               </SelectField>
+              <SelectField
+                label={s.ideas.minutes}
+                value={maxMinutes}
+                onChange={(event) => setMaxMinutes(event.target.value)}
+              >
+                <option value="">{s.ideas.anyLength}</option>
+                {LENGTH_BANDS.map((value) => (
+                  <option key={value} value={value}>
+                    {s.ideas.upToMinutes(value)}
+                  </option>
+                ))}
+              </SelectField>
             </div>
 
             <div className="mt-3 flex flex-wrap items-center gap-3">
@@ -395,6 +436,7 @@ export function IdeasScreen() {
                       setPlanDay(forDay);
                     }}
                     onDone={() => void markDone(row)}
+                    justDone={justDone === row.id}
                   />
                 );
               })}
@@ -481,6 +523,19 @@ export function IdeasScreen() {
               value={draft.cost}
               onChange={(cost) => setDraft({ ...draft, cost })}
               options={COSTS.map((value) => ({ value, label: s.ideas.costs[value] }))}
+            />
+
+            {/* Optional, and deliberately beside the band rather than
+                instead of it. The band is what survives a decade and a
+                border; the number is what you happen to remember. */}
+            <TextField
+              label={s.ideas.typical}
+              hint={s.ideas.typicalHint}
+              inputMode="decimal"
+              placeholder="0.00"
+              value={draft.typical}
+              onChange={(event) => setDraft({ ...draft, typical: event.target.value })}
+              optional
             />
 
             <ChoiceField
@@ -666,6 +721,7 @@ function IdeaCard({
   onFavourite,
   onPlan,
   onDone,
+  justDone,
 }: {
   idea: DateIdea;
   index: number;
@@ -677,6 +733,7 @@ function IdeaCard({
   onFavourite: () => void;
   onPlan: () => void;
   onDone: () => void;
+  justDone: boolean;
 }) {
   const s = useStrings();
   const since = daysSinceDone(idea, day);
@@ -758,9 +815,11 @@ function IdeaCard({
         <p className="text-[11px] text-ink-faint">
           {idea.doneCount === 0
             ? s.ideas.never
-            : since === null
-              ? s.ideas.doneTimes(idea.doneCount)
-              : s.ideas.lastTime(since)}
+            : since !== null
+              ? s.ideas.lastTime(since)
+              : idea.doneCount === 1
+                ? s.ideas.doneOnce
+                : s.ideas.doneTimes(idea.doneCount)}
         </p>
 
         <div className="mt-auto flex flex-wrap items-center gap-2 pt-1">
@@ -786,10 +845,15 @@ function IdeaCard({
             type="button"
             onClick={onDone}
             title={s.ideas.markDoneHint}
-            className="inline-flex items-center gap-1.5 rounded-sm px-2 py-1.5 text-xs text-ink-faint transition-colors hover:bg-sunk hover:text-ink"
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-sm px-2 py-1.5 text-xs transition-colors',
+              justDone
+                ? 'text-jade'
+                : 'text-ink-faint hover:bg-sunk hover:text-ink',
+            )}
           >
             <Check className="h-3.5 w-3.5" />
-            {s.ideas.markDone}
+            {justDone ? s.ideas.doneToday : s.ideas.markDone}
           </button>
 
           <span className="ml-auto">

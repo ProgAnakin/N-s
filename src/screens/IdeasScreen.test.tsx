@@ -305,3 +305,103 @@ describe('what the shelf never says', () => {
     expect(page.queryByText(/suggested by/i)).not.toBeInTheDocument();
   });
 });
+
+/**
+ * Four gaps found by sweeping for i18n keys nothing referenced. None was
+ * a missing string — each was a feature somebody wrote the words for and
+ * then did not build.
+ */
+describe('what the copy promised and the screen did not do', () => {
+  it('says “Done once”, not “Done 1 times”', async () => {
+    mount([ideaRow({ title: 'The rooftop', done_count: 1, last_done_on: null })]);
+
+    await screen.findByText('The rooftop');
+    expect(screen.getByText('Done once')).toBeInTheDocument();
+    expect(screen.queryByText(/Done 1 times/)).not.toBeInTheDocument();
+  });
+
+  it('still says “Done 3 times” when it really was three', async () => {
+    mount([ideaRow({ title: 'The rooftop', done_count: 3, last_done_on: null })]);
+    await screen.findByText('The rooftop');
+    expect(screen.getByText('Done 3 times')).toBeInTheDocument();
+  });
+
+  /**
+   * `shortlist` has checked `tonight.minutes` against each idea since the
+   * day it was written. Nothing ever passed it a value, so the one thing
+   * anybody actually knows about an evening — how much of it there is —
+   * could not be asked.
+   */
+  it('filters by how much time you have', async () => {
+    const user = userEvent.setup();
+    mount([
+      ideaRow({ id: 'quick', title: 'A quick coffee', minutes: 25 }),
+      ideaRow({ id: 'long', title: 'The whole opera', minutes: 180 }),
+    ]);
+
+    await screen.findByText('The whole opera');
+    await user.selectOptions(screen.getByLabelText(/how long/i), '30');
+
+    await waitFor(() => {
+      expect(screen.queryByText('The whole opera')).not.toBeInTheDocument();
+    });
+    expect(screen.getByText('A quick coffee')).toBeInTheDocument();
+  });
+
+  it('shows everything again when the length filter is cleared', async () => {
+    const user = userEvent.setup();
+    mount([ideaRow({ id: 'long', title: 'The whole opera', minutes: 180 })]);
+
+    await screen.findByText('The whole opera');
+    const lengths = screen.getByLabelText(/how long/i);
+    await user.selectOptions(lengths, '30');
+    await waitFor(() => expect(screen.queryByText('The whole opera')).not.toBeInTheDocument());
+
+    await user.selectOptions(lengths, '');
+    expect(await screen.findByText('The whole opera')).toBeInTheDocument();
+  });
+
+  /**
+   * `typical_cents` existed in the migration, in the row type and in the
+   * domain type, and there was no field anywhere that could set it — so it
+   * was null for every idea anybody would ever write.
+   */
+  it('can record what a thing actually cost', async () => {
+    const user = userEvent.setup();
+    const { db } = mount([]);
+
+    await user.click(await screen.findByRole('button', { name: /Add an idea/ }));
+    await user.type(await screen.findByLabelText(/what is it/i), 'The rooftop');
+    await user.type(screen.getByLabelText(/the actual number/i), '42,50');
+    await user.click(screen.getByRole('button', { name: /^Save$/ }));
+
+    await waitFor(() => {
+      const values = lastWriteTo(db, 'date_ideas')?.values as Record<string, unknown>;
+      expect(values?.typical_cents).toBe(4250);
+    });
+  });
+
+  it('leaves it null when nobody knows the number', async () => {
+    const user = userEvent.setup();
+    const { db } = mount([]);
+
+    await user.click(await screen.findByRole('button', { name: /Add an idea/ }));
+    await user.type(await screen.findByLabelText(/what is it/i), 'A walk');
+    await user.click(screen.getByRole('button', { name: /^Save$/ }));
+
+    await waitFor(() => {
+      const values = lastWriteTo(db, 'date_ideas')?.values as Record<string, unknown>;
+      expect(values?.typical_cents).toBeNull();
+    });
+  });
+
+  it('confirms a thing was marked done, since the card moves away from you', async () => {
+    const user = userEvent.setup();
+    mount([ideaRow({ title: 'The rooftop' })]);
+
+    await screen.findByText('The rooftop');
+    await user.click(screen.getByRole('button', { name: /did this/i }));
+
+    expect(await screen.findByText(/marked done/i)).toBeInTheDocument();
+  });
+});
