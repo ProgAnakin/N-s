@@ -105,4 +105,4 @@ check by hand:
 | Storage paths are scoped to the couple | `0003`, attacked in the same suite |
 | The migrations apply from nothing, in order | `npm run db:check` |
 | What actually landed in the real project | paste `supabase/verify.sql` |
-| The app's own behaviour | 693 tests |
+| The app's own behaviour | 1045 tests, `npm run verify` |

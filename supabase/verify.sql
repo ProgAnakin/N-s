@@ -54,6 +54,16 @@ with expected(migration, kind, ident, note) as (
   union all
 
   -- ------------------------------------------------------------------
+  -- Constraints that decide whether a write lands at all
+  -- ------------------------------------------------------------------
+  select * from (values
+    ('0016_mine', 'check', 'expenses|mine',
+     'the default split rule — without this every new expense is refused')
+  ) as t(migration, kind, ident, note)
+
+  union all
+
+  -- ------------------------------------------------------------------
   -- Columns added after the table already existed
   --
   -- These are the ones that go wrong. A missing table breaks loudly; a
@@ -244,6 +254,22 @@ checked as (
       )
 
       when 'bucket' then exists (select 1 from storage.buckets where id = ident)
+
+      -- `table|needle`: the check constraints on `table` mention `needle`.
+      -- Coarse on purpose. The question being asked is not "is the
+      -- constraint byte-identical" but "will this database accept the
+      -- values the app now writes", and a migration that has not been run
+      -- fails it for exactly the right reason.
+      when 'check' then exists (
+        select 1
+          from pg_constraint c
+          join pg_class t on t.oid = c.conrelid
+          join pg_namespace n on n.oid = t.relnamespace
+         where n.nspname = 'public'
+           and c.contype = 'c'
+           and t.relname = split_part(ident, '|', 1)
+           and pg_get_constraintdef(c.oid) like '%' || split_part(ident, '|', 2) || '%'
+      )
     end as present
   from expected
 )
