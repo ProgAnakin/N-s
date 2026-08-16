@@ -4,12 +4,21 @@ Everything in the code is done and verified — `npm run verify` runs the
 linter, the type-checker, 1045 tests and a production build, and it is
 green. What is left is on the other side of a login I do not have.
 
-There are three jobs. The first one takes two minutes and the app is
-**broken until it is done**. The other two can wait for a quiet evening.
+**Status: one job left.** The migrations are run and the environment
+variables have been right for a long time; only the dashboard settings in
+part 2 are still open, and none of them is urgent.
 
 ---
 
-## 1. Run two migrations — do this first
+## 1. Run two migrations — ✅ DONE
+
+*0015 and 0016 both reported Success, and `verify.sql` came back with
+every row `ok`. Nothing further here.*
+
+<details>
+<summary>What was done, for the record</summary>
+
+## The two migrations
 
 Right now, saving *any* new expense fails. Not some — all of them.
 
@@ -50,9 +59,11 @@ The row to look for specifically:
 ok | 0016_mine | check | expenses|mine | the default split rule — without this every new expense is refused
 ```
 
+</details>
+
 ---
 
-## 2. Five settings in the Supabase dashboard
+## 2. Five settings in the Supabase dashboard — the one job left
 
 These live where no test can reach them. About five minutes together, and
 the full reasoning for each is in `docs/SUPABASE-CHECKLIST.md`.
@@ -69,34 +80,38 @@ Number 4 is the one that would actually hurt.
 
 ---
 
-## 3. Two environment variables on Vercel
+## 3. Environment variables on Vercel — ✅ ALREADY DONE
 
-**Vercel → your project → Settings → Environment Variables.**
+This one was on the list by habit rather than by need, and it should not
+have been. It has been correct since the app first loaded real data.
 
-| Name | Value | Where to find it |
-|---|---|---|
-| `VITE_SUPABASE_URL` | `https://nhzcxiitmxzkuvoqwhkn.supabase.co` | Supabase → Project Settings → API |
-| `VITE_SUPABASE_ANON` | the long `eyJ…` string | Supabase → Project Settings → API → **anon / public** |
+**How I know, rather than assume:** `VITE_SUPABASE_URL` has a default
+compiled into `src/data/client.ts`, so the only variable that is actually
+required is `VITE_SUPABASE_ANON` — and `isConfigured` is false without it,
+which makes the app render the "not configured" screen and nothing else.
+You have been sending me screenshots of real expenses in the real app. It
+is set, and it is set correctly.
 
-Two things to be careful about:
-
-- The name is `VITE_SUPABASE_ANON`, **not** `..._ANON_KEY`. Vercel warns
-  about variable names ending in `KEY`, which is why it is spelled this
-  way.
-- Copy the **anon / public** value. The one labelled `service_role`
-  bypasses every privacy rule in the project and must never reach a
-  browser. If you ever paste it by accident, rotate it in the Supabase
-  dashboard immediately.
-
-Set them for Production, Preview and Development, then redeploy.
+For the record, in case it ever needs re-entering: the name is
+`VITE_SUPABASE_ANON`, **not** `..._ANON_KEY` — Vercel warns about names
+ending in `KEY`, which is why you asked for it this way. The value is the
+**anon / public** one from Supabase → Project Settings → API. The one
+labelled `service_role` bypasses every privacy rule in the project and
+must never reach a browser.
 
 ---
 
-## How to tell me it is done
+## What to check in the app now the migrations are in
 
-Say "migrations run" and I will pick up from there. If `verify.sql`
-printed anything as `MISSING`, paste me that output instead — it tells me
-exactly what to fix, and it is faster than describing the symptom.
+Two minutes, and it proves the whole chain end to end:
+
+1. **Log an expense.** It should save without a red banner. That is 0016
+   working — before it, every single one was refused.
+2. **Log one in another currency** — ¥ or R$. The row should show what
+   you paid *and* what it counts as in the currency you read in.
+3. **Open Spending on both phones.** The exchange rate figures should
+   agree. That is 0015: you are both reading one shared table rather than
+   each phone fetching its own and quietly disagreeing.
 
 ---
 
