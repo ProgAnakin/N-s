@@ -1,7 +1,8 @@
 import { lazy, Suspense, type ReactNode } from 'react';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { LazyMotion, MotionConfig } from 'framer-motion';
 import { AppShell } from '@/components/layout/AppShell';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { LoadingBlock } from '@/components/ui/Bits';
 import { SessionProvider, useSession } from '@/data/session';
 import { I18nProvider, type LocaleCode } from '@/i18n';
@@ -48,8 +49,14 @@ const SettingsScreen = lazyScreen(() => import('@/screens/SettingsScreen'), 'Set
  * height that the page does not jump, and says nothing.
  */
 function Lazy({ children }: { children: ReactNode }) {
+  // Keyed by path, so the boundary forgets a broken screen the moment you
+  // navigate away from it. Without the key, one bad render on Spending
+  // would keep every screen after it showing the same apology.
+  const { pathname } = useLocation();
   return (
-    <Suspense fallback={<div className="min-h-[60dvh]" aria-busy="true" />}>{children}</Suspense>
+    <ErrorBoundary key={pathname} scope="screen">
+      <Suspense fallback={<div className="min-h-[60dvh]" aria-busy="true" />}>{children}</Suspense>
+    </ErrorBoundary>
   );
 }
 
@@ -79,7 +86,7 @@ function Gate() {
       <AccentProvider accent={(couple?.accent as Accent) ?? 'cinnabar'}>
         <Routes>
           <Route element={<AppShell />}>
-            <Route index element={<HomeScreen />} />
+            <Route index element={<Lazy><HomeScreen /></Lazy>} />
             <Route path="vault" element={<Lazy><VaultScreen /></Lazy>} />
             <Route path="dates" element={<Lazy><DatesScreen /></Lazy>} />
             <Route path="memories" element={<Lazy><MemoriesScreen /></Lazy>} />

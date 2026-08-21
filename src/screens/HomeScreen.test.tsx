@@ -335,3 +335,71 @@ describe('when a table comes back empty', () => {
     expect(await screen.findByText('Quick add')).toBeInTheDocument();
   });
 });
+
+/**
+ * The front page is the most-visited screen in the app, and every query on
+ * it except expenses was unbounded — re-reading the couple's whole history
+ * of facts, gifts, trips and packing items on every single visit, to
+ * compute a handful of reminders.
+ */
+describe('what the front page is willing to read', () => {
+  it('caps every table it reads, so the cost stops growing', async () => {
+    const { db } = mountHome({ expenses: [] });
+    await screen.findByText(/what each of you has spent|nothing logged yet/i);
+
+    /**
+     * Named rather than counted, so adding a new unbounded read to the
+     * front page fails here instead of quietly costing everybody a
+     * fortnight's rows on every visit.
+     *
+     * What is on the list and why it stays:
+     *
+     *   profiles, couples  — the session's, two rows by the shape of a
+     *                        couple rather than by a limit.
+     *   letters, memories,
+     *   plans, remember_facts,
+     *   phrases            — `MetricsSection` maps the whole set to count
+     *                        distinct days. A limit there would not make
+     *                        it slower to be wrong; it would make the
+     *                        metrics quietly wrong, which is worse than
+     *                        slow. The fix is a server-side count, and
+     *                        that is a change to the data layer rather
+     *                        than a number in an options object.
+     */
+    const ALLOWED_UNBOUNDED = new Set([
+      'profiles',
+      'couples',
+      'letters',
+      'memories',
+      'plans',
+      'remember_facts',
+      'phrases',
+    ]);
+
+    const unexpected = [
+      ...new Set(
+        db.selects
+          .filter((select) => select.limit === undefined)
+          .map((select) => select.table)
+          .filter((table) => !ALLOWED_UNBOUNDED.has(table)),
+      ),
+    ];
+
+    expect(db.selects.length).toBeGreaterThan(0);
+    expect(unexpected).toEqual([]);
+  });
+
+  /**
+   * The one a limit alone would get wrong. This read every item of every
+   * trip ever taken in order to count the unfinished ones on the next
+   * trip; capping by `sort_order` would have kept an arbitrary slice
+   * across all trips and quietly undercounted.
+   */
+  it('asks for unfinished packing items first, so the cap only cuts finished ones', async () => {
+    const { db } = mountHome({ expenses: [] });
+    await screen.findByText(/what each of you has spent|nothing logged yet/i);
+
+    const items = db.selects.find((select) => select.table === 'trip_items');
+    expect(items?.orders[0]).toEqual({ column: 'done', ascending: true });
+  });
+});

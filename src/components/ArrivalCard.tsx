@@ -31,11 +31,21 @@ export function ArrivalCard() {
   const { request, status } = useGeolocation();
   const alreadyGranted = useGeolocationGranted();
 
-  const places = useCoupleTable('places', { coupleId: couple.id, orderBy: 'created_at', ascending: true });
+  const places = useCoupleTable('places', {
+    coupleId: couple.id,
+    orderBy: 'created_at',
+    ascending: true,
+    // A handful by nature, and bounded costs nothing.
+    limit: 100,
+  });
   const checkins = useCoupleTable('checkins', {
     coupleId: couple.id,
     orderBy: 'created_at',
     ascending: false,
+    // Newest first, and the card shows a few. This was reading every
+    // arrival either of them had ever sent — a row per "I'm home" for as
+    // long as they have used the app — to draw a short list.
+    limit: 50,
   });
 
   const [sending, setSending] = useState(false);

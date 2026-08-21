@@ -41,6 +41,36 @@ import { cn } from '@/utils/cn';
  */
 const HOME_EXPENSE_LIMIT = 400;
 
+/**
+ * Caps for the rest of what the front page reads.
+ *
+ * Every one of these was unbounded, which is fine in month one and is a
+ * slow leak after that: the home screen is the most-visited page in the
+ * app, and it was re-reading the couple's entire history of facts, gifts,
+ * trips and packing items on every visit to compute a handful of
+ * reminders.
+ *
+ * The numbers are chosen to be far past any real couple rather than
+ * tight — the point is that the cost stops growing, not that it is small.
+ */
+const HOME_FACT_LIMIT = 500;
+const HOME_GIFT_LIMIT = 200;
+const HOME_TRIP_LIMIT = 100;
+const HOME_DATE_LIMIT = 200;
+/**
+ * The worst of them, and the one a limit alone would get wrong.
+ *
+ * This read every item of every trip ever taken in order to count the
+ * unfinished ones on the next trip — items × trips, growing in both
+ * directions at once. Capping it by `sort_order` would have kept an
+ * arbitrary slice across all trips and quietly undercounted.
+ *
+ * Ordering by `done` first puts every unfinished item ahead of every
+ * finished one, so the cap only ever truncates completed history, which is
+ * the half this screen does not count.
+ */
+const HOME_TRIP_ITEM_LIMIT = 600;
+
 export function HomeScreen() {
   const s = useStrings();
   const { intlLocale } = useI18n();
@@ -59,26 +89,33 @@ export function HomeScreen() {
     coupleId: couple.id,
     orderBy: 'date',
     columns: 'id,label,date,type,recurring',
+    limit: HOME_DATE_LIMIT,
   });
   const facts = useCoupleTable('remember_facts', {
     coupleId: couple.id,
     orderBy: 'remind_on',
     columns: 'id,question,answer,category,remind_on,visibility',
+    limit: HOME_FACT_LIMIT,
   });
   const gifts = useCoupleTable('gift_ideas', {
     coupleId: couple.id,
     orderBy: 'created_at',
     columns: 'id,idea,occasion,used',
+    limit: HOME_GIFT_LIMIT,
   });
   const trips = useCoupleTable('trips', {
     coupleId: couple.id,
     orderBy: 'start_date',
     columns: 'id,destination,start_date',
+    limit: HOME_TRIP_LIMIT,
   });
   const tripItems = useCoupleTable('trip_items', {
     coupleId: couple.id,
-    orderBy: 'sort_order',
+    orderBy: 'done',
+    ascending: true,
+    thenBy: 'sort_order',
     columns: 'id,trip_id,done',
+    limit: HOME_TRIP_ITEM_LIMIT,
   });
   const expenses = useCoupleTable('expenses', {
     coupleId: couple.id,

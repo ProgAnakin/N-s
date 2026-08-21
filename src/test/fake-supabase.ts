@@ -63,7 +63,12 @@ export class FakeSupabase {
   /** Every write attempted, in order — the record a test asserts against. */
   writes: RecordedWrite[] = [];
   /** Every read, so a test can assert what was asked for and how much. */
-  selects: { table: string; columns: string; limit?: number }[] = [];
+  selects: {
+    table: string;
+    columns: string;
+    limit?: number;
+    orders: { column: string; ascending: boolean }[];
+  }[] = [];
   /** Errors to return instead of performing a write, keyed `table:op`. */
   private refusals = new Map<string, FakeError>();
   /** RPC handlers, keyed by function name. */
@@ -358,6 +363,10 @@ class FakeQuery implements PromiseLike<{ data: unknown; error: FakeError | null 
           table: this.table,
           columns: this.columns,
           limit: this.rowLimit,
+          // Recorded so a test can assert *how* rows were asked for, not
+          // only which. The home screen's packing-item query depends on
+          // unfinished rows arriving first, and that was unassertable.
+          orders: this.orders.map((order) => ({ ...order })),
         });
         let found = rows.filter((row) => this.matches(row));
         for (const { column, ascending } of [...this.orders].reverse()) {
