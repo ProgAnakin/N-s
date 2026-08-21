@@ -103,6 +103,21 @@ must never reach a browser.
 
 ---
 
+## Putting it on your home screens
+
+Both of you, once, after the next deploy:
+
+**iPhone** — open the app in Safari, tap the share button, scroll to **Add
+to Home Screen**.
+
+**Android** — open it in Chrome, tap the three dots, then **Install app**
+or **Add to Home screen**.
+
+It gets the seal as its icon and opens without the browser's address bar.
+It is the same app and the same account; nothing to set up.
+
+---
+
 ## What to check in the app now the migrations are in
 
 Two minutes, and it proves the whole chain end to end:
@@ -127,8 +142,12 @@ So you know these are decisions and not oversights:
   once, properly, when the copy has stopped moving.
 - **Push notifications.** Would need Web Push keys, a `pg_cron` schedule
   and an Edge Function. It is a whole subsystem, not a feature.
-- **Installing to the home screen.** No service worker, so no offline and
-  no icon on the home screen yet.
+- ~~**Installing to the home screen.**~~ Done. There is a manifest,
+  icons generated from the seal, and a service worker, so both phones can
+  add Nós to the home screen and it opens without browser chrome. The
+  worker caches the app's own JavaScript and stylesheet and *nothing
+  else* — never a row, a photograph or a signed URL, which is why its
+  caching rule is written as a list of refusals and has its own tests.
 - **A handful of small presentational components have no tests** —
   `Button`, `Seal`, `Surface`, `Bits`. They have no logic to get wrong,
   and I would rather spend the time on the screens that do.

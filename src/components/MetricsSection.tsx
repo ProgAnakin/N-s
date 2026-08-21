@@ -20,6 +20,22 @@ import { useCoupleTable, useToday } from '@/screens/shared';
  * card explains itself, because a number nobody can interpret is either
  * decoration or anxiety.
  */
+/**
+ * How much history a metric is willing to read.
+ *
+ * These five queries ask for one field each — an id and a date, an id and
+ * a boolean — so a row is tens of bytes and the payload was never the
+ * problem. What they had was no ceiling at all, on a screen somebody opens
+ * every day.
+ *
+ * A cap rather than a server-side count, because none of these is a count:
+ * `metrics.ts` folds rows into *distinct days*, and `select count(*)`
+ * cannot answer that without a view. Five thousand is a memory every day
+ * for thirteen years — past which a couple has better news than a metric,
+ * and the honest reading of a number that far out is "a lot" anyway.
+ */
+const METRIC_ROW_LIMIT = 5000;
+
 export function MetricsSection({ className }: { className?: string }) {
   const s = useStrings();
   const { couple } = useCouple();
@@ -29,14 +45,28 @@ export function MetricsSection({ className }: { className?: string }) {
   const plans = useCoupleTable('plans', {
     coupleId: couple.id,
     columns: 'id,day,went_well',
+      limit: METRIC_ROW_LIMIT,
   });
-  const memories = useCoupleTable('memories', { coupleId: couple.id, columns: 'id,date' });
-  const letters = useCoupleTable('letters', { coupleId: couple.id, columns: 'id,created_at' });
+  const memories = useCoupleTable('memories', {
+    coupleId: couple.id,
+    columns: 'id,date',
+    limit: METRIC_ROW_LIMIT,
+  });
+  const letters = useCoupleTable('letters', {
+    coupleId: couple.id,
+    columns: 'id,created_at',
+    limit: METRIC_ROW_LIMIT,
+  });
   const facts = useCoupleTable('remember_facts', {
     coupleId: couple.id,
     columns: 'id,answer,answer_kind',
+      limit: METRIC_ROW_LIMIT,
   });
-  const phrases = useCoupleTable('phrases', { coupleId: couple.id, columns: 'id,learned' });
+  const phrases = useCoupleTable('phrases', {
+    coupleId: couple.id,
+    columns: 'id,learned',
+    limit: METRIC_ROW_LIMIT,
+  });
 
   const metrics = useMemo(
     () =>
